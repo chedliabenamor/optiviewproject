@@ -1,0 +1,35 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}OptiView Dashboard{% endblock %}
+
+{% block main %}
+    <div class="container-fluid">
+        <p>Welcome to the OptiView Store administration panel.</p>
+        <p>Select an option from the menu to manage your store's data.</p>
+        
+        {# You can add more dashboard-specific content here later #}
+        {# For example, quick stats or links #}
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Recent Orders</h5>
+                        <p class="card-text">Display some recent order stats here.</p>
+                        <a href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('index') }}" class="btn btn-primary">View Orders</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">New Users</h5>
+                        <p class="card-text">Display new user registration stats here.</p>
+                        <a href="{{ ea_url().setController('App\\Controller\\Admin\\UserCrudController').setAction('index') }}" class="btn btn-primary">View Users</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+       
+    </div>
+{% endblock %}

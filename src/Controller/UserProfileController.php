@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\User;
+use App\Form\UserProfileTypeForm;
+use App\Repository\OrderRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Routing\Attribute\Route; // Ensuring Attribute is used for #[Route]
+
+#[Route('/profile')]
+final class UserProfileController extends AbstractController
+{
+    #[Route('/', name: 'app_user_profile_index', methods: ['GET'])]
+    public function index(): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        return $this->render('user_profile/index.html.twig', [
+            'user' => $user,
+        ]);
+    }
+
+    #[Route('/edit', name: 'app_user_profile_edit', methods: ['GET', 'POST'])]
+    public function editProfile(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        $form = $this->createForm(UserProfileTypeForm::class, $user);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Handle password change separately if a new password is provided
+            $newPassword = $form->get('plainPassword')->getData();
+            if ($newPassword) {
+                $user->setPassword(
+                    $passwordHasher->hashPassword(
+                        $user,
+                        $newPassword
+                    )
+                );
+            }
+
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Your profile has been updated successfully.');
+
+            return $this->redirectToRoute('app_user_profile_index');
+        }
+
+        return $this->render('user_profile/edit.html.twig', [
+            'userProfileForm' => $form->createView(),
+            'user' => $user,
+        ]);
+    }
+
+    #[Route('/orders', name: 'app_user_profile_orders', methods: ['GET'])]
+    public function orderHistory(OrderRepository $orderRepository): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        $orders = $orderRepository->findBy(['user' => $user], ['createdAt' => 'DESC']);
+
+        return $this->render('user_profile/orders.html.twig', [
+            'orders' => $orders,
+            'user' => $user,
+        ]);
+    }
+}

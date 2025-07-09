@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Admin{% endblock %}</title>
+    {{ encore_entry_link_tags('admin') }}
+    {{ encore_entry_script_tags('admin') }}
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+    {% block sidebar %}
+        {% include 'admin/menu/sidebar.html.twig' %}
+    {% endblock %}
+    <main>
+        {% block body %}{% endblock %}
+    </main>
+</body>
+</html>

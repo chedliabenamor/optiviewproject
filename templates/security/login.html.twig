@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Log in!{% endblock %}
+
+{% block body %}
+
+	<!-- Title page -->
+	<section class="bg-img1 txt-center p-lr-15 p-tb-92" style="background-image: url('{{ asset('assets/images/bg-01.jpg') }}');">
+		<h2 class="ltext-105 cl0 txt-center">
+			Login ! See the World in Style!
+		</h2>
+	</section>	
+    <section class="bg0 p-t-104 p-b-116">
+		<div class="container">
+			<div class="flex-w flex-tr">
+				<div class="size-210 bor10 p-lr-70 p-t-55 p-b-70 p-lr-15-lg w-full-md d-table mx-auto">
+                       <form method="post">
+        {% if error %}
+            <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+        {% endif %}
+
+
+
+       <h4 class="mtext-105 cl2 txt-center p-b-30">Already A custumer ? Login</h4>
+       
+        <div class="bor8 m-b-20 how-pos4-parent">
+							<input class="stext-111 cl2 plh3 size-116 p-l-62 p-r-30" type="email" value="{{ last_username }}" name="_username" id="username" placeholder="Your Email Address"  required autofocus>
+							<img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-email.png') }}" alt="ICON">
+		</div>
+  
+        <div class="bor8 m-b-20 how-pos4-parent">
+            <input type="password" name="_password" id="password" class="stext-111 cl2 plh3 size-116 p-l-62 p-r-30" autocomplete="current-password" required placeholder="your password">
+            {# Original left icon (lock) #}
+            <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/locked.png') }}" alt="ICON" style="opacity:0.3; top:calc(50% - 14px);">
+            {# Toggle password visibility button #}
+            <span id="togglePasswordButton" class="how-pos4" style="left: auto; right: 15px; cursor: pointer; z-index: 10;" title="Show/Hide password">
+                <i class="zmdi zmdi-eye" id="togglePasswordIcon"></i>
+            </span>
+            <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+        </div>
+        {#
+            Uncomment this section and add a remember_me option below your firewall to activate remember me functionality.
+            See https://symfony.com/doc/current/security/remember_me.html
+
+            <div class="checkbox mb-3">
+                <input type="checkbox" name="_remember_me" id="_remember_me">
+                <label for="_remember_me">Remember me</label>
+            </div>
+        #}
+
+        <button class="flex-c-m stext-101 cl0 size-121 bg3 bor1 hov-btn3 p-lr-15 trans-04 pointer" type="submit">
+            Sign in
+        </button>
+    </form>
+
+
+				
+	</div>
+
+			
+		</div>
+	</section>	
+ 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const passwordInput = document.getElementById('password');
+            const togglePasswordButton = document.getElementById('togglePasswordButton');
+            const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+
+            if (passwordInput && togglePasswordButton && togglePasswordIcon) {
+                togglePasswordButton.addEventListener('click', function (e) {
+                    e.preventDefault(); // Prevent any default action if inside a form
+                    // Toggle the type attribute of the password input
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+
+                    // Toggle the icon class
+                    if (type === 'password') {
+                        togglePasswordIcon.classList.remove('zmdi-eye-off');
+                        togglePasswordIcon.classList.add('zmdi-eye');
+                    } else {
+                        togglePasswordIcon.classList.remove('zmdi-eye');
+                        togglePasswordIcon.classList.add('zmdi-eye-off');
+                    }
+                });
+            }
+        });
+    </script>
+{% endblock %}

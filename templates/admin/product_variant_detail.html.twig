@@ -1,0 +1,86 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}
+    Product Variant Details: {{ entity.instance.sku ?: entity.instance.color ?: ('#' ~ entity.instance.id) }}
+{% endblock %}
+
+{% block main %}
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title mb-4">
+                Variant: {{ entity.instance.sku ?: entity.instance.color ?: ('#' ~ entity.instance.id) }}
+                {% if entity.instance.product %}
+                    <small class="text-muted">(for Product: <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('detail').setEntityId(entity.instance.product.id) }}">{{ entity.instance.product.name }}</a>)</small>
+                {% endif %}
+            </h3>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <h4>Variant Information</h4>
+                    <dl class="row">
+                        <dt class="col-sm-3">ID:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.id }}</dd>
+
+                        <dt class="col-sm-3">SKU:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.sku ?: 'N/A' }}</dd>
+
+                        <dt class="col-sm-3">Color:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.color ?: 'N/A' }}</dd>
+
+                        <dt class="col-sm-3">Price:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.price is not null ? entity.instance.price|format_currency('USD') : 'N/A' }}</dd>
+
+                        <dt class="col-sm-3">Stock:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.stock }}</dd>
+
+                        <dt class="col-sm-3">Active:</dt>
+                        <dd class="col-sm-9">
+                            {% if entity.instance.isActive %}
+                                <span class="badge badge-success">Yes</span>
+                            {% else %}
+                                <span class="badge badge-danger">No</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+                <div class="col-md-4">
+                    {# Placeholder for variant images if any #}
+                    {% if entity.instance.productVariantImages is not empty and entity.instance.productVariantImages|length > 0 %}
+                        <h5>Variant Images</h5>
+                        <div class="row">
+                        {% for image in entity.instance.productVariantImages %}
+                            <div class="col-6 mb-2">
+                                <img src="{{ asset('uploads/product_variant_images/' ~ image.imageName) }}" alt="Variant Image {{ loop.index }}" class="img-fluid rounded shadow-sm">
+                            </div>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No specific images for this variant.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">Created: {{ entity.instance.createdAt|date('Y-m-d H:i:s') }}</small>
+                </div>
+                <div class="col-md-6 text-md-right">
+                    <small class="text-muted">Last Updated: {{ entity.instance.updatedAt ? entity.instance.updatedAt|date('Y-m-d H:i:s') : 'N/A' }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {# Render actions configured in ProductVariantCrudController #}
+        {# {% set detail_actions_collection = ea.crud.actions.getActionsOnPage(pageName) %}
+        {% for action_dto in detail_actions_collection %}
+            <a href="{{ action_dto.linkUrl }}" class="{{ action_dto.cssClass }}" title="{{ action_dto.label|trans({}, 'EasyAdminBundle') }}">
+                {% if action_dto.icon %}<i class="fas {{ action_dto.icon }}"></i> {% endif %}
+                {{ action_dto.label|trans({}, 'EasyAdminBundle') }}
+            </a>
+        {% endfor %} #}
+    </div>
+
+{% endblock %}

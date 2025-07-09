@@ -1,0 +1,89 @@
+{% extends '@EasyAdmin/crud/index.html.twig' %}
+
+{% block content_header %}
+    {{ parent() }}
+    <div class="custom-filters-wrapper" style="margin-top: 1.5rem;">
+        <h2 style="margin-bottom: 1rem;">Search Filters</h2>
+        <form method="get" class="mb-4 d-flex flex-wrap gap-2">
+            <div>
+                <select name="brand" class="form-select">
+                    <option value="">Select Brand</option>
+                    {% for brand in brands %}
+                        <option value="{{ brand.id }}" {{ app.request.get('brand') == brand.id ? 'selected' : '' }}>{{ brand.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="category" class="form-select">
+                    <option value="">Select Category</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {{ app.request.get('category') == category.id ? 'selected' : '' }}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="color" class="form-select">
+                    <option value="">Select Color</option>
+                    {% for color in colors %}
+                        <option value="{{ color.id }}" {{ app.request.get('color') == color.id ? 'selected' : '' }}>{{ color.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="style" class="form-select">
+                    <option value="">Select Style</option>
+                    {% for style in styles %}
+                        <option value="{{ style.id }}" {{ app.request.get('style') == style.id ? 'selected' : '' }}>{{ style.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="shape" class="form-select">
+                    <option value="">Select Shape</option>
+                    {% for shape in shapes %}
+                        <option value="{{ shape.id }}" {{ app.request.get('shape') == shape.id ? 'selected' : '' }}>{{ shape.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="genre" class="form-select">
+                    <option value="">Select Genre</option>
+                    {% for genre in genres %}
+                        <option value="{{ genre.id }}" {{ app.request.get('genre') == genre.id ? 'selected' : '' }}>{{ genre.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+<select name="stockStatus" class="form-select">
+    <option value="">Stock Status</option>
+    <option value="In Stock" {{ app.request.get('stockStatus') == 'In Stock' ? 'selected' : '' }}>In Stock</option>
+    <option value="Low Stock" {{ app.request.get('stockStatus') == 'Low Stock' ? 'selected' : '' }}>Low Stock</option>
+    <option value="Out of Stock" {{ app.request.get('stockStatus') == 'Out of Stock' ? 'selected' : '' }}>Out of Stock</option>
+</select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="{{ path(app.request.attributes.get('_route')) }}" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+
+
+{% block table_head %}
+    {{ parent() }}
+{% endblock %}
+
+{% block table_body %}
+    {{ parent() }}
+{% endblock %}
+
+
+{#
+{% block paginator %}
+    {{ parent() }}
+{% endblock %}
+#}
+
+

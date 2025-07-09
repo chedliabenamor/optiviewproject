@@ -1,0 +1,133 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Register{% endblock %}
+
+{% block body %}
+<!-- Title page -->
+	<section class="bg-img1 txt-center p-lr-15 p-tb-92" style="background-image: url('{{ asset('assets/images/bg-01.jpg') }}');">
+		<h2 class="ltext-105 cl0 txt-center">
+			Register ! Your Eyes Deserve the Best Frames.
+		</h2>
+	</section>	
+ <section class="bg0 p-t-104 p-b-116">
+		<div class="container">
+			<div class="flex-w flex-tr">
+				<div class="size-210 bor10 p-lr-70 p-t-55 p-b-70 p-lr-15-lg w-full-md d-table mx-auto">
+      
+    {{ form_errors(registrationForm) }}
+
+    {{ form_start(registrationForm, {'attr': {'class': 'm-t-15'}}) }}
+
+        {# Name #}
+        <div class="bor8 m-b-20 how-pos4-parent">
+            {{ form_widget(registrationForm.name, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Name'}}) }}
+            <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-user.png') }}" alt="ICON-USER" style="opacity:0.5; top:calc(50% - 10px); width:20px; height:20px;">
+        </div>
+        {{ form_errors(registrationForm.name) }}
+
+        {# Lastname #}
+        <div class="bor8 m-b-20 how-pos4-parent">
+            {{ form_widget(registrationForm.lastname, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Lastname'}}) }}
+            <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-user.png') }}" alt="ICON-USER" style="opacity:0.5; top:calc(50% - 10px); width:20px; height:20px;">
+        </div>
+        {{ form_errors(registrationForm.lastname) }}
+
+        {# Email #}
+        <div class="bor8 m-b-20 how-pos4-parent">
+            {{ form_widget(registrationForm.email, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Email Address'}}) }}
+            <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-email.png') }}" alt="ICON-EMAIL">
+        </div>
+        {{ form_errors(registrationForm.email) }}
+
+        {# Phone #}
+        <div class="bor8 m-b-20 how-pos4-parent">
+            {{ form_widget(registrationForm.phone, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Phone Number'}}) }}
+            <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-phone-square.png') }}" alt="ICON-PHONE" style="opacity:0.5; top:calc(50% - 10px); width:20px; height:20px;">
+        </div>
+        {{ form_errors(registrationForm.phone) }}
+
+        {# Password (with toggle) #}
+        <div class="bor8 m-b-20 how-pos4-parent">
+            {{ form_label(registrationForm.plainPassword, 'Password', {'label_attr': {'class': 'sr-only'}}) }}
+            {{ form_widget(registrationForm.plainPassword, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Password', 'id': 'registration_form_plainPassword' }}) }}
+            <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/locked.png') }}" alt="ICON-LOCK" style="opacity:0.3; top:calc(50% - 14px);">
+            <span id="toggleRegisterPasswordButton" class="how-pos4" style="left: auto; right: 15px; cursor: pointer; z-index: 10;" title="Show/Hide password">
+                <i class="zmdi zmdi-eye" id="toggleRegisterPasswordIcon"></i>
+            </span>
+        </div>
+        {{ form_errors(registrationForm.plainPassword) }}
+
+        {# Sex #}
+        <div class="m-b-20">
+            {{ form_label(registrationForm.sex) }}
+            <div class="rs1-select2 rs2-select2 bor8 bg0 m-b-12 m-t-9">
+                {{ form_widget(registrationForm.sex, {'attr': {'class': 'js-select2'}}) }}
+                <div class="dropDownSelect2"></div>
+            </div>
+        </div>
+        {{ form_errors(registrationForm.sex) }}
+
+        {# Birthdate #}
+        <div class="m-b-20">
+            {{ form_label(registrationForm.birthdate) }}
+            <div class="d-flex flex-wrap justify-content-between">
+                <div class="rs1-select2 rs2-select2 bor8 bg0 m-b-12 m-t-9 flex-fill mr-2" style="min-width: 100px;">
+                    {{ form_widget(registrationForm.birthdate.year, {'attr': {'class': 'js-select2'}}) }}
+                    <div class="dropDownSelect2"></div>
+                </div>
+                <div class="rs1-select2 rs2-select2 bor8 bg0 m-b-12 m-t-9 flex-fill mr-2" style="min-width: 100px;">
+                    {{ form_widget(registrationForm.birthdate.month, {'attr': {'class': 'js-select2'}}) }}
+                    <div class="dropDownSelect2"></div>
+                </div>
+                <div class="rs1-select2 rs2-select2 bor8 bg0 m-b-12 m-t-9 flex-fill" style="min-width: 100px;">
+                    {{ form_widget(registrationForm.birthdate.day, {'attr': {'class': 'js-select2'}}) }}
+                    <div class="dropDownSelect2"></div>
+                </div>
+            </div>
+        </div>
+        {{ form_errors(registrationForm.birthdate.year) }}
+        {{ form_errors(registrationForm.birthdate.month) }}
+        {{ form_errors(registrationForm.birthdate.day) }}
+        {{ form_errors(registrationForm.birthdate) }} {# For errors on the BirthdayType itself #}
+
+        {# Agree Terms - Checkbox #}
+        <div class="p-t-15 p-b-15 form-group form-check">
+            {{ form_widget(registrationForm.agreeTerms, {'attr': {'class': 'form-check-input'}}) }}
+            {{ form_label(registrationForm.agreeTerms, null, {'label_attr': {'class': 'form-check-label stext-111 cl2'}}) }}
+        </div>
+        {{ form_errors(registrationForm.agreeTerms) }}
+
+        <button type="submit" class="flex-c-m stext-101 cl0 size-121 bg3 bor1 hov-btn3 p-lr-15 trans-04 pointer m-t-20">
+            Register
+        </button>
+    {{ form_end(registrationForm) }}
+
+				
+	           </div>
+		</div>
+	</section>	
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const passwordInput = document.getElementById('registration_form_plainPassword');
+            const togglePasswordButton = document.getElementById('toggleRegisterPasswordButton');
+            const togglePasswordIcon = document.getElementById('toggleRegisterPasswordIcon');
+
+            if (passwordInput && togglePasswordButton && togglePasswordIcon) {
+                togglePasswordButton.addEventListener('click', function (e) {
+                    e.preventDefault(); 
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+
+                    if (type === 'password') {
+                        togglePasswordIcon.classList.remove('zmdi-eye-off');
+                        togglePasswordIcon.classList.add('zmdi-eye');
+                    } else {
+                        togglePasswordIcon.classList.remove('zmdi-eye');
+                        togglePasswordIcon.classList.add('zmdi-eye-off');
+                    }
+                });
+            }
+        });
+    </script>
+{% endblock %}

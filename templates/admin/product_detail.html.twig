@@ -1,0 +1,217 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}
+    Product Details: {{ entity.instance.name }}
+{% endblock %}
+
+{% block main %}
+   
+    
+    {# Displaying associated colors #}
+   
+
+      <div class="mt-3 mb-3 d-flex justify-content-end">
+        {# Edit Product Button #}
+        {% set edit_url = ea_url()
+            .setController(ea.crud.controllerFqcn) 
+            .setAction('edit')
+            .setEntityId(entity.primaryKeyValue) 
+            .set('referrer', app.request.requestUri) 
+            .generateUrl() %}
+        <a href="{{ edit_url }}" class="btn btn-primary"><i class="fas fa-edit me-1"></i>Edit Product</a>
+        
+        {# Back to List Button #}
+        {% set index_url = ea_url()
+            .setController(ea.crud.controllerFqcn)
+            .setAction('index')
+            .generateUrl() %}
+        <a href="{{ index_url }}" class="btn btn-secondary ms-2">Back to list</a>
+    </div>
+ 
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title mb-4">{{ entity.instance.name }}</h3>
+             
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    {% if entity.instance.overviewImage %}
+                        <img src="{{ asset('uploads/products/' ~ entity.instance.overviewImage) }}" alt="{{ entity.instance.name }}" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: cover;">
+                    {% else %}
+                        <div class="img-fluid rounded shadow-sm bg-light d-flex align-items-center justify-content-center" style="height: 300px; border: 1px dashed #ccc;">
+                            <span>No overview image</span>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-8">
+                    <h4>Product Information</h4>
+                    <dl class="row">
+                        <dt class="col-sm-3">Price:</dt>
+                        <dd class="col-sm-9">
+                          {{ entity.instance.price|number_format(2, '.', ',') }} {{ entity.instance.currency == 'EUR' ? '€' : entity.instance.currency }}
+                        </dd>
+
+                        <dt class="col-sm-3">Stock:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.quantityInStock }}</dd>
+
+                        {% if entity.instance.category %}
+                        <dt class="col-sm-3">Category:</dt>
+                        <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\CategoryCrudController').setAction('detail').setEntityId(entity.instance.category.id) }}">{{ entity.instance.category.name }}</a></dd>
+                        {% endif %}
+
+                        {% if entity.instance.brand %}
+                        <dt class="col-sm-3">Brand:</dt>
+                        <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\BrandCrudController').setAction('detail').setEntityId(entity.instance.brand.id) }}">{{ entity.instance.brand.name }}</a></dd>
+                        {% endif %}
+
+                        {% if entity.instance.style %}
+                        <dt class="col-sm-3">Style:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.style.name }}</dd>
+                        {% endif %}
+
+                        {% if entity.instance.shape %}
+                        <dt class="col-sm-3">Shape:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.shape.name }}</dd>
+                        {% endif %}
+
+                        {% if entity.instance.genre %}
+                        <dt class="col-sm-3">Genre:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.genre.name }}</dd>
+                        {% endif %}
+                          <dt class="col-sm-3">Available Colors:</dt>
+                          <dd class="col-sm-9">
+            {% if entity.instance.colors is not empty %}
+                <ul class="list-inline">
+                    {% for color in entity.instance.colors %}
+                        <li class="list-inline-item">
+                            <span class="badge" style="background-color: {{ color.hexCode|default('#5368d5') }}; color: #fff;">{{ color.name }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No colors assigned to this product.</p>
+            {% endif %}
+                   </dd>                        
+                        <dt class="col-sm-3">Loyalty Points:</dt>
+                        <dd class="col-sm-9">{{ entity.instance.loyaltyPoints }} point(s)</dd>
+                      
+                    </dl>
+
+                </div>
+            </div>
+
+            {% if entity.instance.description %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Description</h5>
+                </div>
+                <div class="card-body">
+                    <div style="white-space: pre-wrap;">{{ entity.instance.description|raw }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if entity.instance.productModelImages is not empty and entity.instance.productModelImages|length > 0 %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Additional Images</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for image in entity.instance.productModelImages %}
+                            <div class="col-md-3 mb-3">
+                                {% if image.imageUrl %}
+                                    <img src="{{ asset('uploads/product_images/' ~ image.imageUrl) }}" alt="{{ image.altText ?: 'Product Image' }}" class="img-fluid rounded shadow-sm" style="max-height: 200px; object-fit: cover;">
+                                {% else %}
+                                    <div class="img-fluid rounded shadow-sm bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 1px dashed #ccc;">
+                                        <span>No image</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+               {% set edit_url = ea_url()
+            .setController(ea.crud.controllerFqcn) 
+            .setAction('edit')
+            .setEntityId(entity.primaryKeyValue) 
+            .set('referrer', app.request.requestUri) 
+            .generateUrl() %}
+        <a href="{{ edit_url }}" class="btn btn-primary float-right d-table mt-5"><i class="fas fa-plus  me-1"></i>Add Product Variant</a>
+            {% if entity.instance.productVariants is not empty and entity.instance.productVariants|length > 0 %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Product Variants</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped table-sm table-hover table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>SKU</th>
+                                <th>Color</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Stock Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for variant in entity.instance.productVariants %}
+                                <tr>
+                                    <td>
+                                        {% if variant.getFirstImageUrl() %}
+                                            <img src="{{ asset(variant.getFirstImageUrl()) }}" alt="Variant Image" style="max-width: 60px; max-height: 60px; object-fit: cover;" class="rounded shadow-sm">
+                                        {% else %}
+                                            <span class="text-muted">No image</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ variant.sku }}</td>
+                                    <td>{{ variant.color ?: 'N/A' }}</td>
+                                    <td>
+                                      {{ variant.price is not null ? (variant.price|number_format(2, '.', ',') ~ ' ' ~ (variant.currency == 'EUR' ? '€' : variant.currency)) : 'N/A' }}
+                                    </td>
+                                    <td>{{ variant.stock }}</td>
+                                    <td>
+                                        {% set stock = variant.stock %}
+                                        {% if stock is not null %}
+                                            {% if stock == 0 %}
+                                                <span class="badge bg-danger text-white">Out of Stock</span>
+                                            {% elseif stock > 0 and stock <= 10 %}
+                                                <span class="badge bg-warning text-dark">Low Stock</span>
+                                            {% else %}
+                                                <span class="badge bg-success text-white">In Stock</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary text-white">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductVariantCrudController').setAction('edit').setEntityId(variant.id) }}" class="btn btn-sm btn-primary">Edit</a>
+                                        <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductVariantCrudController').setAction('detail').setEntityId(variant.id) }}" class="btn btn-sm btn-info">View</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <hr class="my-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">Created: {{ entity.instance.createdAt|date('Y-m-d H:i:s') }}</small>
+                </div>
+                <div class="col-md-6 text-md-right">
+                    <small class="text-muted">Last Updated: {{ entity.instance.updatedAt|date('Y-m-d H:i:s') }}</small>
+                </div>
+            </div>
+
+        </div>
+    </div> {# End of main card div #}
+
+
+
+{% endblock %}

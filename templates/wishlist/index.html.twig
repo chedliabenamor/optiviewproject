@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Wishlist - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="container profile-container mt-5 mb-5">
+    <div class="row">
+        <div class="col-md-3">
+            {# Re-using the same profile navigation menu #}
+            <div class="list-group">
+                <a href="{{ path('app_user_profile_index') }}" class="list-group-item list-group-item-action">Profile Information</a>
+                <a href="{{ path('app_user_profile_edit') }}" class="list-group-item list-group-item-action">Edit Profile</a>
+                <a href="{{ path('app_user_profile_orders') }}" class="list-group-item list-group-item-action">Order History</a>
+                <a href="{{ path('app_wishlist') }}" class="list-group-item list-group-item-action active" aria-current="true">Wishlist</a>
+                <a href="{{ path('app_logout') }}" class="list-group-item list-group-item-action">Logout</a>
+            </div>
+        </div>
+        <div class="col-md-9  profile-box">
+            <h2>My Wishlist</h2>
+            <hr>
+
+            {% if wishlistItems is not empty %}
+                <div class="row">
+                    {% for item in wishlistItems %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card">
+                                {# Assuming your wishlist item has a 'product' property with 'name' and 'image' #}
+                                {# You'll need to adjust this based on your actual data structure #}
+                                <img src="{{ asset('uploads/products/' ~ item.product.image) }}" class="card-img-top" alt="{{ item.product.name }}" style="height: 200px; object-fit: cover;">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ item.product.name }}</h5>
+                                    {# Add more product details or actions like 'Remove from Wishlist' or 'Add to Cart' #}
+                                    <a href="#" class="btn btn-sm btn-danger">Remove</a>
+                                    <a href="#" class="btn btn-sm btn-primary">View Product</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    Your wishlist is currently empty. Start adding some products!
+                </div>
+                <a href="{{ path('app_home') }}"class="flex-c-m stext-101 cl0 size-121 bg3 bor1 hov-btn3 p-lr-15 trans-04 pointer">Browse Products</a> {# Or your main product listing page #}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+vich_uploader:
+    db_driver: orm
+    mappings:
+        shape_images:
+            uri_prefix: '%app.path.shape_images%'
+            upload_destination: '%kernel.project_dir%/public/uploads/shapes'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+        product_images:
+            uri_prefix: '%app.path.product_images%'
+            upload_destination: '%kernel.project_dir%/public/uploads/product_images'
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+        product_overview_images:
+            uri_prefix: '%app.path.product_overview_images%'
+            upload_destination: '%kernel.project_dir%/public/uploads/products'
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+        product_variant_images:
+            uri_prefix: '%app.path.product_variant_images%'
+            upload_destination: '%kernel.project_dir%/public/uploads/product_variant_images'
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+        category_images:
+            uri_prefix: /uploads/images/categories
+            upload_destination: '%kernel.project_dir%/public/uploads/images/categories'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+        color_images:
+            uri_prefix: /uploads/images/colors
+            upload_destination: '%kernel.project_dir%/public/uploads/images/colors'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true

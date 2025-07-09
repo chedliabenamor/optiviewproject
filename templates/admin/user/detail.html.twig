@@ -1,0 +1,281 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}
+    {# Managed by UserCrudController::configureCrud #}
+{% endblock %}
+
+{% block main_content_title %}
+    {# This replaces the default title rendering inside the main content area #}
+    {# We can leave it empty if page_title is sufficient or customize as needed #}
+{% endblock %}
+
+{% block page_content %}
+    {# Ensure entity.instance is available #}
+    {% set user = entity.instance %}
+
+    <div class="container-fluid">
+        {# Header Section - Customer ID, Date, Delete Button #}
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h1 class="h3 mb-0">Customer ID #{{ user.id }}</h1>
+               
+            </div>
+            <div class="col text-end">
+       
+                {% set edit_url = ea_url()
+                    .setController(ea.crud.controllerFqcn)
+                    .setAction('edit')
+                    .setEntityId(entity.primaryKeyValue) 
+                    .set('referrer', app.request.requestUri)
+                    .generateUrl() %}
+                <a href="{{ edit_url }}" class="btn btn-primary"><i class="fas fa-user-edit me-1"></i>Edit Customer</a>
+                {# Example: Link to delete action (needs a form for CSRF protection) #}
+                {# <a href="#" class="btn btn-danger">Delete Customer</a> #}
+            </div>
+        </div>
+
+        <div class="row">
+            {# Left Sidebar - User Info #}
+            <div class="col-lg-3 col-md-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                       
+                        <img src="https://ui-avatars.com/api/?name={{ user.name|url_encode }}+{{ user.lastname|url_encode }}&background=random&size=120" alt="{{ user.name }}" class="rounded-circle mb-3 img-fluid" style="width: 120px; height: 120px;">
+                        <h5 class="card-title mb-0">{{ user.name }} {{ user.lastname }}</h5>
+                        <p class="card-text text-muted small">Customer ID #{{ user.id }}</p>
+                        
+                        <div class="d-flex justify-content-around my-3 pt-2 border-top">
+                            <div class="text-center">
+                                <h6 class="mb-0">{{ user.orders.count }}</h6>
+                                <small class="text-muted">Orders</small>
+                            </div>
+                            <div class="text-center">
+                                {# Placeholder for Total Spent - Requires calculation in User entity #}
+                                <h6 class="mb-0">${{ user.totalSpent|default('0.00') }}</h6>
+                                <small class="text-muted">Spent</small>
+                            </div>
+                        </div>
+                    </div>
+                    <ul class="list-group list-group-flush border-bottom-0">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-user me-2 text-muted"></i>Username</span>
+                            <span class="text-end">{{ user.name }} {{ user.lastname }}</span> {# Assuming email as username for display #}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-envelope me-2 text-muted"></i>Email</span>
+                            <span class="text-end">{{ user.email }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-check-circle me-2 text-success"></i>Status</span>
+                            {# Placeholder - ideally from user.status field #}
+                            <span class="badge {{ user.active ? 'bg-success' : 'bg-danger' }} text-white">{{ user.active ? 'Active' : 'Inactive' }}</span> 
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-phone me-2 text-muted"></i>Contact</span>
+                            <span class="text-end">{{ user.phone|default('N/A') }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-map-marker-alt me-2 text-muted"></i>Adress</span>
+                            {# Basic attempt - improve if address structure is consistent #}
+                            <span class="text-end">{{ user.address ? (user.address|split(',')|last|trim) : 'N/A' }}</span> 
+                        </li>
+                    </ul>
+                     <a href="{{ edit_url }}" class="btn btn-primary mx-2 my-2"><i class="fas fa-user-edit me-1"></i>Edit Customer</a>
+                </div>
+                {# Placeholder for Upgrade to premium card - can be added if feature exists #}
+            </div>
+
+            {# Right Main Content - Tabs and Cards #}
+            <div class="col-lg-9 col-md-8">
+                <ul class="nav nav-tabs mb-3" id="customerDetailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active text-muted" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-content" type="button" role="tab" aria-controls="overview-content" aria-selected="true"><i class="fas fa-eye me-1"></i>Overview</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-muted" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-content" type="button" role="tab" aria-controls="orders-content" aria-selected="false"><i class="fas fa-shopping-cart me-1"></i>Orders</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-muted" id="wishlist-tab" data-bs-toggle="tab" data-bs-target="#wishlist-content" type="button" role="tab" aria-controls="wishlist-content" aria-selected="false"><i class="fas fa-heart me-1"></i>Wishlist</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-muted" id="address-billing-tab" data-bs-toggle="tab" data-bs-target="#address-billing-content" type="button" role="tab" aria-controls="address-billing-content" aria-selected="false"><i class="fas fa-address-card me-1"></i>Address & Billing</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="customerDetailTabsContent">
+                    {# Overview Tab Pane #}
+                    <div class="tab-pane fade show active" id="overview-content" role="tabpanel" aria-labelledby="overview-tab">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-sm h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title mb-3"><i class="fas fa-dollar-sign text-primary me-2"></i>Account Balance</h5>
+                                        {# Placeholder data #}
+                                        <p class="display-6 mb-1">$0.00</p> 
+                                        <small class="text-muted">Current credit left</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-sm h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title mb-3"><i class="fas fa-medal text-warning me-2"></i>Loyalty Program</h5>
+                                        <p class="display-6 mb-1">{{ user.loyaltyPoints|default(0) }} <small>points</small></p>
+                                        {# Placeholder for tier #}
+                                        <small class="text-muted">X points to next tier</small> 
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-sm h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title mb-3"><i class="fas fa-star text-info me-2"></i>Wishlist</h5>
+                                        {% if user.wishlist and user.wishlist.products.count > 0 %}
+                                            <p class="display-6 mb-1">{{ user.wishlist.products.count }} <small>items</small></p>
+                                            <small class="text-muted">Items in wishlist</small>
+                                        {% else %}
+                                            <p class="text-muted mt-3">No items in wishlist.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {# Orders Tab Pane #}
+                    <div class="tab-pane fade" id="orders-content" role="tabpanel" aria-labelledby="orders-tab">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0">Orders Placed</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                {% if user.orders.count > 0 %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>ORDER ID</th>
+                                                <th>DATE</th>
+                                                <th>STATUS</th>
+                                                <th class="text-end">SPENT</th>
+                                                <th class="text-center">ACTIONS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for order in user.orders|sort((a, b) => b.createdAt <=> a.createdAt) %}{# Sort by newest first #}
+                                                <tr>
+                                                    <td>#{{ order.id }}</td>
+                                                    <td>{{ order.createdAt|date('M d, Y') }}</td>
+                                                    <td>
+                                                        {% set status_badge = 'secondary' %}
+                                                        {% if order.status == 'completed' %}{% set status_badge = 'success' %}
+                                                        {% elseif order.status == 'processing' or order.status == 'pending' %}{% set status_badge = 'info' %}
+                                                        {% elseif order.status == 'shipped' %}{% set status_badge = 'primary' %}
+                                                        {% elseif order.status == 'cancelled' %}{% set status_badge = 'danger' %}
+                                                        {% endif %}
+                                                        <span class="badge bg-{{ status_badge }}">{{ order.status|replace({'_': ' '})|capitalize }}</span>
+                                                    </td>
+                                                    <td class="text-end">${{ order.totalAmount|number_format(2) }}</td>
+                                                    <td class="text-center">
+                                                        {% set order_detail_url = ea_url()
+                                                            .setController('App\\Controller\\Admin\\OrderCrudController')
+                                                            .setAction('detail')
+                                                            .setEntityId(order.id)
+                                                            .set('referrer', app.request.requestUri)
+                                                            .generateUrl() %}
+                                                        <a href="{{ order_detail_url }}" class="btn btn-sm btn-outline-primary" title="View Order">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                    <p class="text-center p-3 text-muted">No orders placed yet.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Wishlist Tab Pane #}
+                    <div class="tab-pane fade" id="wishlist-content" role="tabpanel" aria-labelledby="wishlist-tab">
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-heart text-danger me-2"></i>Wishlist Products</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if user.wishlist and user.wishlist.products.count > 0 %}
+                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                                        {% for product in user.wishlist.products %}
+                                            <div class="col">
+                                                <div class="card h-100">
+                                                    {% set productImage = (product.images is defined and product.images is not empty and product.images.first and product.images.first.imageName is defined) ? asset('uploads/products/' ~ product.images.first.imageName) : 'https://via.placeholder.com/200x150?text=' ~ (product.name|default('Product')|url_encode) %}
+                                                    <img src="{{ productImage }}" class="card-img-top" alt="{{ product.name|default('Product Image') }}" style="height: 150px; object-fit: cover;">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title">{{ product.name|default('N/A') }}</h6>
+                                                        {% if product.price is defined and product.price is not null %}
+                                                            <p class="card-text fw-bold">{{ product.price|number_format(2, '.', ',') }} €</p>
+                                                        {% else %}
+                                                            <p class="card-text text-muted">Price not available</p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="card-footer text-center bg-light d-flex justify-content-around">
+                                                        {# View Product Link #}
+                                                        {% set product_detail_url = ea_url()
+                                                            .setController('App\\Controller\\Admin\\ProductCrudController')
+                                                            .setAction('detail')
+                                                            .setEntityId(product.id)
+                                                            .generateUrl() %}
+                                                        <a href="{{ product_detail_url }}" class="btn btn-sm btn-outline-primary" title="View Product">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </a>
+
+                                                        {# Edit Product Link #}
+                                                        {% set product_edit_url = ea_url()
+                                                            .setController('App\\Controller\\Admin\\ProductCrudController')
+                                                            .setAction('edit')
+                                                            .setEntityId(product.id)
+                                                            .generateUrl() %}
+                                                        <a href="{{ product_edit_url }}" class="btn btn-sm btn-outline-secondary" title="Edit Product">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </a>
+
+                                                        {# Remove from Wishlist (Requires custom controller action) #}
+                                                        {# Example backend route: path('app_wishlist_remove_product', {wishlistId: user.wishlist.id, productId: product.id}) #}
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Remove from Wishlist (Action not implemented)" disabled>
+                                                            <i class="fas fa-trash-alt"></i> Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="text-center text-muted p-4">No products in wishlist.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Address & Billing Tab Pane #}
+                    <div class="tab-pane fade" id="address-billing-content" role="tabpanel" aria-labelledby="address-billing-tab">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">Address & Billing</h5>
+                                <p><strong>Primary Address:</strong><br>{{ user.address|default('No address set.')|nl2br }}</p>
+        
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+{% endblock %}

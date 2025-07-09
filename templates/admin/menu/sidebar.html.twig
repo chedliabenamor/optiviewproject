@@ -1,0 +1,64 @@
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+    <div class="app-brand demo">
+        <a href="{{ path('admin_dashboard') }}" class="app-brand-link">
+            <span class="app-brand-logo demo">
+                <span class="text-primary">
+                    <svg width="25" viewBox="0 0 25 42" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                        <!-- Your SVG logo here -->
+                    </svg>
+                </span>
+            </span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2">Sneat</span>
+        </a>
+
+        <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+            <i class="bx bx-chevron-left d-block d-xl-none align-middle"></i>
+        </a>
+    </div>
+
+    <div class="menu-divider mt-0"></div>
+    <div class="menu-inner-shadow"></div>
+
+    <ul class="menu-inner py-1">
+        {% for menuItem in ea.mainMenu.items %}
+            {% if menuItem.isMenuSection %}
+                <li class="menu-header small text-uppercase">
+                    <span class="menu-header-text">{{ menuItem.label|trans(menuItem.translationParameters, 'EasyAdminBundle') }}</span>
+                </li>
+            {% else %}
+                <li class="menu-item {{ menuItem.isMenuCurrent ? 'active' }} {{ menuItem.hasSubItems ? 'menu-sub' }}">
+                    <a href="{{ menuItem.linkUrl }}" 
+                       class="menu-link {{ menuItem.hasSubItems ? 'menu-toggle' }}" 
+                       {% if menuItem.hasSubItems %}data-bs-toggle="collapse"{% endif %}
+                       target="{{ menuItem.linkTarget }}"
+                       rel="{{ menuItem.linkRel }}"
+                       referrerpolicy="origin-when-cross-origin">
+                        <i class="menu-icon tf-icons bx {{ menuItem.icon }}"></i>
+                        <div class="text-truncate" data-i18n="{{ menuItem.label }}">
+                            {{ menuItem.label|trans(menuItem.translationParameters, 'EasyAdminBundle') }}
+                        </div>
+                        {% if menuItem.hasSubItems %}<i class="menu-arrow"></i>{% endif %}
+                    </a>
+                    
+                    {% if menuItem.hasSubItems %}
+                        <ul class="menu-sub">
+                            {% for subMenuItem in menuItem.subItems %}
+                                <li class="menu-item {{ subMenuItem.isMenuCurrent ? 'active' }}">
+                                    <a href="{{ subMenuItem.linkUrl }}" 
+                                       class="menu-link"
+                                       target="{{ subMenuItem.linkTarget }}"
+                                       rel="{{ subMenuItem.linkRel }}"
+                                       referrerpolicy="origin-when-cross-origin">
+                                        <div class="text-truncate" data-i18n="{{ subMenuItem.label }}">
+                                            {{ subMenuItem.label|trans(subMenuItem.translationParameters, 'EasyAdminBundle') }}
+                                        </div>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</aside>

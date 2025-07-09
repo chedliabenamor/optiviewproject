@@ -1,0 +1,11 @@
+{# templates/admin/fields/rating_stars.html.twig #}
+{% set max_stars = 5 %}
+<span class="rating-stars">
+    {% for i in 1..max_stars %}
+        {% if field.value >= i %}
+            <i class="fa fa-star" style="color: #FFD700;"></i>
+        {% else %}
+            <i class="fa fa-star-o" style="color: #FFD700;"></i>
+        {% endif %}
+    {% endfor %}
+</span>

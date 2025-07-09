@@ -1,0 +1,146 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Profile - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="container profile-container mt-5 mb-5">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="list-group">
+                <a href="{{ path('app_user_profile_index') }}" class="list-group-item list-group-item-action">Profile Information</a>
+                <a href="{{ path('app_user_profile_edit') }}" class="list-group-item list-group-item-action active" aria-current="true">Edit Profile</a>
+                <a href="{{ path('app_user_profile_orders') }}" class="list-group-item list-group-item-action">Order History</a>
+                <a href="{{ path('app_wishlist') }}" class="list-group-item list-group-item-action">Wishlist</a> {# Placeholder path #}
+                <a href="{{ path('app_logout') }}" class="list-group-item list-group-item-action">Logout</a>
+            </div>
+        </div>
+        <div class="col-md-9 profile-box">
+            <h2 class="mb-4">Edit My Profile</h2>
+            
+            {{ form_start(userProfileForm, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate'}}) }}
+
+                {# First Name #}
+                <div class="bor8 m-b-20 how-pos4-parent">
+                    {{ form_widget(userProfileForm.name, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'First Name'}}) }}
+                    <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-user.png') }}" alt="ICON-USER" style="opacity:0.6; top:calc(50% - 12px); width:24px; height:24px;"> {# Placeholder icon, adjust as needed #}
+                </div>
+                {{ form_errors(userProfileForm.name) }}
+
+                {# Last Name #}
+                <div class="bor8 m-b-20 how-pos4-parent">
+                    {{ form_widget(userProfileForm.lastname, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Last Name'}}) }}
+                    <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-user.png') }}" alt="ICON-USER" style="opacity:0.6; top:calc(50% - 12px); width:24px; height:24px;"> {# Placeholder icon, adjust as needed #}
+                </div>
+                {{ form_errors(userProfileForm.lastname) }}
+
+                {# Email #}
+                <div class="bor8 m-b-20 how-pos4-parent">
+                    {{ form_widget(userProfileForm.email, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Email Address'}}) }}
+                    <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-email.png') }}" alt="ICON-EMAIL">
+                </div>
+                {{ form_errors(userProfileForm.email) }}
+
+                {# Phone #}
+                <div class="bor8 m-b-20 how-pos4-parent">
+                    {{ form_widget(userProfileForm.phone, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Phone Number'}}) }}
+                    <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-phone-square.png') }}" alt="ICON-PHONE" style="opacity:0.5; top:calc(50% - 10px); width:20px; height:20px;">
+                </div>
+                {{ form_errors(userProfileForm.phone) }}
+
+                {# Sex #}
+                <div class="m-b-20">
+                    {{ form_label(userProfileForm.sex, 'Gender') }}
+                    <div class="rs1-select2 rs2-select2 bor8 bg0 m-b-12 m-t-9">
+                        {{ form_widget(userProfileForm.sex, {'attr': {'class': 'js-select2'}}) }}
+                        <div class="dropDownSelect2"></div>
+                    </div>
+                </div>
+                {{ form_errors(userProfileForm.sex) }}
+
+                {# Address #}
+                <div class="bor8 m-b-20 how-pos4-parent">
+                    {{ form_widget(userProfileForm.address, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Address'}}) }}
+                    <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-home.png') }}" alt="ICON-HOME" style="opacity:0.6; top:calc(50% - 12px); width:24px; height:24px;"> {# Placeholder icon #}
+                </div>
+                {{ form_errors(userProfileForm.address) }}
+
+                {# Birthdate #}
+                <div class="bor8 m-b-20 how-pos4-parent">
+                     {{ form_widget(userProfileForm.birthdate, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Birthdate'}}) }}
+                     <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-calendar.png') }}" alt="ICON-CALENDAR" style="opacity:0.6; top:calc(50% - 12px); width:24px; height:24px;"> {# Placeholder icon #}
+                </div>
+                {{ form_errors(userProfileForm.birthdate) }}
+                
+                {# Loyalty Points (Read-Only) #}
+                <div class="bor8 m-b-20 how-pos4-parent">
+                    {{ form_widget(userProfileForm.loyaltyPoints, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Loyalty Points'}}) }}
+                    <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-star.png') }}" alt="ICON-STAR" style="opacity:0.6; top:calc(50% - 12px); width:24px; height:24px;"> {# Placeholder icon #}
+                </div>
+                {{ form_errors(userProfileForm.loyaltyPoints) }}
+
+                <fieldset class="mb-3">
+                    <legend>Change Password</legend>
+                    {# New Password #}
+                    <div class="bor8 m-b-20 how-pos4-parent">
+                        {{ form_widget(userProfileForm.plainPassword.first, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'New Password', 'id': 'user_profile_form_plainPassword_first' }}) }}
+                        <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/locked.png') }}" alt="ICON-LOCK" style="opacity:0.3; top:calc(50% - 14px);">
+                        <span id="toggleProfilePasswordFirst" class="how-pos4" style="left: auto; right: 15px; cursor: pointer; z-index: 10;" title="Show/Hide password">
+                            <i class="zmdi zmdi-eye" id="toggleProfilePasswordFirstIcon"></i>
+                        </span>
+                    </div>
+                    {{ form_errors(userProfileForm.plainPassword.first) }}
+
+                    {# Repeat New Password #}
+                    <div class="bor8 m-b-20 how-pos4-parent">
+                        {{ form_widget(userProfileForm.plainPassword.second, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Repeat New Password', 'id': 'user_profile_form_plainPassword_second' }}) }}
+                        <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/locked.png') }}" alt="ICON-LOCK" style="opacity:0.3; top:calc(50% - 14px);">
+                        <span id="toggleProfilePasswordSecond" class="how-pos4" style="left: auto; right: 15px; cursor: pointer; z-index: 10;" title="Show/Hide password">
+                            <i class="zmdi zmdi-eye" id="toggleProfilePasswordSecondIcon"></i>
+                        </span>
+                    </div>
+                    {{ form_errors(userProfileForm.plainPassword.second) }}
+                </fieldset>
+
+                <button type="submit" class="flex-c-m stext-101 cl0 size-121 bg3 bor1 hov-btn3 p-lr-15 trans-04 pointer">Save Changes</button>
+            {{ form_end(userProfileForm) }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Password Toggle for First Password Field ---
+            const togglePasswordFirst = document.getElementById('toggleProfilePasswordFirst'); // This is the ID of the clickable <span>
+            const passwordFirstInput = document.getElementById('user_profile_type_form_plainPassword_first'); // This is the ID of the <input>
+            const toggleIconFirst = document.getElementById('toggleProfilePasswordFirstIcon'); // This is the ID of the <i> icon
+
+            if (togglePasswordFirst && passwordFirstInput && toggleIconFirst) {
+                togglePasswordFirst.addEventListener('click', function () {
+                    const type = passwordFirstInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordFirstInput.setAttribute('type', type);
+                    // Toggle the eye icon classes
+                    toggleIconFirst.classList.toggle('zmdi-eye');
+                    toggleIconFirst.classList.toggle('zmdi-eye-off');
+                });
+            }
+
+            // --- Password Toggle for Second Password Field (Repeat Password) ---
+            const togglePasswordSecond = document.getElementById('toggleProfilePasswordSecond'); // This is the ID of the clickable <span>
+            const passwordSecondInput = document.getElementById('user_profile_type_form_plainPassword_second'); // This is the ID of the <input>
+            const toggleIconSecond = document.getElementById('toggleProfilePasswordSecondIcon'); // This is the ID of the <i> icon
+
+            if (togglePasswordSecond && passwordSecondInput && toggleIconSecond) {
+                togglePasswordSecond.addEventListener('click', function () {
+                    const type = passwordSecondInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordSecondInput.setAttribute('type', type);
+                    // Toggle the eye icon classes
+                    toggleIconSecond.classList.toggle('zmdi-eye');
+                    toggleIconSecond.classList.toggle('zmdi-eye-off');
+                });
+            }
+        });
+    </script>
+{% endblock %}

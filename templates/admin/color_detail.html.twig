@@ -1,0 +1,39 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}
+    Color Details: {{ entity.instance.name }}
+{% endblock %}
+
+{% block main %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Associated Product Variants</h5>
+
+            {% if entity.instance.productVariants is not empty %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Variant SKU</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variant in entity.instance.productVariants %}
+                            <tr>
+                                <td>{{ variant.product.name }}</td>
+                                <td>{{ variant.sku }}</td>
+                                <td>
+                                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('detail').setEntityId(variant.product.id) }}" class="btn btn-sm btn-info">View Product</a>
+                                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductVariantCrudController').setAction('edit').setEntityId(variant.id) }}" class="btn btn-sm btn-secondary">Edit Variant</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No product variants are associated with this color.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
