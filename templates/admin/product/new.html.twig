@@ -1,22 +1,33 @@
+{# templates/admin/product/new.html.twig #}
 {% extends '@EasyAdmin/crud/new.html.twig' %}
 
-{# Override the category field row to add the Add Category button #}
-{% block ea_crud_form_field_category_row %}
-    {{ block('form_row') }}
-    <a href="#" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#new-category-modal">+ Add Category</a>
+{% block new_form %}
+    {{ form(new_form) }}
+    <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#new-category-modal">
+        <i class="fas fa-plus"></i> Add Category
+    </button>
+{% endblock %}
+
+{% block product_category_modal %}
+    {{ include('admin/product/_category_modal.html.twig') }}
 {% endblock %}
 
 {% block body_javascript %}
     {{ parent() }}
-    <div class="modal fade" id="new-category-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content p-3">
-                {% component 'new_category_form' %}
-            </div>
-        </div>
-    </div>
     <script>
+    console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
+
+       document.addEventListener('turbo:before-cache', () => {
+        document.querySelectorAll('.modal.show').forEach((modalEl) => {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) {
+                modalInstance.hide();
+                modalInstance.dispose();
+            }
+        });
+    });
         document.addEventListener('live:emit', function(e) {
+            console.log('Live event emitted:', e.detail);
             if (e.detail[0] === 'category:created') {
                 var select = document.querySelector('[name$="[category]"]');
                 if (select) {
@@ -26,9 +37,10 @@
                     select.value = data.id;
                     select.dispatchEvent(new Event('change'));
                 }
-                var modal = bootstrap.Modal.getInstance(document.getElementById('new-category-modal'));
-                if (modal) modal.hide();
+                var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('new-category-modal'));
+                modal.hide();
             }
         });
     </script>
 {% endblock %}
+

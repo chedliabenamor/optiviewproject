@@ -1,20 +1,23 @@
 {% extends '@EasyAdmin/crud/edit.html.twig' %}
 
+{% block head_javascript %}
+    {{ parent() }}
+    {{ importmap('app') }}
+{% endblock %}
+
 {# Override the category field row to add the Add Category button #}
 {% block ea_crud_form_field_category_row %}
     {{ block('form_row') }}
-    <a href="#" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#new-category-modal">+ Add Category</a>
+    <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#new-category-modal">
+        <i class="fas fa-plus"></i> Add Category
+    </button>
 {% endblock %}
 
 {% block body_javascript %}
     {{ parent() }}
-    <div class="modal fade" id="new-category-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content p-3">
-                {% component 'new_category_form' %}
-            </div>
-        </div>
-    </div>
+    {% block product_category_modal %}
+        {{ include('admin/product/_category_modal.html.twig') }}
+    {% endblock %}
     <script>
         document.addEventListener('live:emit', function(e) {
             if (e.detail[0] === 'category:created') {

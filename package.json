@@ -17,5 +17,9 @@
         "dev": "encore dev",
         "watch": "encore dev --watch",
         "build": "encore production --progress"
+    },
+    "dependencies": {
+        "@symfony/ux-live-component": "^2.27.0",
+        "bootstrap": "^5.3.7"
     }
 }

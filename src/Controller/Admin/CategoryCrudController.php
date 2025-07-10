@@ -115,11 +115,11 @@ class CategoryCrudController extends AbstractCrudController
 
         if ($isArchivedView) {
             $actions = $actions
-                ->add(Crud::PAGE_INDEX, $viewActiveButton)
+                ->add(Crud::PAGE_INDEX, $viewActiveButton->displayIf(fn () => false)) // Hide in item actions
                 ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore', 'viewActive']);
         } else {
             $actions = $actions
-                ->add(Crud::PAGE_INDEX, $viewArchivedButton)
+                ->add(Crud::PAGE_INDEX, $viewArchivedButton->displayIf(fn () => false)) // Hide in item actions
                 ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore', 'viewArchived']);
         }
 

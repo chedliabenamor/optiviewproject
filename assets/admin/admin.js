@@ -1,12 +1,13 @@
+import 'bootstrap';
 
+import { Application } from '@hotwired/stimulus';
+import OrderItemFormController from '../controllers/order-item-form_controller';
 
-// Your custom admin JavaScript goes here
-import './fontawesome.js';
+// Optional debug log
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Custom admin JavaScript loaded!');
 });
-import { Application } from '@hotwired/stimulus';
-import OrderItemFormController from './controllers/order-item-form_controller';
 
+// Start Stimulus
 window.Stimulus = Application.start();
 window.Stimulus.register('order-item-form', OrderItemFormController);

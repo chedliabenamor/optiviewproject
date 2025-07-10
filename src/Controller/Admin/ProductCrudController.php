@@ -44,6 +44,7 @@ use App\Repository\StyleRepository;
 use App\Repository\ShapeRepository;
 use App\Repository\GenreRepository;
 use Symfony\Component\HttpFoundation\Request;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 
 class ProductCrudController extends AbstractCrudController
 {
@@ -75,6 +76,7 @@ class ProductCrudController extends AbstractCrudController
         $this->shapeRepository = $shapeRepository;
         $this->genreRepository = $genreRepository;
     }
+    
 
     public function configureCrud(Crud $crud): Crud
     {
@@ -162,13 +164,7 @@ class ProductCrudController extends AbstractCrudController
                 ->setCrudController(CategoryCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6')
-                ->autocomplete()
-                ->setHelp('Can\'t find your category? <a href="' .
-                    $this->adminUrlGenerator
-                        ->setController(CategoryCrudController::class)
-                        ->setAction('new')
-                        ->generateUrl()
-                    . '" target="_blank" rel="noopener noreferrer">Add a new category</a>.'),
+                ->autocomplete(),
 
             AssociationField::new('colors')
                 ->setCrudController(ColorCrudController::class)
@@ -340,5 +336,9 @@ class ProductCrudController extends AbstractCrudController
         return $this->redirect($url);
     }
 
-    
+    public function configureAssets(Assets $assets): Assets
+    {
+        return $assets
+            ->addWebpackEncoreEntry('admin');
+    }
 }
