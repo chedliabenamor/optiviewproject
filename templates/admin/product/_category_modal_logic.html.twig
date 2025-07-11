@@ -1,0 +1,68 @@
+{# templates/admin/product/_category_modal_logic.html.twig #}
+
+{# 1. The Modal HTML #}
+<div class="modal fade" id="add-category-modal" tabindex="-1" aria-labelledby="add-category-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="add-category-modal-label">Add New Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {# Render the form controller #}
+                {{ render(controller('App\\Controller\\Admin\\CategoryModalController::new')) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 2. The JavaScript Logic #}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addCategoryBtn = document.getElementById('add-category-btn');
+        const modalElement = document.getElementById('add-category-modal');
+
+        if (modalElement) {
+            // Listener to open the modal
+            if (addCategoryBtn) {
+                addCategoryBtn.addEventListener('click', () => {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.show();
+                });
+            }
+
+            // Handle AJAX form submission from within the modal
+            modalElement.addEventListener('submit', function(event) {
+                if (event.target.matches('#category-modal-form')) {
+                    event.preventDefault();
+                    const form = event.target;
+                    const formData = new FormData(form);
+
+                    fetch(form.action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.dispatchEvent(new CustomEvent('category:created'));
+                            }
+                        })
+                        .catch(error => console.error('Error submitting category form:', error));
+                }
+            });
+
+            // Listener to close the modal and reload the page on success
+            document.addEventListener('category:created', () => {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) { modal.hide(); }
+                setTimeout(() => window.location.reload(), 500);
+            });
+        }
+
+        // General Turbo/modal cleanup
+        document.addEventListener('turbo:before-cache', () => {
+            document.querySelectorAll('.modal.show').forEach((modalEl) => {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) { modalInstance.hide(); modalInstance.dispose(); }
+            });
+        });
+    });
+</script>

@@ -137,12 +137,6 @@ class ProductCrudController extends AbstractCrudController
                 ->renderAsHtml()
                 ->setSortable(false),
 
-            // Field for uploading the overview image (shown only on forms)
-            
-
-            // ...existing code...
-
-            // Multiple images via collection (temporarily commented out for debugging)
             CollectionField::new('productModelImages')
                 ->setLabel('Additional Images')
                 ->useEntryCrudForm(ProductModelImageCrudController::class) // For how entries are managed in forms

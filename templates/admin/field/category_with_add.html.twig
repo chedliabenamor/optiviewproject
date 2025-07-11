@@ -1,0 +1,54 @@
+{% extends '@EasyAdmin/crud/field/association.html.twig' %}
+
+{% block field %}
+    <div class="d-flex">
+        <div class="flex-grow-1">
+            {{ parent() }}
+        </div>
+        <div class="ms-2">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#add-category-modal">
+                Add Category
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="add-category-modal" tabindex="-1" aria-labelledby="add-category-modal-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="add-category-modal-label">Add New Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe src="{{ path('admin_category_new_modal') }}" style="width: 100%; height: 250px; border: none;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = document.getElementById('add-category-modal');
+            const iframe = modal.querySelector('iframe');
+
+            modal.addEventListener('hidden.bs.modal', function () {
+                iframe.src = 'about:blank'; // Reset iframe to prevent state issues
+            });
+
+            window.addEventListener('message', function (event) {
+                if (event.data.type === 'category-created') {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    modalInstance.hide();
+
+                    // Refresh the page to see the new category in the list
+                    // A more advanced implementation could use AJAX to refresh only the category field
+                    location.reload();
+                }
+            });
+
+            // In the iframe, after the category is created:
+            // window.parent.postMessage({ type: 'category-created' }, '*');
+        });
+    </script>
+{% endblock %}

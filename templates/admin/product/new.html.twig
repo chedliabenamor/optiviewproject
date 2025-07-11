@@ -2,45 +2,21 @@
 {% extends '@EasyAdmin/crud/new.html.twig' %}
 
 {% block new_form %}
-    {{ form(new_form) }}
-    <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#new-category-modal">
-        <i class="fas fa-plus"></i> Add Category
-    </button>
+    {{ form_start(new_form) }}
+    {{ form_widget(new_form) }}
+
+    <div class="form-group mt-3">
+        <button type="button" class="btn btn-secondary" id="add-category-btn">
+            <i class="fas fa-plus"></i> Add New Category
+        </button>
+    </div>
+
+    {{ form_end(new_form) }}
 {% endblock %}
 
-{% block product_category_modal %}
-    {{ include('admin/product/_category_modal.html.twig') }}
-{% endblock %}
-
-{% block body_javascript %}
+{# Include the centralized modal and JS logic #}
+{% block body_end_content %}
     {{ parent() }}
-    <script>
-    console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
-
-       document.addEventListener('turbo:before-cache', () => {
-        document.querySelectorAll('.modal.show').forEach((modalEl) => {
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            if (modalInstance) {
-                modalInstance.hide();
-                modalInstance.dispose();
-            }
-        });
-    });
-        document.addEventListener('live:emit', function(e) {
-            console.log('Live event emitted:', e.detail);
-            if (e.detail[0] === 'category:created') {
-                var select = document.querySelector('[name$="[category]"]');
-                if (select) {
-                    var data = e.detail[1];
-                    var option = new Option(data.name, data.id, true, true);
-                    select.add(option);
-                    select.value = data.id;
-                    select.dispatchEvent(new Event('change'));
-                }
-                var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('new-category-modal'));
-                modal.hide();
-            }
-        });
-    </script>
+    {{ include('admin/product/_category_modal_logic.html.twig') }}
 {% endblock %}
 

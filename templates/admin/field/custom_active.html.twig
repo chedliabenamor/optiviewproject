@@ -1,8 +1,4 @@
-<!-- Debug Info -->
-<!-- Logged-in User ID: {{ app.user.id | default('N/A') }} -->
-<!-- Edited Entity ID: {{ ea.entity.instance.id | default('N/A') }} -->
-<!-- Is app.user an instance of User? {{ app.user is instance of('App\\Entity\\User') ? 'Yes' : 'No' }} -->
-<!-- Is ea.entity.instance an instance of User? {{ ea.entity.instance is instance of('App\\Entity\\User') ? 'Yes' : 'No' }} -->
+
 
 {% if ea.entity.instance is defined and app.user is defined and ea.entity.instance.id != app.user.id %}
     <!-- Rendering field because IDs do not match. -->
