@@ -74,7 +74,7 @@ class UserCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setPageTitle(Crud::PAGE_DETAIL, fn (User $user) => sprintf('Customer ID #%s - %s %s', $user->getId(), $user->getName(), $user->getLastname()))
+            ->setPageTitle(Crud::PAGE_DETAIL, fn(User $user) => sprintf('Customer ID #%s - %s %s', $user->getId(), $user->getName(), $user->getLastname()))
             ->setHelp(Crud::PAGE_DETAIL, 'This is a custom view of the user details.')
             ->overrideTemplates([
                 'crud/detail' => 'admin/user/detail.html.twig',
@@ -92,7 +92,7 @@ class UserCrudController extends AbstractCrudController
             yield TextField::new('lastname')->setRequired(true)->setColumns('col-md-6');
 
             yield EmailField::new('email')->setRequired(true)->setColumns('col-md-6');
-            
+
             // Add password field only on create and edit pages
             yield TextField::new('plainPassword', 'Password')
                 ->setFormType(PasswordType::class)
@@ -107,11 +107,11 @@ class UserCrudController extends AbstractCrudController
                 ->setChoices(['Male' => 'male', 'Female' => 'female', 'Other' => 'other'])
                 ->setRequired(false)
                 ->setColumns('col-md-6');
-                
+
             yield DateField::new('birthdate')
                 ->setRequired(false)
                 ->setColumns('col-md-6');
-               
+
 
             yield ChoiceField::new('roles')
                 ->setChoices([
@@ -122,7 +122,7 @@ class UserCrudController extends AbstractCrudController
                 ->renderExpanded()
                 ->setRequired(true)
                 ->setColumns('col-md-6');
-                
+
             yield IntegerField::new('loyaltyPoints')->setRequired(false)->setColumns('col-md-6');
             yield TextareaField::new('address')->setRequired(false)->setColumns('col-md-12');
 
@@ -131,8 +131,8 @@ class UserCrudController extends AbstractCrudController
                 $contextUser = $this->getContext()->getEntity()->getInstance();
 
                 if (
-                    !$contextUser instanceof User || 
-                    !$currentUser instanceof User || 
+                    !$contextUser instanceof User ||
+                    !$currentUser instanceof User ||
                     $contextUser->getId() !== $currentUser->getId()
                 ) {
                     yield BooleanField::new('active')->setColumns('col-md-12');
@@ -184,7 +184,6 @@ class UserCrudController extends AbstractCrudController
                         ? '<span class="badge text-white bg-success px-2 py-1">ACTIVE</span>'
                         : '<span class="badge text-white bg-danger px-2 py-1">INACTIVE</span>';
                 });
-
         } elseif (Crud::PAGE_DETAIL === $pageName) {
             yield IdField::new('id');
             yield EmailField::new('email');
@@ -215,8 +214,8 @@ class UserCrudController extends AbstractCrudController
             yield DateField::new('birthdate')
                 ->setRequired(false)
                 ->setColumns('col-md-6');
-               
-               
+
+
 
             yield ChoiceField::new('roles')
                 ->setChoices([
@@ -236,8 +235,8 @@ class UserCrudController extends AbstractCrudController
                 $contextUser = $this->getContext()->getEntity()->getInstance();
 
                 if (
-                    !$contextUser instanceof User || 
-                    !$currentUser instanceof User || 
+                    !$contextUser instanceof User ||
+                    !$currentUser instanceof User ||
                     $contextUser->getId() !== $currentUser->getId()
                 ) {
                     yield BooleanField::new('active')->setColumns('col-md-12');
@@ -252,37 +251,30 @@ class UserCrudController extends AbstractCrudController
     {
         $currentUser = $this->getUser();
 
-        $activateUser = Action::new('activateUser', 'Activate', 'fa fa-check-circle')
+        // Activate Action (shows for inactive users)
+        $activateAction = Action::new('activateUser', 'Activate', 'fa fa-check-circle')
             ->setCssClass('btn btn-success')
             ->linkToCrudAction('activateUser')
-            ->displayIf(static function ($entity) {
-                return $entity instanceof User && !$entity->isActive();
-            });
+            ->displayIf(fn(User $user) => !$user->isActive());
 
-        $deactivateUser = Action::new('deactivateUser', 'Deactivate', 'fa fa-times-circle')
-            ->setCssClass('btn btn-warning')
+        // Deactivate Action (shows for active users)
+        $deactivateAction = Action::new('deactivateUser', 'Deactivate', 'fa fa-times-circle')
+            ->setCssClass('btn btn-danger')
             ->linkToCrudAction('deactivateUser')
-            ->displayIf(static function ($entity) use ($currentUser) {
-                if (!$entity instanceof User || !$currentUser instanceof User) {
-                    return false;
-                }
-                // Show deactivate button if the user is active AND it's not the current user
-                return $entity->isActive() && $entity->getId() !== $currentUser->getId();
-            });
+            ->displayIf(fn(User $user) => $user->isActive());
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_INDEX, $activateUser)
-            ->add(Crud::PAGE_INDEX, $deactivateUser)
-            ->add(Crud::PAGE_DETAIL, $activateUser)
-            ->add(Crud::PAGE_DETAIL, $deactivateUser)
-            ->update(Crud::PAGE_INDEX, Action::NEW, fn (Action $action) => $action->setIcon('fa fa-user-plus')->setLabel('Add User'))
-            ->update(Crud::PAGE_INDEX, Action::DETAIL, fn (Action $action) => $action->setIcon('fa fa-eye')->setLabel('Show'))
-            ->update(Crud::PAGE_INDEX, Action::EDIT, fn (Action $action) => $action->setIcon('fa fa-edit')->setLabel('Edit'))
+            ->add(Crud::PAGE_INDEX, $activateAction)
+            ->add(Crud::PAGE_INDEX, $deactivateAction)
+            ->add(Crud::PAGE_DETAIL, $activateAction)
+            ->add(Crud::PAGE_DETAIL, $deactivateAction)
+            ->update(Crud::PAGE_INDEX, Action::NEW, fn(Action $action) => $action->setIcon('fa fa-user-plus')->setLabel('Add User'))
+            ->update(Crud::PAGE_INDEX, Action::DETAIL, fn(Action $action) => $action->setIcon('fa fa-eye')->setLabel('Show'))
+            ->update(Crud::PAGE_INDEX, Action::EDIT, fn(Action $action) => $action->setIcon('fa fa-edit')->setLabel('Edit'))
             ->remove(Crud::PAGE_INDEX, Action::DELETE)
             ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'activateUser', 'deactivateUser']);
     }
-
     public function deactivateUser(AdminContext $context)
     {
         $user = $context->getEntity()->getInstance();
@@ -319,18 +311,23 @@ class UserCrudController extends AbstractCrudController
         return $this->redirect($url);
     }
 
-    public function configureFilters(Filters $filters): Filters
-    {
-        return $filters
-            ->add(ChoiceFilter::new('roles')
-                ->setChoices([
-                    'Administrator' => 'ROLE_ADMIN',
-                    'User' => 'ROLE_USER',
-                ])
-                ->canSelectMultiple(true)
-            )
-            ->add(BooleanFilter::new('active', 'Status'));
-    }
+public function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->add(ChoiceFilter::new('roles')
+            ->setChoices([
+                'Administrator' => 'ROLE_ADMIN',
+                'User' => 'ROLE_USER',
+            ])
+            ->canSelectMultiple(true)
+        )
+        ->add(BooleanFilter::new('active', 'Status')
+            ->setFormTypeOption('choices', [
+                'Active' => true,
+                'Inactive' => false
+            ])
+        );
+}
 
     public function createIndexQueryBuilder(
         SearchDto $searchDto,

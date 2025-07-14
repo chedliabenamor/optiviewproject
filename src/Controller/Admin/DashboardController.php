@@ -16,7 +16,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 class DashboardController extends AbstractDashboardController
 {
 
@@ -64,5 +64,9 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Reviews', 'fas fa-star', Review::class);
 
         // Add more sections and entities as needed
+    }
+   public function configureAssets(): Assets
+    {
+        return Assets::new()->addCssFile('admin/easyadmin-custom.css');
     }
 }

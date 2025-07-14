@@ -43,8 +43,10 @@ use App\Repository\ColorRepository;
 use App\Repository\StyleRepository;
 use App\Repository\ShapeRepository;
 use App\Repository\GenreRepository;
-use Symfony\Component\HttpFoundation\Request;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+// use Symfony\Component\HttpFoundation\Request;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 
 class ProductCrudController extends AbstractCrudController
 {
@@ -76,25 +78,93 @@ class ProductCrudController extends AbstractCrudController
         $this->shapeRepository = $shapeRepository;
         $this->genreRepository = $genreRepository;
     }
-    
+
 
     public function configureCrud(Crud $crud): Crud
     {
+        $request = $this->requestStack->getCurrentRequest();
+        $pageSize = $request?->query->getInt('pageSize', 10);
         return $crud
-            ->setPageTitle('detail', fn (Product $product) => sprintf('Product: %s', $product->getName()))
+            ->setPageTitle('detail', fn(Product $product) => sprintf('Product: %s', $product->getName()))
             ->overrideTemplate('crud/detail', 'admin/product_detail.html.twig')
             ->overrideTemplate('crud/index', 'admin/product/index.html.twig')
             ->overrideTemplate('crud/new', 'admin/product/new.html.twig')
             ->overrideTemplate('crud/edit', 'admin/product/edit.html.twig')
-            ->setPaginatorPageSize(10) // Set items per page
-            ->setPaginatorRangeSize(3) // Number of pages shown in pagination controls
-            ->setDefaultSort(['quantityInStock' => 'ASC']); // Default sorting
+            ->setPaginatorPageSize($pageSize)
+            ->setPaginatorRangeSize(3)
+            ->setDefaultSort(['quantityInStock' => 'ASC'])
+            ->showEntityActionsInlined();
     }
 
     public static function getEntityFqcn(): string
     {
         return Product::class;
     }
+    public function configureActions(Actions $actions): Actions
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        $isArchivedView = $request?->query->get('show') === 'archived';
+
+        $toggleArchivedAction = Action::new(
+            $isArchivedView ? 'viewActive' : 'viewArchived',
+            $isArchivedView ? 'View Active' : 'View Archived'
+        )
+            ->linkToUrl(
+                $this->adminUrlGenerator
+                    ->setController(self::class)
+                    ->setAction(Crud::PAGE_INDEX)
+                    ->set('show', $isArchivedView ? null : 'archived')
+                    ->generateUrl()
+            )
+            ->createAsGlobalAction()
+            ->addCssClass('btn btn-secondary');
+
+        if ($isArchivedView) {
+            $archiveOrRestoreAction = Action::new('restore', 'Restore')
+                ->setIcon('fa fa-undo')
+                ->setCssClass('btn btn-success btn-sm text-white action-restore')
+                ->linkToCrudAction('restoreProduct')
+                ->setHtmlAttributes([
+                    'data-bs-toggle' => 'modal',
+                    'data-bs-target' => '#confirmationModal',
+                    'data-action' => 'restore'
+                ]);
+            $archiveOrRestoreActionName = 'restore';
+        } else {
+            $archiveOrRestoreAction = Action::new('archive', 'Archive')
+                ->setIcon('fa fa-archive')
+                ->setCssClass('btn btn-warning btn-sm text-white')
+                ->linkToCrudAction('archiveProduct')
+                ->setHtmlAttributes([
+                    'data-bs-toggle' => 'modal',
+                    'data-bs-target' => '#confirmationModal',
+                    'data-action' => 'archive'
+                ]);
+            $archiveOrRestoreActionName = 'archive';
+        }
+
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->update(
+                Crud::PAGE_INDEX,
+                Action::DETAIL,
+                fn(Action $action) =>
+                $action->setIcon('fa fa-eye')->setLabel('Show')
+            )
+            ->update(
+                Crud::PAGE_INDEX,
+                Action::EDIT,
+                fn(Action $action) =>
+                $action->setIcon('fa fa-edit')->setLabel('Edit')
+            )
+            ->remove(Crud::PAGE_INDEX, Action::DELETE)
+            ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
+            ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
+    }
+
+
+
 
     public function configureFields(string $pageName): iterable
     {
@@ -113,36 +183,24 @@ class ProductCrudController extends AbstractCrudController
             // Stock Status Field with badge and filter
             TextField::new('stockStatus', 'Stock Status')
                 ->onlyOnIndex()
-                ->formatValue(function ($value, $entity) {
-                    if (!$entity instanceof \App\Entity\Product) {
-                        return '';
-                    }
-                    $status = $entity->getStockStatus();
-                    $color = 'secondary';
-                    switch ($status) {
-                        case 'Out of Stock':
-                            $color = 'danger';
-                            break;
-                        case 'Low Stock':
-                            $color = 'warning';
-                            break;
-                        case 'In Stock':
-                            $color = 'success';
-                            break;
-                        default:
-                            $color = 'secondary';
-                    }
+                ->formatValue(function ($value, Product $product) {
+                    $status = $product->getStockStatus();
+                    $color = match ($status) {
+                        'Out of Stock' => 'danger',
+                        'Low Stock' => 'warning',
+                        'In Stock' => 'success',
+                        default => 'secondary',
+                    };
                     return sprintf('<span class="badge text-white bg-%s">%s</span>', $color, $status);
                 })
-                ->renderAsHtml()
-                ->setSortable(false),
+                ->renderAsHtml(),
 
             CollectionField::new('productModelImages')
                 ->setLabel('Additional Images')
-                ->useEntryCrudForm(ProductModelImageCrudController::class) // For how entries are managed in forms
-                ->setEntryIsComplex(true) // Recommended when entry type is complex (e.g., with VichImageType)
+                ->useEntryCrudForm(ProductModelImageCrudController::class)
+                ->setEntryIsComplex(true)
                 ->setFormTypeOption('by_reference', false)
-                ->hideOnIndex()->setColumns('col-md-6'), // Show on Detail, New, Edit pages
+                ->hideOnIndex()->setColumns('col-md-6'),
 
             // Timestamps - shown only on detail page
             DateTimeField::new('createdAt')->onlyOnDetail(),
@@ -193,146 +251,79 @@ class ProductCrudController extends AbstractCrudController
                 ->hideOnIndex()->setColumns('col-md-12'),
         ];
     }
-
-    public function configureActions(Actions $actions): Actions
+    //costum filters
+    public function configureFilters(Filters $filters): Filters
     {
-        $archiveAction = Action::new('archive', 'Archive', 'fa fa-archive')
-            ->linkToCrudAction('archiveProduct')
-            ->setCssClass('text-warning')
-            ->displayIf(static fn (Product $product) => $product->getDeletedAt() === null);
-
-        $restoreAction = Action::new('restore', 'Restore', 'fa fa-undo')
-            ->linkToCrudAction('restoreProduct')
-            ->setCssClass('text-success')
-            ->displayIf(static fn (Product $product) => $product->getDeletedAt() !== null);
-
-        $isArchivedView = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
-
-        $url = $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Crud::PAGE_INDEX)
-            ->set('show', $isArchivedView ? null : 'archived')
-            ->generateUrl();
-
-        $viewArchivedOrActive = Action::new($isArchivedView ? 'viewActive' : 'viewArchived', $isArchivedView ? 'View Active' : 'View Archived')
-            ->setCssClass('btn btn-secondary')
-            ->linkToUrl($url);
-
-        return $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->remove(Crud::PAGE_INDEX, Action::DELETE)
-            ->remove(Crud::PAGE_DETAIL, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, $archiveAction)
-            ->add(Crud::PAGE_INDEX, $restoreAction)
-            ->add(Crud::PAGE_DETAIL, $archiveAction)
-            ->add(Crud::PAGE_DETAIL, $restoreAction)
-            ->add(Crud::PAGE_INDEX, $viewArchivedOrActive)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore']);
+        return $filters
+            ->add(EntityFilter::new('brand'))
+            ->add(EntityFilter::new('category'))
+            ->add(EntityFilter::new('shape'))
+            ->add(EntityFilter::new('genre'))
+            ->add(
+                ChoiceFilter::new('stockStatus')
+                    ->setChoices([
+                        'In Stock' => 'In Stock',
+                        'Low Stock' => 'Low Stock',
+                        'Out of Stock' => 'Out of Stock',
+                    ])
+            );
     }
 
-    public function index(AdminContext $context)
-    {
-        $brands = $this->brandRepository->findAll();
-        $categories = $this->categoryRepository->findAll();
-        $colors = $this->colorRepository->findAll();
-        $styles = $this->styleRepository->findAll();
-        $shapes = $this->shapeRepository->findAll();
-        $genres = $this->genreRepository->findAll();
 
-        $response = parent::index($context);
-        if ($response instanceof KeyValueStore) {
-            $response->set('brands', $brands);
-            $response->set('categories', $categories);
-            $response->set('colors', $colors);
-            $response->set('styles', $styles);
-            $response->set('shapes', $shapes);
-            $response->set('genres', $genres);
-        }
-        return $response;
-    }
-
+    //Soft delete functionality
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {
         $queryBuilder = parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters);
+
         $request = $this->requestStack->getCurrentRequest();
-        if ($request?->query->get('show') === 'archived') {
+        $isArchivedView = $request?->query->get('show') === 'archived';
+
+        if ($isArchivedView) {
             $queryBuilder->andWhere('entity.deletedAt IS NOT NULL');
         } else {
             $queryBuilder->andWhere('entity.deletedAt IS NULL');
         }
-        // Filtering logic
-        if ($brand = $request->query->get('brand')) {
-            $queryBuilder->andWhere('entity.brand = :brand')->setParameter('brand', $brand);
-        }
-        if ($category = $request->query->get('category')) {
-            $queryBuilder->andWhere('entity.category = :category')->setParameter('category', $category);
-        }
-        if ($color = $request->query->get('color')) {
-            $queryBuilder->andWhere(':color MEMBER OF entity.colors')->setParameter('color', $color);
-        }
-        if ($style = $request->query->get('style')) {
-            $queryBuilder->andWhere('entity.style = :style')->setParameter('style', $style);
-        }
-        if ($shape = $request->query->get('shape')) {
-            $queryBuilder->andWhere('entity.shape = :shape')->setParameter('shape', $shape);
-        }
-        if ($genre = $request->query->get('genre')) {
-            $queryBuilder->andWhere('entity.genre = :genre')->setParameter('genre', $genre);
-        }
-        // Stock status filter
-        if ($stockStatus = $request->query->get('stockStatus')) {
-            switch ($stockStatus) {
-                case 'Out of Stock':
-                    $queryBuilder->andWhere('entity.quantityInStock = 0');
-                    break;
-                case 'Low Stock':
-                    $queryBuilder->andWhere('entity.quantityInStock > 0 AND entity.quantityInStock <= 10');
-                    break;
-                case 'In Stock':
-                    $queryBuilder->andWhere('entity.quantityInStock > 10');
-                    break;
-            }
-        }
+
         return $queryBuilder;
     }
-
+    // this is extended from AbstractCrudController change the deleteEntity method to soft delete
+    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        $entityInstance->setDeletedAt(new \DateTimeImmutable());
+        $entityManager->flush();
+        $this->addFlash('success', sprintf('Product \"%s\" was archived.', $entityInstance->getName()));
+    }
+    // Custom actions for archiving and restoring products
     public function archiveProduct(AdminContext $context, EntityManagerInterface $entityManager): Response
     {
         $product = $context->getEntity()->getInstance();
+
         if ($product instanceof Product) {
             $product->setDeletedAt(new \DateTimeImmutable());
             $entityManager->flush();
-            $this->addFlash('success', sprintf('Product \"%s\" was archived.', $product->getName()));
+            $this->addFlash('success', sprintf('Product "%s" was archived.', $product->getName()));
         }
 
-        $url = $context->getReferrer();
-        if (null === $url) {
-            $url = $this->adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl();
-        }
-
-        return $this->redirect($url);
+        return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator
+            ->setController(self::class)
+            ->setAction(Action::INDEX)
+            ->generateUrl());
     }
 
     public function restoreProduct(AdminContext $context, EntityManagerInterface $entityManager): Response
     {
         $product = $context->getEntity()->getInstance();
+
         if ($product instanceof Product) {
             $product->setDeletedAt(null);
             $entityManager->flush();
-            $this->addFlash('success', sprintf('Product \"%s\" was restored.', $product->getName()));
+            $this->addFlash('success', sprintf('Product "%s" was restored.', $product->getName()));
         }
 
-        $url = $context->getReferrer();
-        if (null === $url) {
-            $url = $this->adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl();
-        }
-
-        return $this->redirect($url);
-    }
-
-    public function configureAssets(Assets $assets): Assets
-    {
-        return $assets
-            ->addWebpackEncoreEntry('admin');
+        return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator
+            ->setController(self::class)
+            ->setAction(Action::INDEX)
+            ->set('show', 'archived')
+            ->generateUrl());
     }
 }

@@ -105,7 +105,29 @@ class Product
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ProductVariant::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $productVariants;
-  
+     #[ORM\Column(length: 20)]
+    private ?string $stockStatus = null;
+
+#[ORM\PrePersist]
+#[ORM\PreUpdate]
+public function updateStockStatus(): void
+{
+    $lowStockThreshold = 10;
+    
+    // Calculate based on total stock (sum of variants + product's own stock if applicable)
+    $totalStock = $this->quantityInStock;
+    foreach ($this->productVariants as $variant) {
+        $totalStock += $variant->getStock();
+    }
+    
+    if ($totalStock === 0) {
+        $this->stockStatus = 'Out of Stock';
+    } elseif ($totalStock <= $lowStockThreshold) {
+        $this->stockStatus = 'Low Stock';
+    } else {
+        $this->stockStatus = 'In Stock';
+    }
+}
 
     public function __construct()
     {
@@ -189,11 +211,12 @@ class Product
         return $this->quantityInStock;
     }
 
-    public function setQuantityInStock(int $quantityInStock): static
-    {
-        $this->quantityInStock = $quantityInStock;
-        return $this;
-    }
+   public function setQuantityInStock(int $quantityInStock): static
+{
+    $this->quantityInStock = $quantityInStock;
+    $this->updateStockStatus(); 
+    return $this;
+}
 
     public function getLoyaltyPoints(): int
     {

@@ -14,7 +14,8 @@ use App\Entity\Genre;
 #[ORM\Entity(repositoryClass: ProductVariantRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['sku'], message: 'This SKU already exists.')]
-class ProductVariant{
+class ProductVariant
+{
     /**
      * Returns the image URL of the first ProductVariantImage, or null if none exist.
      */
@@ -74,7 +75,23 @@ class ProductVariant{
 
     #[ORM\ManyToMany(targetEntity: ProductOffer::class, mappedBy: 'productVariants')]
     private Collection $productOffers;
+    #[ORM\Column(length: 20)]
+    private ?string $stockStatus = null;
 
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function updateStockStatus(): void
+    {
+        $lowStockThreshold = 10;
+
+        if ($this->stock === 0) {
+            $this->stockStatus = 'Out of Stock';
+        } elseif ($this->stock <= $lowStockThreshold) {
+            $this->stockStatus = 'Low Stock';
+        } else {
+            $this->stockStatus = 'In Stock';
+        }
+    }
     public function __construct()
     {
         $this->productVariantImages = new ArrayCollection();
@@ -177,12 +194,12 @@ class ProductVariant{
         return $this->stock;
     }
 
-    public function setStock(int $stock): static
-    {
-        $this->stock = $stock;
-
-        return $this;
-    }
+   public function setStock(int $stock): static
+{
+    $this->stock = $stock;
+    $this->updateStockStatus(); // Update status when stock changes
+    return $this;
+}
 
     public function isActive(): ?bool
     {

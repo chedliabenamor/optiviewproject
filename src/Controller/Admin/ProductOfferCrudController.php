@@ -88,11 +88,11 @@ class ProductOfferCrudController extends AbstractCrudController
             ->overrideTemplate('crud/detail', 'admin/product_offer_detail.html.twig');
     }
 
-    public function configureAssets(Assets $assets): Assets
-    {
-        return $assets
-            ->addJsFile('assets/js/offer_form.js');
-    }
+    // public function configureAssets(Assets $assets): Assets
+    // {
+    //     return $assets
+    //         ->addJsFile('assets/js/offer_form.js');
+    // }
 
     public function createEditQueryBuilder(EntityDto $entityDto, KeyValueStore $formOptions, AdminContext $context): QueryBuilder
     {
