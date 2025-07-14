@@ -86,7 +86,7 @@ class ProductCrudController extends AbstractCrudController
         $pageSize = $request?->query->getInt('pageSize', 10);
         return $crud
             ->setPageTitle('detail', fn(Product $product) => sprintf('Product: %s', $product->getName()))
-            ->overrideTemplate('crud/detail', 'admin/product_detail.html.twig')
+            ->overrideTemplate('crud/detail', 'admin/product/product_detail.html.twig')
             ->overrideTemplate('crud/index', 'admin/product/index.html.twig')
             ->overrideTemplate('crud/new', 'admin/product/new.html.twig')
             ->overrideTemplate('crud/edit', 'admin/product/edit.html.twig')

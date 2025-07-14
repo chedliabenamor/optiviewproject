@@ -62,106 +62,72 @@ class CategoryCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->overrideTemplate('crud/detail', 'admin/category_detail.html.twig')
-            ->setPaginatorPageSize(10) // Set items per page (same as user list)
-            ->setPaginatorRangeSize(4); // Number of page links to show
+            ->overrideTemplate('crud/detail', 'admin/category/category_detail.html.twig')
+            ->overrideTemplate('crud/index', 'admin/category/index.html.twig')
+            ->setPaginatorPageSize(10) 
+            ->setPaginatorRangeSize(4)
+            ->showEntityActionsInlined(); 
     }
 
-    public function configureActions(Actions $actions): Actions
-    {
-        $archiveAction = Action::new('archive', 'Archive', 'fa fa-archive')
-            ->linkToCrudAction('archiveCategory')
-            ->setCssClass('text-warning')
-            ->displayIf(static fn (Category $category) => $category->getDeletedAt() === null);
+  public function configureActions(Actions $actions): Actions
+{
+    $request = $this->requestStack->getCurrentRequest();
+    $isArchivedView = $request?->query->get('show') === 'archived';
 
-        $restoreAction = Action::new('restore', 'Restore', 'fa fa-undo')
+    $toggleArchivedAction = Action::new(
+        $isArchivedView ? 'viewActive' : 'viewArchived',
+        $isArchivedView ? 'View Active' : 'View Archived'
+    )
+        ->linkToUrl(
+            $this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction(Crud::PAGE_INDEX)
+                ->set('show', $isArchivedView ? null : 'archived')
+                ->generateUrl()
+        )
+        ->createAsGlobalAction()
+        ->addCssClass('btn btn-secondary');
+
+    if ($isArchivedView) {
+        $archiveOrRestoreAction = Action::new('restore', 'Restore')
+            ->setIcon('fa fa-undo')
+            ->setCssClass('btn btn-success btn-sm text-white action-restore')
             ->linkToCrudAction('restoreCategory')
-            ->setCssClass('text-success')
-            ->displayIf(static fn (Category $category) => $category->getDeletedAt() !== null);
-
-        $isArchivedView = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
-
-        // Button to view archived categories (always visible on index page)
-        $viewArchivedUrl = $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Crud::PAGE_INDEX)
-            ->set('show', 'archived')
-            ->generateUrl();
-        $viewArchivedButton = Action::new('viewArchived', 'View Archived Categories', 'fa fa-archive')
-            ->setCssClass('btn btn-outline-secondary')
-            ->linkToUrl($viewArchivedUrl)
-            ->displayAsButton();
-
-        // Button to view active categories (only visible when viewing archived)
-        $viewActiveUrl = $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Crud::PAGE_INDEX)
-            ->set('show', null)
-            ->generateUrl();
-        $viewActiveButton = Action::new('viewActive', 'View Active Categories', 'fa fa-list')
-            ->setCssClass('btn btn-outline-primary')
-            ->linkToUrl($viewActiveUrl)
-            ->displayAsButton();
-
-        // Add the "View Archived Categories" and "View Active Categories" as global actions (top right, next to Add Category)
-        $actions = $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->remove(Crud::PAGE_INDEX, Action::DELETE)
-            ->remove(Crud::PAGE_DETAIL, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, $archiveAction)
-            ->add(Crud::PAGE_INDEX, $restoreAction)
-            ->add(Crud::PAGE_DETAIL, $archiveAction)
-            ->add(Crud::PAGE_DETAIL, $restoreAction);
-
-        if ($isArchivedView) {
-            $actions = $actions
-                ->add(Crud::PAGE_INDEX, $viewActiveButton->displayIf(fn () => false)) // Hide in item actions
-                ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore', 'viewActive']);
-        } else {
-            $actions = $actions
-                ->add(Crud::PAGE_INDEX, $viewArchivedButton->displayIf(fn () => false)) // Hide in item actions
-                ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore', 'viewArchived']);
-        }
-
-        return $actions;
+            ->setHtmlAttributes([
+                'data-bs-toggle' => 'modal',
+                'data-bs-target' => '#confirmationModal',
+                'data-action' => 'restore'
+            ]);
+        $archiveOrRestoreActionName = 'restore';
+    } else {
+        $archiveOrRestoreAction = Action::new('archive', 'Archive')
+            ->setIcon('fa fa-archive')
+            ->setCssClass('btn btn-warning btn-sm text-white')
+            ->linkToCrudAction('archiveCategory')
+            ->setHtmlAttributes([
+                'data-bs-toggle' => 'modal',
+                'data-bs-target' => '#confirmationModal',
+                'data-action' => 'archive'
+            ]);
+        $archiveOrRestoreActionName = 'archive';
     }
 
-    // public function new(AdminContext $context)
-    // {
-    //     $request = $context->getRequest();
-    //     $entityDto = $context->getEntity();
-    //     $form = $this->createNewForm($entityDto, $context->getCrud()->getNewFormOptions(), $context);
-    //     $form->handleRequest($request);
-    //
-    //     if ($request->isXmlHttpRequest() && $form->isSubmitted()) {
-    //         if ($form->isValid()) {
-    //             $instance = $form->getData();
-    //             $this->entityManager->persist($instance);
-    //             $this->entityManager->flush();
-    //
-    //             return new JsonResponse([
-    //                 'success' => true,
-    //                 'entity' => [
-    //                     'id' => $instance->getId(),
-    //                     'name' => (string) $instance,
-    //                 ],
-    //             ]);
-    //         }
-    //
-    //         // On validation error, re-render the form inside the modal
-    //         $template = 'admin/category_new_ajax.html.twig';
-    //         $html = $this->renderView($template, [
-    //             'form' => $form->createView(),
-    //             'entity' => $entityDto,
-    //             'pageName' => Crud::PAGE_NEW,
-    //             'crud' => $context->getCrud(),
-    //         ]);
-    //
-    //         return new JsonResponse(['success' => false, 'form_html' => $html]);
-    //     }
-    //
-    //     return parent::new($context);
-    // }
+    return $actions
+        ->add(Crud::PAGE_INDEX, Action::DETAIL)
+        ->update(Crud::PAGE_INDEX, Action::DETAIL, fn(Action $action) =>
+            $action->setIcon('fa fa-eye')->setLabel('Show')
+        )
+        ->update(Crud::PAGE_INDEX, Action::EDIT, fn(Action $action) =>
+            $action->setIcon('fa fa-edit')->setLabel('Edit')
+        )
+        ->remove(Crud::PAGE_INDEX, Action::DELETE)
+        ->remove(Crud::PAGE_DETAIL, Action::DELETE)
+        ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
+        ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
+        ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
+}
+
+  
 
     #[Route('/admin/category/new-ajax', name: 'admin_category_new_ajax')]
     public function newCategoryAjax(Request $request): Response

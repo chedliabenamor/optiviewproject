@@ -22,6 +22,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 
 class ReviewCrudController extends AbstractCrudController
 {
@@ -46,14 +49,16 @@ class ReviewCrudController extends AbstractCrudController
         return $crud
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->setPageTitle('index', 'Reviews')
-            ->setPageTitle('detail', fn (Review $review) => sprintf('Review #%d', $review->getId()))
+            ->setPageTitle('detail', fn(Review $review) => sprintf('Review #%d', $review->getId()))
             ->setPaginatorPageSize(10) // Number of reviews per page
-            ->setPaginatorRangeSize(4); // Number of page links to show
+            ->setPaginatorRangeSize(4)
+            ->overrideTemplate('crud/index', 'admin/Review/index.html.twig')
+            ->showEntityActionsInlined();
     }
 
     public function configureFields(string $pageName): iterable
     {
-        yield AssociationField::new('productVariant','Product')->setColumns('col-md-6');
+        yield AssociationField::new('productVariant', 'Product')->setColumns('col-md-6');
         yield AssociationField::new('user')->setColumns('col-md-6');
         yield IntegerField::new('rating')
             ->setColumns('col-md-6')
@@ -69,39 +74,79 @@ class ReviewCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        $archiveAction = Action::new('archive', 'Archive', 'fa fa-archive')
-            ->linkToCrudAction('archiveReview')
-            ->setCssClass('text-warning')
-            ->displayIf(static fn (Review $review) => $review->getDeletedAt() === null);
+        $request = $this->requestStack->getCurrentRequest();
+        $isArchivedView = $request?->query->get('show') === 'archived';
 
-        $restoreAction = Action::new('restore', 'Restore', 'fa fa-undo')
-            ->linkToCrudAction('restoreReview')
-            ->setCssClass('text-success')
-            ->displayIf(static fn (Review $review) => $review->getDeletedAt() !== null);
+        $toggleArchivedAction = Action::new(
+            $isArchivedView ? 'viewActive' : 'viewArchived',
+            $isArchivedView ? 'View Active' : 'View Archived'
+        )
+            ->linkToUrl(
+                $this->adminUrlGenerator
+                    ->setController(self::class)
+                    ->setAction(Crud::PAGE_INDEX)
+                    ->set('show', $isArchivedView ? null : 'archived')
+                    ->generateUrl()
+            )
+            ->createAsGlobalAction()
+            ->addCssClass('btn btn-secondary');
 
-        $isArchivedView = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
-
-        $url = $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Crud::PAGE_INDEX)
-            ->set('show', $isArchivedView ? null : 'archived')
-            ->generateUrl();
-
-        $viewArchivedOrActive = Action::new($isArchivedView ? 'viewActive' : 'viewArchived', $isArchivedView ? 'View Active' : 'View Archived')
-            ->setCssClass('btn btn-secondary')
-            ->linkToUrl($url);
+        if ($isArchivedView) {
+            $archiveOrRestoreAction = Action::new('restore', 'Restore')
+                ->setIcon('fa fa-undo')
+                ->setCssClass('btn btn-success btn-sm text-white action-restore')
+                ->linkToCrudAction('restoreReview')
+                ->setHtmlAttributes([
+                    'data-bs-toggle' => 'modal',
+                    'data-bs-target' => '#confirmationModal',
+                    'data-action' => 'restore'
+                ]);
+            $archiveOrRestoreActionName = 'restore';
+        } else {
+            $archiveOrRestoreAction = Action::new('archive', 'Archive')
+                ->setIcon('fa fa-archive')
+                ->setCssClass('btn btn-warning btn-sm text-white')
+                ->linkToCrudAction('archiveReview')
+                ->setHtmlAttributes([
+                    'data-bs-toggle' => 'modal',
+                    'data-bs-target' => '#confirmationModal',
+                    'data-action' => 'archive'
+                ]);
+            $archiveOrRestoreActionName = 'archive';
+        }
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->update(
+                Crud::PAGE_INDEX,
+                Action::DETAIL,
+                fn(Action $action) =>
+                $action->setIcon('fa fa-eye')->setLabel('Show')
+            )
+            ->update(
+                Crud::PAGE_INDEX,
+                Action::EDIT,
+                fn(Action $action) =>
+                $action->setIcon('fa fa-edit')->setLabel('Edit')
+            )
             ->remove(Crud::PAGE_INDEX, Action::DELETE)
             ->remove(Crud::PAGE_DETAIL, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, $archiveAction)
-            ->add(Crud::PAGE_INDEX, $restoreAction)
-            ->add(Crud::PAGE_DETAIL, $archiveAction)
-            ->add(Crud::PAGE_DETAIL, $restoreAction)
-            ->add(Crud::PAGE_INDEX, $viewArchivedOrActive)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore']);
+            ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
+            ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
     }
+    public function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->add(
+            ChoiceFilter::new('isApproved')
+                ->setLabel('Approval Status')
+                ->setChoices([
+                    'Approved' => true,
+                    'Not Approved' => false,
+                ])
+        );
+}
 
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {

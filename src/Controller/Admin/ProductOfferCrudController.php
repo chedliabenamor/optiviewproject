@@ -28,6 +28,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 
 class ProductOfferCrudController extends AbstractCrudController
 {
@@ -36,7 +39,7 @@ class ProductOfferCrudController extends AbstractCrudController
     {
         return ProductOfferType::class;
     }
-   
+
 
     private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
@@ -59,11 +62,12 @@ class ProductOfferCrudController extends AbstractCrudController
     {
         return [
             IdField::new('id')->hideOnForm(),
+            TextField::new('name'),
             AssociationField::new('products'),
             AssociationField::new('brands'),
             AssociationField::new('productVariants')
                 ->setLabel('Product Variants'),
-            TextField::new('name'),
+
             TextEditorField::new('description')->hideOnIndex(),
             ChoiceField::new('discountType')
                 ->setChoices([
@@ -73,8 +77,8 @@ class ProductOfferCrudController extends AbstractCrudController
             NumberField::new('discountValue'),
             DateTimeField::new('startDate'),
             DateTimeField::new('endDate'),
-            DateTimeField::new('createdAt')->hideOnForm(),
-            DateTimeField::new('updatedAt')->hideOnForm(),
+            // DateTimeField::new('createdAt')->hideOnForm(),
+            // DateTimeField::new('updatedAt')->hideOnForm(),
         ];
     }
 
@@ -82,18 +86,25 @@ class ProductOfferCrudController extends AbstractCrudController
     {
         return $crud
             ->setPageTitle('index', 'Product Offers')
-            ->setPageTitle('detail', fn (ProductOffer $offer) => sprintf('Offer: %s', $offer->getName()))
+            ->setPageTitle('detail', fn(ProductOffer $offer) => sprintf('Offer: %s', $offer->getName()))
             ->setPaginatorPageSize(10) // Number of offers per page
             ->setPaginatorRangeSize(4) // Number of page links to show
-            ->overrideTemplate('crud/detail', 'admin/product_offer_detail.html.twig');
+            ->overrideTemplate('crud/detail', 'admin/productoffer/product_offer_detail.html.twig')
+            ->overrideTemplate('crud/index', 'admin/productoffer/index.html.twig')
+            ->showEntityActionsInlined();
     }
 
-    // public function configureAssets(Assets $assets): Assets
-    // {
-    //     return $assets
-    //         ->addJsFile('assets/js/offer_form.js');
-    // }
-
+   public function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->add(ChoiceFilter::new('discountType')
+            ->setChoices([
+                'Percentage' => ProductOffer::TYPE_PERCENTAGE,
+                'Fixed Amount' => ProductOffer::TYPE_FIXED,
+            ])
+        );
+}
+    
     public function createEditQueryBuilder(EntityDto $entityDto, KeyValueStore $formOptions, AdminContext $context): QueryBuilder
     {
         $qb = parent::createEditQueryBuilder($entityDto, $formOptions, $context);
@@ -105,38 +116,66 @@ class ProductOfferCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        $archiveAction = Action::new('archive', 'Archive', 'fa fa-archive')
-            ->linkToCrudAction('archiveOffer')
-            ->setCssClass('text-warning')
-            ->displayIf(static fn (ProductOffer $offer) => $offer->getDeletedAt() === null);
+        $request = $this->requestStack->getCurrentRequest();
+        $isArchivedView = $request?->query->get('show') === 'archived';
 
-        $restoreAction = Action::new('restore', 'Restore', 'fa fa-undo')
-            ->linkToCrudAction('restoreOffer')
-            ->setCssClass('text-success')
-            ->displayIf(static fn (ProductOffer $offer) => $offer->getDeletedAt() !== null);
+        $toggleArchivedAction = Action::new(
+            $isArchivedView ? 'viewActive' : 'viewArchived',
+            $isArchivedView ? 'View Active' : 'View Archived'
+        )
+            ->linkToUrl(
+                $this->adminUrlGenerator
+                    ->setController(self::class)
+                    ->setAction(Crud::PAGE_INDEX)
+                    ->set('show', $isArchivedView ? null : 'archived')
+                    ->generateUrl()
+            )
+            ->createAsGlobalAction()
+            ->addCssClass('btn btn-secondary');
 
-        $isArchivedView = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
-
-        $url = $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Crud::PAGE_INDEX)
-            ->set('show', $isArchivedView ? null : 'archived')
-            ->generateUrl();
-
-        $viewArchivedOrActive = Action::new($isArchivedView ? 'viewActive' : 'viewArchived', $isArchivedView ? 'View Active' : 'View Archived')
-            ->setCssClass('btn btn-secondary')
-            ->linkToUrl($url);
+        if ($isArchivedView) {
+            $archiveOrRestoreAction = Action::new('restore', 'Restore')
+                ->setIcon('fa fa-undo')
+                ->setCssClass('btn btn-success btn-sm text-white action-restore')
+                ->linkToCrudAction('restoreOffer')
+                ->setHtmlAttributes([
+                    'data-bs-toggle' => 'modal',
+                    'data-bs-target' => '#confirmationModal',
+                    'data-action' => 'restore'
+                ]);
+            $archiveOrRestoreActionName = 'restore';
+        } else {
+            $archiveOrRestoreAction = Action::new('archive', 'Archive')
+                ->setIcon('fa fa-archive')
+                ->setCssClass('btn btn-warning btn-sm text-white')
+                ->linkToCrudAction('archiveOffer')
+                ->setHtmlAttributes([
+                    'data-bs-toggle' => 'modal',
+                    'data-bs-target' => '#confirmationModal',
+                    'data-action' => 'archive'
+                ]);
+            $archiveOrRestoreActionName = 'archive';
+        }
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->update(
+                Crud::PAGE_INDEX,
+                Action::DETAIL,
+                fn(Action $action) =>
+                $action->setIcon('fa fa-eye')->setLabel('Show')
+            )
+            ->update(
+                Crud::PAGE_INDEX,
+                Action::EDIT,
+                fn(Action $action) =>
+                $action->setIcon('fa fa-edit')->setLabel('Edit')
+            )
             ->remove(Crud::PAGE_INDEX, Action::DELETE)
             ->remove(Crud::PAGE_DETAIL, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, $archiveAction)
-            ->add(Crud::PAGE_INDEX, $restoreAction)
-            ->add(Crud::PAGE_DETAIL, $archiveAction)
-            ->add(Crud::PAGE_DETAIL, $restoreAction)
-            ->add(Crud::PAGE_INDEX, $viewArchivedOrActive)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore']);
+            ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
+            ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
     }
 
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder

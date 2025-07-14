@@ -68,44 +68,68 @@ class ShapeCrudController extends AbstractCrudController
             ->setPageTitle('detail', fn (Shape $shape) => sprintf('Shape: %s', $shape->getName()))
             ->setPaginatorPageSize(10) // Number of shapes per page
             ->setPaginatorRangeSize(4) // Number of page links to show
-            ->overrideTemplate('crud/detail', 'admin/shape_detail.html.twig');
+            ->overrideTemplate('crud/detail', 'admin/shape/shape_detail.html.twig')
+            ->overrideTemplate('crud/index', 'admin/shape/index.html.twig')
+            ->showEntityActionsInlined();
     }
 
-    public function configureActions(Actions $actions): Actions
-    {
-        $archiveAction = Action::new('archive', 'Archive', 'fa fa-archive')
-            ->linkToCrudAction('archiveShape')
-            ->setCssClass('text-warning')
-            ->displayIf(static fn (Shape $shape) => $shape->getDeletedAt() === null);
+          public function configureActions(Actions $actions): Actions
+{
+    $request = $this->requestStack->getCurrentRequest();
+    $isArchivedView = $request?->query->get('show') === 'archived';
 
-        $restoreAction = Action::new('restore', 'Restore', 'fa fa-undo')
+    $toggleArchivedAction = Action::new(
+        $isArchivedView ? 'viewActive' : 'viewArchived',
+        $isArchivedView ? 'View Active' : 'View Archived'
+    )
+        ->linkToUrl(
+            $this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction(Crud::PAGE_INDEX)
+                ->set('show', $isArchivedView ? null : 'archived')
+                ->generateUrl()
+        )
+        ->createAsGlobalAction()
+        ->addCssClass('btn btn-secondary');
+
+    if ($isArchivedView) {
+        $archiveOrRestoreAction = Action::new('restore', 'Restore')
+            ->setIcon('fa fa-undo')
+            ->setCssClass('btn btn-success btn-sm text-white action-restore')
             ->linkToCrudAction('restoreShape')
-            ->setCssClass('text-success')
-            ->displayIf(static fn (Shape $shape) => $shape->getDeletedAt() !== null);
-
-        $isArchivedView = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
-
-        $url = $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Crud::PAGE_INDEX)
-            ->set('show', $isArchivedView ? null : 'archived')
-            ->generateUrl();
-
-        $viewArchivedOrActive = Action::new($isArchivedView ? 'viewActive' : 'viewArchived', $isArchivedView ? 'View Active' : 'View Archived')
-            ->setCssClass('btn btn-secondary')
-            ->linkToUrl($url);
-
-        return $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->remove(Crud::PAGE_INDEX, Action::DELETE)
-            ->remove(Crud::PAGE_DETAIL, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, $archiveAction)
-            ->add(Crud::PAGE_INDEX, $restoreAction)
-            ->add(Crud::PAGE_DETAIL, $archiveAction)
-            ->add(Crud::PAGE_DETAIL, $restoreAction)
-            ->add(Crud::PAGE_INDEX, $viewArchivedOrActive)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'archive', 'restore']);
+            ->setHtmlAttributes([
+                'data-bs-toggle' => 'modal',
+                'data-bs-target' => '#confirmationModal',
+                'data-action' => 'restore'
+            ]);
+        $archiveOrRestoreActionName = 'restore';
+    } else {
+        $archiveOrRestoreAction = Action::new('archive', 'Archive')
+            ->setIcon('fa fa-archive')
+            ->setCssClass('btn btn-warning btn-sm text-white')
+            ->linkToCrudAction('archiveShape')
+            ->setHtmlAttributes([
+                'data-bs-toggle' => 'modal',
+                'data-bs-target' => '#confirmationModal',
+                'data-action' => 'archive'
+            ]);
+        $archiveOrRestoreActionName = 'archive';
     }
+
+    return $actions
+        ->add(Crud::PAGE_INDEX, Action::DETAIL)
+        ->update(Crud::PAGE_INDEX, Action::DETAIL, fn(Action $action) =>
+            $action->setIcon('fa fa-eye')->setLabel('Show')
+        )
+        ->update(Crud::PAGE_INDEX, Action::EDIT, fn(Action $action) =>
+            $action->setIcon('fa fa-edit')->setLabel('Edit')
+        )
+        ->remove(Crud::PAGE_INDEX, Action::DELETE)
+        ->remove(Crud::PAGE_DETAIL, Action::DELETE)
+        ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
+        ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
+        ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
+}
 
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {

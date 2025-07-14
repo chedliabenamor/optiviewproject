@@ -4,30 +4,42 @@ namespace App\Controller\Admin;
 
 use App\Entity\ProductVariant;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use Vich\UploaderBundle\Form\Type\VichImageType; // For variant images
-use App\Controller\Admin\ProductVariantImageCrudController; // For ProductVariant images collection
-
-
-use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use App\Controller\Admin\ProductVariantImageCrudController;
 
 class ProductVariantCrudController extends AbstractCrudController
 {
+    private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
+    private EntityManagerInterface $entityManager;
 
-    public function __construct(AdminUrlGenerator $adminUrlGenerator)
+    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager)
     {
+        $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
+        $this->entityManager = $entityManager;
     }
+
     public static function getEntityFqcn(): string
     {
         return ProductVariant::class;
@@ -36,27 +48,11 @@ class ProductVariantCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setPageTitle('detail', fn (ProductVariant $variant) => sprintf('Variant: %s', $variant->getSku() ?: $variant->getColor() ?: ('#' . $variant->getId())))
-            ->overrideTemplate('crud/detail', 'admin/product_variant_detail.html.twig');
-    }
-public function updateEntity(\Doctrine\ORM\EntityManagerInterface $entityManager, $entityInstance): void
-    {
-        parent::updateEntity($entityManager, $entityInstance);
-    }
-
-    public function afterEntityUpdated(AdminContext $context)
-    {
-        $variant = $context->getEntity()->getInstance();
-        $product = $variant->getProduct();
-        if ($product) {
-            $url = $this->adminUrlGenerator
-                ->setController('App\\Controller\\Admin\\ProductCrudController')
-                ->setAction('detail')
-                ->setEntityId($product->getId())
-                ->generateUrl();
-            return new RedirectResponse($url);
-        }
-        return null;
+            ->setPageTitle('detail', fn(ProductVariant $variant) => sprintf('Variant: %s', $variant->getSku() ?: $variant->getColor() ?: ('#' . $variant->getId())))
+            ->overrideTemplate('crud/detail', 'admin/productvariant/product_variant_detail.html.twig')
+            ->setPaginatorPageSize(10)
+            ->setPaginatorRangeSize(4)
+            ->showEntityActionsInlined();
     }
 
     public function configureFields(string $pageName): iterable
@@ -85,12 +81,102 @@ public function updateEntity(\Doctrine\ORM\EntityManagerInterface $entityManager
             ])
             ->onlyOnForms()
             ->setColumns('col-md-12');
+    }
 
-        // To display existing images on index/detail (if needed, requires custom logic or a simpler representation)
-        // For example, a count of images or the first image
-        // yield ImageField::new('firstImage.imageName') // This would require a custom getter on ProductVariant
-        // ->setBasePath('/uploads/product_variant_images') // Adjust path
-        // ->setLabel('First Image')
-        // ->onlyOnIndex();
+    public function configureActions(Actions $actions): Actions
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        $showArchived = $request?->query->get('show') === 'archived';
+
+        $toggleArchivedAction = Action::new(
+            $showArchived ? 'viewActive' : 'viewArchived',
+            $showArchived ? 'View Active' : 'View Archived'
+        )
+            ->linkToUrl(
+                $this->adminUrlGenerator
+                    ->setController(self::class)
+                    ->setAction(Crud::PAGE_INDEX)
+                    ->set('show', $showArchived ? null : 'archived')
+                    ->generateUrl()
+            )
+            ->createAsGlobalAction()
+            ->addCssClass('btn btn-secondary');
+
+        if ($showArchived) {
+            $archiveOrRestoreAction = Action::new('restore', 'Restore')
+                ->setIcon('fa fa-undo')
+                ->setCssClass('btn btn-success btn-sm text-white')
+                ->linkToCrudAction('restoreVariant');
+            $archiveOrRestoreActionName = 'restore';
+        } else {
+            $archiveOrRestoreAction = Action::new('archive', 'Archive')
+                ->setIcon('fa fa-archive')
+                ->setCssClass('btn btn-warning btn-sm text-white')
+                ->linkToCrudAction('archiveVariant');
+            $archiveOrRestoreActionName = 'archive';
+        }
+
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->update(Crud::PAGE_INDEX, Action::DETAIL, fn(Action $action) =>
+                $action->setIcon('fa fa-eye')->setLabel('Show'))
+            ->update(Crud::PAGE_INDEX, Action::EDIT, fn(Action $action) =>
+                $action->setIcon('fa fa-edit')->setLabel('Edit'))
+            ->remove(Crud::PAGE_INDEX, Action::DELETE)
+            ->remove(Crud::PAGE_DETAIL, Action::DELETE)
+            ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
+            ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
+    }
+
+    public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): \Doctrine\ORM\QueryBuilder
+    {
+        $queryBuilder = parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters);
+
+        $showArchived = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
+
+        if ($showArchived) {
+            // Show only archived (inactive) variants
+            $queryBuilder->andWhere('entity.isActive = false');
+        } else {
+            // Default: show only active variants
+            $queryBuilder->andWhere('entity.isActive = true');
+        }
+
+        return $queryBuilder;
+    }
+
+    public function archiveVariant(AdminContext $context): Response
+    {
+        $variant = $context->getEntity()->getInstance();
+        if ($variant instanceof ProductVariant) {
+            $variant->setIsActive(false); // Soft delete using isActive
+            $this->entityManager->flush();
+            $this->addFlash('success', sprintf('Variant "%s" was archived.', $variant->getSku()));
+        }
+
+        $url = $context->getReferrer() ?? $this->adminUrlGenerator
+            ->setController(self::class)
+            ->setAction(Action::INDEX)
+            ->generateUrl();
+
+        return $this->redirect($url);
+    }
+
+    public function restoreVariant(AdminContext $context): Response
+    {
+        $variant = $context->getEntity()->getInstance();
+        if ($variant instanceof ProductVariant) {
+            $variant->setIsActive(true); // Restore variant
+            $this->entityManager->flush();
+            $this->addFlash('success', sprintf('Variant "%s" was restored.', $variant->getSku()));
+        }
+
+        $url = $context->getReferrer() ?? $this->adminUrlGenerator
+            ->setController(self::class)
+            ->setAction(Action::INDEX)
+            ->generateUrl();
+
+        return $this->redirect($url);
     }
 }
