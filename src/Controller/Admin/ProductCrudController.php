@@ -180,7 +180,7 @@ class ProductCrudController extends AbstractCrudController
             IntegerField::new('quantityInStock', 'Stock')->setColumns('col-md-6'),
             IntegerField::new('loyaltyPoints', 'Loyalty Points')->setColumns('col-md-6'),
 
-            // Stock Status Field with badge and filter
+
             TextField::new('stockStatus', 'Stock Status')
                 ->onlyOnIndex()
                 ->formatValue(function ($value, Product $product) {

@@ -105,29 +105,29 @@ class Product
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ProductVariant::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $productVariants;
-     #[ORM\Column(length: 20)]
+    #[ORM\Column(length: 20)]
     private ?string $stockStatus = null;
 
-#[ORM\PrePersist]
-#[ORM\PreUpdate]
-public function updateStockStatus(): void
-{
-    $lowStockThreshold = 10;
-    
-    // Calculate based on total stock (sum of variants + product's own stock if applicable)
-    $totalStock = $this->quantityInStock;
-    foreach ($this->productVariants as $variant) {
-        $totalStock += $variant->getStock();
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function updateStockStatus(): void
+    {
+        $lowStockThreshold = 10;
+
+        // Calculate based on total stock (sum of variants + product's own stock if applicable)
+        $totalStock = $this->quantityInStock;
+        foreach ($this->productVariants as $variant) {
+            $totalStock += $variant->getStock();
+        }
+
+        if ($totalStock === 0) {
+            $this->stockStatus = 'Out of Stock';
+        } elseif ($totalStock <= $lowStockThreshold) {
+            $this->stockStatus = 'Low Stock';
+        } else {
+            $this->stockStatus = 'In Stock';
+        }
     }
-    
-    if ($totalStock === 0) {
-        $this->stockStatus = 'Out of Stock';
-    } elseif ($totalStock <= $lowStockThreshold) {
-        $this->stockStatus = 'Low Stock';
-    } else {
-        $this->stockStatus = 'In Stock';
-    }
-}
 
     public function __construct()
     {
@@ -158,7 +158,7 @@ public function updateStockStatus(): void
         // set it here. This ensures that even if only other fields are updated,
         // the updatedAt timestamp is correctly managed.
         if (null === $this->updatedAt) {
-             $this->updatedAt = new \DateTimeImmutable();
+            $this->updatedAt = new \DateTimeImmutable();
         } else {
             // If overviewImageFile was set, updatedAt would already be DateTimeImmutable.
             // If not, and updatedAt was a DateTime, ensure it's DateTimeImmutable.
@@ -211,12 +211,12 @@ public function updateStockStatus(): void
         return $this->quantityInStock;
     }
 
-   public function setQuantityInStock(int $quantityInStock): static
-{
-    $this->quantityInStock = $quantityInStock;
-    $this->updateStockStatus(); 
-    return $this;
-}
+    public function setQuantityInStock(int $quantityInStock): static
+    {
+        $this->quantityInStock = $quantityInStock;
+        $this->updateStockStatus();
+        return $this;
+    }
 
     public function getLoyaltyPoints(): int
     {
@@ -261,19 +261,29 @@ public function updateStockStatus(): void
     }
 
     // Virtual field for EasyAdmin Stock Status
-    public function getStockStatus(): string
+    // public function getStockStatus(): string
+    // {
+    //     $stock = $this->getQuantityInStock();
+    //     if ($stock === null) {
+    //         return 'Unknown';
+    //     }
+    //     if ($stock === 0) {
+    //         return 'Out of Stock';
+    //     } elseif ($stock > 0 && $stock <= 10) {
+    //         return 'Low Stock';
+    //     } else {
+    //         return 'In Stock';
+    //     }
+    // }
+    public function getStockStatus(): ?string
     {
-        $stock = $this->getQuantityInStock();
-        if ($stock === null) {
-            return 'Unknown';
-        }
-        if ($stock === 0) {
-            return 'Out of Stock';
-        } elseif ($stock > 0 && $stock <= 10) {
-            return 'Low Stock';
-        } else {
-            return 'In Stock';
-        }
+        return $this->stockStatus; // <-- read directly from DB
+    }
+
+    public function setStockStatus(?string $stockStatus): self
+    {
+        $this->stockStatus = $stockStatus;
+        return $this;
     }
 
     public function setOverviewImage(?string $overviewImage): static
@@ -281,6 +291,24 @@ public function updateStockStatus(): void
         $this->overviewImage = $overviewImage;
         return $this;
     }
+    // private function calculateStockStatus(): string
+    // {
+    //     $lowStockThreshold = 10;
+
+    //     // Calculate total stock (main + variants)
+    //     $totalStock = $this->quantityInStock ?? 0;
+    //     foreach ($this->productVariants as $variant) {
+    //         $totalStock += $variant->getStock();
+    //     }
+
+    //     if ($totalStock === 0) {
+    //         return 'Out of Stock';
+    //     } elseif ($totalStock <= $lowStockThreshold) {
+    //         return 'Low Stock';
+    //     } else {
+    //         return 'In Stock';
+    //     }
+    // }
 
     /**
      * @return Collection<int, ProductVariant>
@@ -562,5 +590,4 @@ public function updateStockStatus(): void
     /**
      * @return Collection<int, OrderItem>
      */
-
 }
