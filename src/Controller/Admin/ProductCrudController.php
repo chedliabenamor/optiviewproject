@@ -47,6 +47,7 @@ use App\Repository\GenreRepository;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
+use App\Filter\StockStatusFilter;
 
 class ProductCrudController extends AbstractCrudController
 {
@@ -87,7 +88,7 @@ class ProductCrudController extends AbstractCrudController
         return $crud
             ->setPageTitle('detail', fn(Product $product) => sprintf('Product: %s', $product->getName()))
             ->overrideTemplate('crud/detail', 'admin/product/product_detail.html.twig')
-            ->overrideTemplate('crud/index', 'admin/product/index.html.twig')
+
             ->overrideTemplate('crud/new', 'admin/product/new.html.twig')
             ->overrideTemplate('crud/edit', 'admin/product/edit.html.twig')
             ->setPaginatorPageSize($pageSize)
@@ -100,6 +101,8 @@ class ProductCrudController extends AbstractCrudController
     {
         return Product::class;
     }
+
+
     public function configureActions(Actions $actions): Actions
     {
         $request = $this->requestStack->getCurrentRequest();
@@ -181,19 +184,10 @@ class ProductCrudController extends AbstractCrudController
             IntegerField::new('loyaltyPoints', 'Loyalty Points')->setColumns('col-md-6'),
 
 
-            TextField::new('stockStatus', 'Stock Status')
+            IntegerField::new('quantityInStock', 'Stock Status')
+                ->setSortable(true)
                 ->onlyOnIndex()
-                ->formatValue(function ($value, Product $product) {
-                    $status = $product->getStockStatus();
-                    $color = match ($status) {
-                        'Out of Stock' => 'danger',
-                        'Low Stock' => 'warning',
-                        'In Stock' => 'success',
-                        default => 'secondary',
-                    };
-                    return sprintf('<span class="badge text-white bg-%s">%s</span>', $color, $status);
-                })
-                ->renderAsHtml(),
+                ->setTemplatePath('admin/field/stock_status.html.twig'),
 
             CollectionField::new('productModelImages')
                 ->setLabel('Additional Images')
@@ -259,14 +253,7 @@ class ProductCrudController extends AbstractCrudController
             ->add(EntityFilter::new('category'))
             ->add(EntityFilter::new('shape'))
             ->add(EntityFilter::new('genre'))
-            ->add(
-                ChoiceFilter::new('stockStatus')
-                    ->setChoices([
-                        'In Stock' => 'In Stock',
-                        'Low Stock' => 'Low Stock',
-                        'Out of Stock' => 'Out of Stock',
-                    ])
-            );
+            ->add(StockStatusFilter::new('quantityInStock', 'Stock Status'));
     }
 
 
@@ -274,6 +261,8 @@ class ProductCrudController extends AbstractCrudController
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {
         $queryBuilder = parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters);
+
+
 
         $request = $this->requestStack->getCurrentRequest();
         $isArchivedView = $request?->query->get('show') === 'archived';

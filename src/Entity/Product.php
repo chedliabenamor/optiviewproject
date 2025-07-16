@@ -15,7 +15,7 @@ use App\Entity\Color;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
-#[ORM\HasLifecycleCallbacks]
+
 #[Vich\Uploadable]
 #[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
 class Product
@@ -105,29 +105,6 @@ class Product
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ProductVariant::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $productVariants;
-    #[ORM\Column(length: 20)]
-    private ?string $stockStatus = null;
-
-    #[ORM\PrePersist]
-    #[ORM\PreUpdate]
-    public function updateStockStatus(): void
-    {
-        $lowStockThreshold = 10;
-
-        // Calculate based on total stock (sum of variants + product's own stock if applicable)
-        $totalStock = $this->quantityInStock;
-        foreach ($this->productVariants as $variant) {
-            $totalStock += $variant->getStock();
-        }
-
-        if ($totalStock === 0) {
-            $this->stockStatus = 'Out of Stock';
-        } elseif ($totalStock <= $lowStockThreshold) {
-            $this->stockStatus = 'Low Stock';
-        } else {
-            $this->stockStatus = 'In Stock';
-        }
-    }
 
     public function __construct()
     {
@@ -214,7 +191,6 @@ class Product
     public function setQuantityInStock(int $quantityInStock): static
     {
         $this->quantityInStock = $quantityInStock;
-        $this->updateStockStatus();
         return $this;
     }
 
@@ -260,55 +236,27 @@ class Product
         return $this->overviewImage;
     }
 
-    // Virtual field for EasyAdmin Stock Status
-    // public function getStockStatus(): string
-    // {
-    //     $stock = $this->getQuantityInStock();
-    //     if ($stock === null) {
-    //         return 'Unknown';
-    //     }
-    //     if ($stock === 0) {
-    //         return 'Out of Stock';
-    //     } elseif ($stock > 0 && $stock <= 10) {
-    //         return 'Low Stock';
-    //     } else {
-    //         return 'In Stock';
-    //     }
-    // }
-    public function getStockStatus(): ?string
-    {
-        return $this->stockStatus; // <-- read directly from DB
-    }
-
-    public function setStockStatus(?string $stockStatus): self
-    {
-        $this->stockStatus = $stockStatus;
-        return $this;
-    }
-
     public function setOverviewImage(?string $overviewImage): static
     {
         $this->overviewImage = $overviewImage;
         return $this;
     }
-    // private function calculateStockStatus(): string
-    // {
-    //     $lowStockThreshold = 10;
 
-    //     // Calculate total stock (main + variants)
-    //     $totalStock = $this->quantityInStock ?? 0;
-    //     foreach ($this->productVariants as $variant) {
-    //         $totalStock += $variant->getStock();
-    //     }
-
-    //     if ($totalStock === 0) {
-    //         return 'Out of Stock';
-    //     } elseif ($totalStock <= $lowStockThreshold) {
-    //         return 'Low Stock';
-    //     } else {
-    //         return 'In Stock';
-    //     }
-    // }
+    // Virtual field for EasyAdmin Stock Status
+    public function getStockStatus(): string
+    {
+        $stock = $this->getQuantityInStock();
+        if ($stock === null) {
+            return 'Unknown';
+        }
+        if ($stock === 0) {
+            return 'Out of Stock';
+        } elseif ($stock < 10) {
+            return 'Low Stock';
+        } else {
+            return 'In Stock';
+        }
+    }
 
     /**
      * @return Collection<int, ProductVariant>

@@ -1,4 +1,15 @@
-{% extends '@!EasyAdmin/crud/index.html.twig' %}
+{% extends '@EasyAdmin/crud/index.html.twig' %}
+
+{% block page_actions %}
+    {% set current_filter = app.request.query.get('stock_filter') %}
+    <div class="btn-group" role="group" aria-label="Stock filter">
+        <a href="{{ ea_url().set('stock_filter', null) }}" class="btn btn-sm {{ current_filter is null ? 'btn-primary' : 'btn-secondary' }}">All</a>
+        <a href="{{ ea_url().set('stock_filter', 'in_stock') }}" class="btn btn-sm {{ current_filter == 'in_stock' ? 'btn-primary' : 'btn-secondary' }}">In Stock</a>
+        <a href="{{ ea_url().set('stock_filter', 'low_stock') }}" class="btn btn-sm {{ current_filter == 'low_stock' ? 'btn-primary' : 'btn-secondary' }}">Low Stock</a>
+        <a href="{{ ea_url().set('stock_filter', 'out_of_stock') }}" class="btn btn-sm {{ current_filter == 'out_of_stock' ? 'btn-primary' : 'btn-secondary' }}">Out of Stock</a>
+    </div>
+    {{ parent() }}
+{% endblock %}
 
 {% block content %}
     {{ parent() }}

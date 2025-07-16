@@ -1,0 +1,12 @@
+{# templates/admin/field/stock_status.html.twig #}
+{% set status = entity.instance.stockStatus %}
+{% set color = 'secondary' %}
+{% if status == 'Out of Stock' %}
+    {% set color = 'danger' %}
+{% elseif status == 'Low Stock' %}
+    {% set color = 'warning' %}
+{% elseif status == 'In Stock' %}
+    {% set color = 'success' %}
+{% endif %}
+
+<span class="badge text-white bg-{{ color }}">{{ status }}</span>
