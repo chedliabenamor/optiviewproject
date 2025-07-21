@@ -10,10 +10,12 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use App\Entity\Style;
 use App\Entity\Genre;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: ProductVariantRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['sku'], message: 'This SKU already exists.')]
+#[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
 class ProductVariant
 {
     /**
@@ -75,6 +77,9 @@ class ProductVariant
 
     #[ORM\ManyToMany(targetEntity: ProductOffer::class, mappedBy: 'productVariants')]
     private Collection $productOffers;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $deletedAt = null;
     #[ORM\Column(length: 20)]
     private ?string $stockStatus = null;
 
@@ -305,5 +310,17 @@ class ProductVariant
     public function __toString(): string
     {
         return $this->getProduct()?->getName() . ' - ' . ($this->getColor()?->getName() ?? '') . ($this->getSku() ? ' (' . $this->getSku() . ')' : '');
+    }
+
+    public function getDeletedAt(): ?\DateTimeInterface
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTimeInterface $deletedAt): self
+    {
+        $this->deletedAt = $deletedAt;
+
+        return $this;
     }
 }

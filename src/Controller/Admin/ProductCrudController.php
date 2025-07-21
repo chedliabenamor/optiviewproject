@@ -49,6 +49,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use App\Filter\StockStatusFilter;
 
+use App\Repository\ProductVariantRepository;
+
 class ProductCrudController extends AbstractCrudController
 {
     private RequestStack $requestStack;
@@ -59,6 +61,7 @@ class ProductCrudController extends AbstractCrudController
     private StyleRepository $styleRepository;
     private ShapeRepository $shapeRepository;
     private GenreRepository $genreRepository;
+    private ProductVariantRepository $productVariantRepository;
 
     public function __construct(
         RequestStack $requestStack,
@@ -68,7 +71,8 @@ class ProductCrudController extends AbstractCrudController
         ColorRepository $colorRepository,
         StyleRepository $styleRepository,
         ShapeRepository $shapeRepository,
-        GenreRepository $genreRepository
+        GenreRepository $genreRepository,
+        ProductVariantRepository $productVariantRepository
     ) {
         $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
@@ -78,6 +82,7 @@ class ProductCrudController extends AbstractCrudController
         $this->styleRepository = $styleRepository;
         $this->shapeRepository = $shapeRepository;
         $this->genreRepository = $genreRepository;
+        $this->productVariantRepository = $productVariantRepository;
     }
 
 
@@ -88,9 +93,9 @@ class ProductCrudController extends AbstractCrudController
         return $crud
             ->setPageTitle('detail', fn(Product $product) => sprintf('Product: %s', $product->getName()))
             ->overrideTemplate('crud/detail', 'admin/product/product_detail.html.twig')
-
+            ->overrideTemplate('crud/index', 'admin/product/index.html.twig')
             ->overrideTemplate('crud/new', 'admin/product/new.html.twig')
-            ->overrideTemplate('crud/edit', 'admin/product/edit.html.twig')
+            // ->overrideTemplate('crud/edit', 'admin/product/edit.html.twig')
             ->setPaginatorPageSize($pageSize)
             ->setPaginatorRangeSize(3)
             ->setDefaultSort(['quantityInStock' => 'ASC'])
@@ -314,5 +319,31 @@ class ProductCrudController extends AbstractCrudController
             ->setAction(Action::INDEX)
             ->set('show', 'archived')
             ->generateUrl());
+    }
+
+    // Override detail action to provide paginated/filterable variants
+    public function detail(AdminContext $context): Response
+    {
+        /** @var Product $product */
+        $product = $context->getEntity()->getInstance();
+        $request = $context->getRequest();
+        $page = max(1, (int) $request->query->get('page', 1));
+        $pageSize = (int) $request->query->get('pageSize', 10);
+        $filters = [
+            'sku' => $request->query->get('sku', ''),
+            'color' => $request->query->get('color', ''),
+            'stock' => $request->query->get('stock', ''),
+        ];
+        $result = $this->productVariantRepository->findPaginatedByProduct($product->getId(), $page, $pageSize, $filters);
+        $variants = $result['variants'];
+        $total = $result['total'];
+        $totalPages = max(1, (int) ceil($total / $pageSize));
+        return $this->render('admin/product/product_detail.html.twig', [
+            'product' => $product,
+            'variants' => $variants,
+            'totalPages' => $totalPages,
+            'currentPage' => $page,
+            'filters' => $filters,
+        ]);
     }
 }

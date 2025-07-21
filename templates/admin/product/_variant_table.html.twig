@@ -1,0 +1,99 @@
+{# Paginated and filterable variant table for product detail page #}
+<div class="table-responsive">
+    <form method="get" class="mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="filter_sku" class="form-label">SKU</label>
+                <input type="text" class="form-control" name="sku" id="filter_sku" value="{{ filters.sku|default('') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="filter_color" class="form-label">Color</label>
+                <input type="text" class="form-control" name="color" id="filter_color" value="{{ filters.color|default('') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="filter_stock" class="form-label">Stock Status</label>
+                <select class="form-select" name="stock" id="filter_stock">
+                    <option value="">All</option>
+                    <option value="in" {% if filters.stock == 'in' %}selected{% endif %}>In Stock</option>
+                    <option value="low" {% if filters.stock == 'low' %}selected{% endif %}>Low Stock</option>
+                    <option value="out" {% if filters.stock == 'out' %}selected{% endif %}>Out of Stock</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="?" class="btn btn-outline-secondary ms-1">Reset</a>
+            </div>
+        </div>
+    </form>
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Image</th>
+                <th>SKU</th>
+                <th>Color</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for variant in variants %}
+            <tr>
+                <td class="text-center">
+                    {% if variant.getFirstImageUrl() %}
+                        <img src="{{ asset(variant.getFirstImageUrl()) }}" alt="Variant Image" style="max-width: 60px; max-height: 60px; object-fit: cover;" class="rounded shadow-sm">
+                    {% else %}
+                        <span class="text-muted">No image</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ variant.sku }}</td>
+                <td class="text-center">{{ variant.color ?: 'N/A' }}</td>
+                <td class="text-center">
+                    {{ variant.price is not null ? (variant.price|number_format(2, '.', ',') ~ ' ' ~ (variant.currency == 'EUR' ? '€' : variant.currency)) : 'N/A' }}
+                </td>
+                <td class="text-center">{{ variant.stock }}</td>
+                <td class="text-center">
+                    {% set stock = variant.stock %}
+                    {% if stock is not null %}
+                        {% if stock == 0 %}
+                            <span class="badge bg-danger text-white">Out of Stock</span>
+                        {% elseif stock > 0 and stock <= 10 %}
+                            <span class="badge bg-warning text-dark">Low Stock</span>
+                        {% else %}
+                            <span class="badge bg-success text-white">In Stock</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge bg-secondary text-white">Unknown</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductVariantCrudController').setAction('detail').setEntityId(variant.id) }}" class="fw-bold">
+                        <span class="icon action-icon mr-1"><i class="fa fa-eye"></i></span>Show
+                    </a>
+                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductVariantCrudController').setAction('edit').setEntityId(variant.id) }}" class="fw-bold">
+                        <span class="icon action-icon"><i class="fa fa-edit mr-1"></i></span>Edit
+                    </a>
+                    <form method="POST" action="{{ path('admin_product_variant_archive', {'id': variant.id}) }}" onsubmit="return confirm('Are you sure you want to archive this variant?');" style="display: inline-block;">
+                        <input type="hidden" name="_token" value="{{ csrf_token('archive' ~ variant.id) }}">
+                        <button type="submit" class="btn btn-sm btn-warning">
+                            <span class="icon action-icon"><i class="fa fa-archive"></i></span> Archive
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="7" class="text-center">No variants found.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% for page in 1..totalPages %}
+                <li class="page-item {% if page == currentPage %}active{% endif %}">
+                    <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all|merge({'page': page, 'entityId': product.id})) }}">{{ page }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </nav>
+</div>
