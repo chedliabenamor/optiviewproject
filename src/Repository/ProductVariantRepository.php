@@ -55,46 +55,81 @@ class ProductVariantRepository extends ServiceEntityRepository
      * @param array $filters (sku, color, stock)
      * @return array [variants, total]
      */
-    public function findPaginatedByProduct(
-        int $productId,
-        int $page = 1,
-        int $pageSize = 10,
-        array $filters = []
-    ): array {
-        $qb = $this->createQueryBuilder('v')
-            ->andWhere('v.product = :productId')
-            ->andWhere('v.deletedAt IS NULL')
-            ->setParameter('productId', $productId);
+   public function findPaginatedByProduct(
+    int $productId,
+    int $page,
+    int $pageSize,
+    array $filters = [],
+    bool $archived = false
+): array {
+    $qb = $this->createQueryBuilder('v')
+        ->leftJoin('v.color', 'c') // Join with Color entity
+        ->andWhere('v.product = :productId')
+        ->setParameter('productId', $productId);
 
-        if (!empty($filters['sku'])) {
-            $qb->andWhere('LOWER(v.sku) LIKE :sku')
-               ->setParameter('sku', '%' . strtolower($filters['sku']) . '%');
-        }
-        if (!empty($filters['color'])) {
-            $qb->leftJoin('v.color', 'c')
-               ->andWhere('LOWER(c.name) LIKE :color')
-               ->setParameter('color', '%' . strtolower($filters['color']) . '%');
-        }
-        if (!empty($filters['stock'])) {
-            if ($filters['stock'] === 'in') {
-                $qb->andWhere('v.stock > 10');
-            } elseif ($filters['stock'] === 'low') {
-                $qb->andWhere('v.stock > 0 AND v.stock <= 10');
-            } elseif ($filters['stock'] === 'out') {
-                $qb->andWhere('v.stock = 0');
-            }
-        }
-
-        $qbCount = clone $qb;
-        $total = (int) $qbCount->select('COUNT(v.id)')->getQuery()->getSingleScalarResult();
-
-        $variants = $qb
-            ->orderBy('v.id', 'DESC')
-            ->setFirstResult(($page - 1) * $pageSize)
-            ->setMaxResults($pageSize)
-            ->getQuery()
-            ->getResult();
-
-        return ['variants' => $variants, 'total' => $total];
+    // ✅ switch between active/archived
+    if ($archived) {
+        $qb->andWhere('v.deletedAt IS NOT NULL');
+    } else {
+        $qb->andWhere('v.deletedAt IS NULL');
     }
+
+    // Apply filters
+    if (!empty($filters['sku'])) {
+        $qb->andWhere('v.sku LIKE :sku')
+            ->setParameter('sku', '%' . $filters['sku'] . '%');
+    }
+
+    if (!empty($filters['color'])) {
+        $qb->andWhere('c.name = :colorName')
+            ->setParameter('colorName', $filters['color']);
+    }
+
+    if (!empty($filters['stock'])) {
+        switch ($filters['stock']) {
+            case 'in':
+                $qb->andWhere('v.stock > 10');
+                break;
+            case 'low':
+                $qb->andWhere('v.stock > 0 AND v.stock <= 10');
+                break;
+            case 'out':
+                $qb->andWhere('v.stock = 0');
+                break;
+        }
+    }
+
+    // Create a separate query builder for the total count to avoid issues with pagination clauses
+    $countQb = clone $qb;
+    $total = (int) $countQb->select('count(v.id)')->getQuery()->getSingleScalarResult();
+
+    // Now, get the paginated data
+    $data = $qb->orderBy('v.createdAt', 'DESC')
+        ->setFirstResult(($page - 1) * $pageSize)
+        ->setMaxResults($pageSize)
+        ->getQuery()
+        ->getResult();
+
+    $pages = (int) ceil($total / $pageSize);
+
+    return [
+        'data' => $data,
+        'total' => $total,
+        'pages' => $pages,
+    ];
+}
+
+public function findUniqueColorsByProduct(int $productId): array
+{
+    return $this->createQueryBuilder('v')
+        ->select('DISTINCT c.name')
+        ->join('v.color', 'c')
+        ->where('v.product = :productId')
+        ->andWhere('c.name IS NOT NULL')
+        ->setParameter('productId', $productId)
+        ->orderBy('c.name', 'ASC')
+        ->getQuery()
+        ->getResult();
+}
+
 }

@@ -5,37 +5,24 @@
 {% endblock %}
 
 {% block main %}
-   
-    
-    {# Displaying associated colors #}
-   
-
-      <div class="mt-3 mb-3 d-flex justify-content-end">
-        {# Edit Product Button #}
-        {% set edit_url = ea_url()
-            .setController(ea.crud.controllerFqcn) 
-            .setAction('edit')
-            .setEntityId(product.id) 
-            .set('referrer', app.request.requestUri) 
-            .generateUrl() %}
-        <a href="{{ edit_url }}" class="btn btn-primary"><i class="fas fa-edit me-1"></i>Edit Product</a>
-        
-        {# Back to List Button #}
-        {% set index_url = ea_url()
-            .setController(ea.crud.controllerFqcn)
-            .setAction('index')
-            .generateUrl() %}
-        <a href="{{ index_url }}" class="btn btn-secondary ms-2">Back to list</a>
+    {# Top Buttons: Edit and Back to List #}
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{{ ea_url().setController(ea.crud.controllerFqcn).setAction('edit').setEntityId(product.id) }}" class="btn btn-primary">
+            <i class="fa fa-fw fa-edit"></i> Edit Product
+        </a>
+        <a href="{{ ea_url().setController(ea.crud.controllerFqcn).setAction('index') }}" class="btn btn-secondary ms-2">
+            Back to list
+        </a>
     </div>
- 
+
+    {# Product Information Card #}
     <div class="card">
         <div class="card-body">
-            <h3 class="card-title mb-4">{{ product.name }}</h3>
-             
+            <h3 class="card-title">{{ product.name }}</h3>
             <div class="row">
-                <div class="col-md-4 mb-4">
+                <div class="col-md-4">
                     {% if product.overviewImage %}
-                        <img src="{{ asset('uploads/products/' ~ product.overviewImage) }}" alt="{{ product.name }}" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: cover;">
+                        <img src="{{ asset('uploads/products/' ~ product.overviewImage) }}" alt="{{ product.name }}" class="img-fluid rounded shadow-sm">
                     {% else %}
                         <div class="img-fluid rounded shadow-sm bg-light d-flex align-items-center justify-content-center" style="height: 300px; border: 1px dashed #ccc;">
                             <span>No overview image</span>
@@ -45,121 +32,69 @@
                 <div class="col-md-8">
                     <h4>Product Information</h4>
                     <dl class="row">
-                        <dt class="col-sm-3">Price:</dt>
-                        <dd class="col-sm-9">
-                          {{ product.price|number_format(2, '.', ',') }} {{ product.currency == 'EUR' ? '€' : product.currency }}
-                        </dd>
-
-                        <dt class="col-sm-3">Stock:</dt>
+                        <dt class="col-sm-3">Price</dt>
+                        <dd class="col-sm-9">{{ product.price|number_format(2, '.', ',') }} {{ product.currency == 'EUR' ? '€' : product.currency }}</dd>
+                        
+                        <dt class="col-sm-3">Stock</dt>
                         <dd class="col-sm-9">{{ product.quantityInStock }}</dd>
 
                         {% if product.category %}
-                        <dt class="col-sm-3">Category:</dt>
-                        <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\CategoryCrudController').setAction('detail').setEntityId(product.category.id) }}">{{ product.category.name }}</a></dd>
+                            <dt class="col-sm-3">Category</dt>
+                            <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\CategoryCrudController').setAction('detail').setEntityId(product.category.id) }}">{{ product.category.name }}</a></dd>
                         {% endif %}
 
-                        {% if product.brand %}
-                        <dt class="col-sm-3">Brand:</dt>
-                        <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\BrandCrudController').setAction('detail').setEntityId(product.brand.id) }}">{{ product.brand.name }}</a></dd>
+                         {% if product.brand %}
+                            <dt class="col-sm-3">Brand</dt>
+                            <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\BrandCrudController').setAction('detail').setEntityId(product.brand.id) }}">{{ product.brand.name }}</a></dd>
                         {% endif %}
-
-                        {% if product.style %}
-                        <dt class="col-sm-3">Style:</dt>
-                        <dd class="col-sm-9">{{ product.style.name }}</dd>
-                        {% endif %}
-
-                        {% if product.shape %}
-                        <dt class="col-sm-3">Shape:</dt>
-                        <dd class="col-sm-9">{{ product.shape.name }}</dd>
-                        {% endif %}
-
-                        {% if product.genre %}
-                        <dt class="col-sm-3">Genre:</dt>
-                        <dd class="col-sm-9">{{ product.genre.name }}</dd>
-                        {% endif %}
-                          <dt class="col-sm-3">Available Colors:</dt>
-                          <dd class="col-sm-9">
-            {% if product.colors is not empty %}
-                <ul class="list-inline">
-                    {% for color in product.colors %}
-                        <li class="list-inline-item">
-                            <span class="badge" style="background-color: {{ color.hexCode|default('#5368d5') }}; color: #fff;">{{ color.name }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>No colors assigned to this product.</p>
-            {% endif %}
-                   </dd>                        
-                        <dt class="col-sm-3">Loyalty Points:</dt>
-                        <dd class="col-sm-9">{{ product.loyaltyPoints }} point(s)</dd>
-                      
                     </dl>
-
                 </div>
             </div>
-
-            {% if product.description %}
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Description</h5>
-                </div>
-                <div class="card-body">
-                    <div style="white-space: pre-wrap;">{{ product.description|raw }}</div>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if product.productModelImages is not empty and product.productModelImages|length > 0 %}
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Additional Images</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for image in product.productModelImages %}
-                            <div class="col-md-3 mb-3">
-                                {% if image.imageUrl %}
-                                    <img src="{{ asset('uploads/product_images/' ~ image.imageUrl) }}" alt="{{ image.altText ?: 'Product Image' }}" class="img-fluid rounded shadow-sm" style="max-height: 200px; object-fit: cover;">
-                                {% else %}
-                                    <div class="img-fluid rounded shadow-sm bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 1px dashed #ccc;">
-                                        <span>No image</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-               {% set edit_url = ea_url()
-            .setController(ea.crud.controllerFqcn) 
-            .setAction('edit')
-            .setEntityId(product.id) 
-            .set('referrer', app.request.requestUri) 
-            .generateUrl() %}
-        <a href="{{ edit_url }}" class="btn btn-primary float-right d-table mt-5"><i class="fas fa-plus  me-1"></i>Add Product Variant</a>
-            {% include 'admin/product/_variant_table.html.twig' with {
-    variants: variants,
-    totalPages: totalPages,
-    currentPage: currentPage,
-    filters: filters,
-    product: product
-} %}
-
-            <hr class="my-4">
-            <div class="row">
-                <div class="col-md-6">
-                    <small class="text-muted">Created: {{ product.createdAt|date('Y-m-d H:i:s') }}</small>
-                </div>
-                <div class="col-md-6 text-md-right">
-                    <small class="text-muted">Last Updated: {{ product.updatedAt|date('Y-m-d H:i:s') }}</small>
-                </div>
-            </div>
-
         </div>
-    </div> {# End of main card div #}
+    </div>
 
-
-
+    {# Product Variants Card with Tabs #}
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <ul class="nav nav-tabs card-header-tabs" id="variant-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-variants" type="button" role="tab" aria-controls="active-variants" aria-selected="true">
+                        <i class="fas fa-box me-1"></i> Active Variants ({{ total_active }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="archived-tab" data-bs-toggle="tab" data-bs-target="#archived-variants" type="button" role="tab" aria-controls="archived-variants" aria-selected="false">
+                        <i class="fas fa-archive me-1"></i> Archived Variants ({{ total_archived }})
+                    </button>
+                </li>
+            </ul>
+            <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('edit').setEntityId(product.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Add Variant
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="variant-tabs-content">
+                <div class="tab-pane fade show active" id="active-variants" role="tabpanel" aria-labelledby="active-tab">
+                    {% include 'admin/product/components/_variant_table.html.twig' with {
+                        'variants': active_variants,
+                        'totalPages': pages_active,
+                        'currentPage': current_page_active,
+                        'is_archived': false,
+                        'product': product,
+                        'filters': filters
+                    } %}
+                </div>
+                <div class="tab-pane fade" id="archived-variants" role="tabpanel" aria-labelledby="archived-tab">
+                    {% include 'admin/product/components/_variant_table.html.twig' with {
+                        'variants': archived_variants,
+                        'totalPages': pages_archived,
+                        'currentPage': current_page_archived,
+                        'is_archived': true,
+                        'product': product,
+                        'filters': filters
+                    } %}
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

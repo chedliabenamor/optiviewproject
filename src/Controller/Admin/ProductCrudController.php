@@ -317,33 +317,44 @@ class ProductCrudController extends AbstractCrudController
         return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator
             ->setController(self::class)
             ->setAction(Action::INDEX)
-            ->set('show', 'archived')
             ->generateUrl());
     }
+
 
     // Override detail action to provide paginated/filterable variants
     public function detail(AdminContext $context): Response
     {
-        /** @var Product $product */
         $product = $context->getEntity()->getInstance();
         $request = $context->getRequest();
-        $page = max(1, (int) $request->query->get('page', 1));
-        $pageSize = (int) $request->query->get('pageSize', 10);
-        $filters = [
-            'sku' => $request->query->get('sku', ''),
-            'color' => $request->query->get('color', ''),
-            'stock' => $request->query->get('stock', ''),
-        ];
-        $result = $this->productVariantRepository->findPaginatedByProduct($product->getId(), $page, $pageSize, $filters);
-        $variants = $result['variants'];
-        $total = $result['total'];
-        $totalPages = max(1, (int) ceil($total / $pageSize));
+
+        // Fetch filters from request for both tabs
+        $filters_active = $request->query->all('filters_active');
+        $filters_archived = $request->query->all('filters_archived');
+
+        // Fetch all unique colors for this product's variants for the filter dropdown
+        $availableColors = $this->productVariantRepository->findUniqueColorsByProduct($product->getId());
+
+        // Active Variants Pagination & Filtering
+        $pageActive = $request->query->getInt('page_active', 1);
+        $paginatorActive = $this->productVariantRepository->findPaginatedByProduct($product->getId(), $pageActive, 10, $filters_active, false);
+
+        // Archived Variants Pagination & Filtering
+        $pageArchived = $request->query->getInt('page_archived', 1);
+        $paginatorArchived = $this->productVariantRepository->findPaginatedByProduct($product->getId(), $pageArchived, 10, $filters_archived, true);
+
         return $this->render('admin/product/product_detail.html.twig', [
             'product' => $product,
-            'variants' => $variants,
-            'totalPages' => $totalPages,
-            'currentPage' => $page,
-            'filters' => $filters,
+            'active_variants' => $paginatorActive['data'],
+            'total_active' => $paginatorActive['total'],
+            'pages_active' => $paginatorActive['pages'],
+            'current_page_active' => $pageActive,
+            'archived_variants' => $paginatorArchived['data'],
+            'total_archived' => $paginatorArchived['total'],
+            'pages_archived' => $paginatorArchived['pages'],
+            'current_page_archived' => $pageArchived,
+            'filters_active' => $filters_active,
+            'filters_archived' => $filters_archived,
+            'available_colors' => $availableColors,
         ]);
     }
 }

@@ -83,8 +83,16 @@ class ProductVariantCrudController extends AbstractCrudController
             ->setColumns('col-md-12');
     }
 
-    public function configureActions(Actions $actions): Actions
+        public function configureActions(Actions $actions): Actions
     {
+        $archiveVariantAction = Action::new('archiveVariant', 'Archive', 'fa fa-archive')
+            ->setCssClass('btn btn-warning btn-sm text-white')
+            ->linkToCrudAction('archiveVariant');
+
+        $restoreVariantAction = Action::new('restoreVariant', 'Restore', 'fa fa-undo')
+            ->setCssClass('btn btn-success btn-sm text-white')
+            ->linkToCrudAction('restoreVariant');
+
         $request = $this->requestStack->getCurrentRequest();
         $showArchived = $request?->query->get('show') === 'archived';
 
@@ -126,7 +134,10 @@ class ProductVariantCrudController extends AbstractCrudController
             ->remove(Crud::PAGE_DETAIL, Action::DELETE)
             ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
             ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName])
+            
+            ->add(Crud::PAGE_DETAIL, $restoreVariantAction)
+            ->add(Crud::PAGE_DETAIL, $archiveVariantAction);
     }
 
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): \Doctrine\ORM\QueryBuilder
@@ -136,47 +147,63 @@ class ProductVariantCrudController extends AbstractCrudController
         $showArchived = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
 
         if ($showArchived) {
-            // Show only archived (inactive) variants
-            $queryBuilder->andWhere('entity.isActive = false');
+            $queryBuilder->andWhere('entity.deletedAt IS NOT NULL');
         } else {
-            // Default: show only active variants
-            $queryBuilder->andWhere('entity.isActive = true');
+            $queryBuilder->andWhere('entity.deletedAt IS NULL');
         }
 
         return $queryBuilder;
     }
 
-    public function archiveVariant(AdminContext $context): Response
+        public function archiveVariant(AdminContext $context): Response
     {
         $variant = $context->getEntity()->getInstance();
         if ($variant instanceof ProductVariant) {
-            $variant->setIsActive(false); // Soft delete using isActive
+            $variant->setDeletedAt(new \DateTimeImmutable());
             $this->entityManager->flush();
             $this->addFlash('success', sprintf('Variant "%s" was archived.', $variant->getSku()));
         }
 
-        $url = $context->getReferrer() ?? $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Action::INDEX)
+        $url = $this->adminUrlGenerator
+            ->setController(ProductCrudController::class)
+            ->setAction(Action::DETAIL)
+            ->setEntityId($variant->getProduct()->getId())
             ->generateUrl();
 
         return $this->redirect($url);
     }
 
-    public function restoreVariant(AdminContext $context): Response
+        public function restoreVariant(AdminContext $context): Response
     {
         $variant = $context->getEntity()->getInstance();
         if ($variant instanceof ProductVariant) {
-            $variant->setIsActive(true); // Restore variant
+            $variant->setDeletedAt(null);
             $this->entityManager->flush();
             $this->addFlash('success', sprintf('Variant "%s" was restored.', $variant->getSku()));
         }
 
-        $url = $context->getReferrer() ?? $this->adminUrlGenerator
-            ->setController(self::class)
-            ->setAction(Action::INDEX)
+        $url = $this->adminUrlGenerator
+            ->setController(ProductCrudController::class)
+            ->setAction(Action::DETAIL)
+            ->setEntityId($variant->getProduct()->getId())
             ->generateUrl();
 
         return $this->redirect($url);
+    }
+
+    protected function getRedirectResponseAfterSave(AdminContext $context, string $action): RedirectResponse
+    {
+        $variant = $context->getEntity()->getInstance();
+        if ($variant instanceof ProductVariant && $variant->getProduct()) {
+            $url = $this->adminUrlGenerator
+                ->setController(ProductCrudController::class)
+                ->setAction(Action::DETAIL)
+                ->setEntityId($variant->getProduct()->getId())
+                ->generateUrl();
+
+            return $this->redirect($url);
+        }
+
+        return parent::getRedirectResponseAfterSave($context, $action);
     }
 }
