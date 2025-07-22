@@ -331,8 +331,8 @@ class ProductCrudController extends AbstractCrudController
         $filters_active = $request->query->all('filters_active');
         $filters_archived = $request->query->all('filters_archived');
 
-        // Fetch all unique colors for this product's variants for the filter dropdown
-        $availableColors = $this->productVariantRepository->findUniqueColorsByProduct($product->getId());
+        // Fetch all colors from the Color entity for the filter dropdown
+        $availableColors = $this->colorRepository->findAll();
 
         // Active Variants Pagination & Filtering
         $pageActive = $request->query->getInt('page_active', 1);

@@ -2,9 +2,15 @@
 <div class="table-responsive overflow-hidden">
     {% set form_prefix = is_archived ? 'filters_archived' : 'filters_active' %}
 {% set current_filters = is_archived ? filters_archived : filters_active %}
-{% set reset_url = ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('detail').setEntityId(product.id) %}
+{% set form_action_url = ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('detail').setEntityId(product.id) %}
+{% if is_archived %}
+    {% set other_tab_params = { 'filters_active': app.request.query.all('filters_active'), 'page_active': app.request.query.get('page_active', 1), 'active_tab': 'archived' } %}
+{% else %}
+    {% set other_tab_params = { 'filters_archived': app.request.query.all('filters_archived'), 'page_archived': app.request.query.get('page_archived', 1), 'active_tab': 'active' } %}
+{% endif %}
+{% set reset_url = form_action_url.setAll(other_tab_params) %}
 
-<form action="{{ reset_url }}" method="get" class="mb-4 p-3 border rounded bg-light">
+<form action="{{ form_action_url }}" method="get" class="mb-4 p-3 border rounded bg-light">
     <input type="hidden" name="active_tab" value="{{ is_archived ? 'archived' : 'active' }}">
 
     {# Preserve pagination of the other tab #}
@@ -116,14 +122,3 @@
         </ul>
     </nav>
 {% endif %}
-                    <ul class="pagination justify-content-center">
-                        {% set page_param = is_archived ? 'page_archived' : 'page_active' %}
-                        {% for page in 1..totalPages %}
-                            <li class="page-item {% if page == currentPage %}active{% endif %}">
-                                <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all|merge({ (page_param): page, 'entityId': product.id })) }}">{{ page }}</a>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </nav>
-            {% endif %}
-        </div>

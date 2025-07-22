@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk=self.webpackChunk||[]).push([[524],{2882:(s,e,o)=>{(0,o(3066).E)();console.log("This log comes from assets/app.js - welcome to AssetMapper! 🎉")},5828:(s,e,o)=>{o.d(e,{A:()=>c});var r=o(9896),t=o(6773);const c={live:r.Ay,"symfony--ux-turbo--turbo-core":t.A}}},s=>{s.O(0,[891,529],(()=>{return e=2882,s(s.s=e);var e}));s.O()}]);
