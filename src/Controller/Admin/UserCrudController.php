@@ -257,24 +257,25 @@ class UserCrudController extends AbstractCrudController
             ->linkToCrudAction('activateUser')
             ->displayIf(fn(User $user) => !$user->isActive());
 
-        // Deactivate Action (shows for active users)
+        // Deactivate Action (shows for active users, but not for the current user)
         $deactivateAction = Action::new('deactivateUser', 'Deactivate', 'fa fa-times-circle')
             ->setCssClass('btn btn-danger')
             ->linkToCrudAction('deactivateUser')
-            ->displayIf(fn(User $user) => $user->isActive());
+            ->displayIf(function (User $user) use ($currentUser) {
+                return $user->isActive() && $user !== $currentUser;
+            });
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $activateAction)
             ->add(Crud::PAGE_INDEX, $deactivateAction)
-            ->add(Crud::PAGE_DETAIL, $activateAction)
-            ->add(Crud::PAGE_DETAIL, $deactivateAction)
             ->update(Crud::PAGE_INDEX, Action::NEW, fn(Action $action) => $action->setIcon('fa fa-user-plus')->setLabel('Add User'))
-            ->update(Crud::PAGE_INDEX, Action::DETAIL, fn(Action $action) => $action->setIcon('fa fa-eye')->setLabel('Show'))
             ->update(Crud::PAGE_INDEX, Action::EDIT, fn(Action $action) => $action->setIcon('fa fa-edit')->setLabel('Edit'))
+            ->update(Crud::PAGE_INDEX, Action::DETAIL, fn(Action $action) => $action->setIcon('fa fa-eye')->setLabel('Show'))
             ->remove(Crud::PAGE_INDEX, Action::DELETE)
             ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, 'activateUser', 'deactivateUser']);
     }
+
     public function deactivateUser(AdminContext $context)
     {
         $user = $context->getEntity()->getInstance();

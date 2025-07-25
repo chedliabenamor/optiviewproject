@@ -22,7 +22,6 @@ Encore
      */
     .addEntry('app', './assets/app.js')
     .addEntry('admin', './assets/admin/admin.js')
-    .addEntry('admin/product', './assets/admin/product.js')
     .addStyleEntry('admincss', './assets/admin/easyadmin-custom.css')
     .splitEntryChunks()
 

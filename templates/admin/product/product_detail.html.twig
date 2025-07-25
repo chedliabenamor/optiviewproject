@@ -18,38 +18,138 @@
     {# Product Information Card #}
     <div class="card">
         <div class="card-body">
-            <h3 class="card-title">{{ product.name }}</h3>
+         
             <div class="row">
                 <div class="col-md-4">
-                    {% if product.overviewImage %}
-                        <img src="{{ asset('uploads/products/' ~ product.overviewImage) }}" alt="{{ product.name }}" class="img-fluid rounded shadow-sm">
-                    {% else %}
-                        <div class="img-fluid rounded shadow-sm bg-light d-flex align-items-center justify-content-center" style="height: 300px; border: 1px dashed #ccc;">
-                            <span>No overview image</span>
-                        </div>
-                    {% endif %}
+    {# Combine main product image and additional images into one list #}
+    {% set all_images = [] %}
+    {% if product.overviewImage %}
+        {% set main_image = { 'id': 'main_' ~ product.id, 'path': asset('uploads/products/' ~ product.overviewImage) } %}
+        {% set all_images = all_images|merge([main_image]) %}
+    {% endif %}
+    {% for p_image in product.productModelImages %}
+        {% set model_image = { 'id': p_image.id, 'path': vich_uploader_asset(p_image, 'imageFile') } %}
+        {% set all_images = all_images|merge([model_image]) %}
+    {% endfor %}
+
+    {% if all_images is not empty %}
+        <div id="productImageCarousel" class="carousel slide carousel-dark" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                {% for i, image_data in all_images %}
+                    <button type="button" data-bs-target="#productImageCarousel" data-bs-slide-to="{{ i }}" class="{{ i == 0 ? 'active' : '' }}" aria-current="{{ i == 0 ? 'true' : 'false' }}" aria-label="Slide {{ i + 1 }}"></button>
+                {% endfor %}
+            </div>
+            <div class="carousel-inner">
+                {% for i, image_data in all_images %}
+                    <div class="carousel-item {{ i == 0 ? 'active' : '' }}">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#imageGalleryModal" data-bs-slide-to="{{ i }}">
+                            <img src="{{ image_data.path }}" class="d-block w-100 rounded" alt="Product Image {{ i + 1 }}" style="max-height: 400px; object-fit: contain;">
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#productImageCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#productImageCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+
+        <!-- Modal with Carousel -->
+<div class="modal fade" id="imageGalleryModal" tabindex="-1" aria-labelledby="imageGalleryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageGalleryModalLabel">Product Gallery</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalCarousel" class="carousel slide carousel-dark" data-bs-ride="false">
+                    <div class="carousel-inner">
+                        {% for i, image_data in all_images %}
+                            <div class="carousel-item {% if i == 0 %}active{% endif %}">
+                                <img src="{{ image_data.path }}" class="d-block w-100" alt="Product Image {{ i + 1 }}" style="max-height: 70vh; object-fit: contain;">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#modalCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#modalCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center bg-light d-flex align-items-center justify-content-center" style="height: 300px; border: 1px dashed #ccc;">
+                <i class="fas fa-image fa-3x text-muted"></i>
+            </div>
+        </div>
+    {% endif %}
+</div>
                 <div class="col-md-8">
                     <h4>Product Information</h4>
                     <dl class="row">
                         <dt class="col-sm-3">Price</dt>
-                        <dd class="col-sm-9">{{ product.price|number_format(2, '.', ',') }} {{ product.currency == 'EUR' ? '€' : product.currency }}</dd>
-                        
+                        <dd class="col-sm-9">{{ product.price ? ((product.currency == 'EUR' ? '€' : product.currency) ~ (product.price / 100)|number_format(2, '.', '')) : 'N/A' }}</dd>
+
+                        <dt class="col-sm-3">SKU</dt>
+                        <dd class="col-sm-9">{{ product.sku }}</dd>
+
                         <dt class="col-sm-3">Stock</dt>
-                        <dd class="col-sm-9">{{ product.quantityInStock }}</dd>
+                        <dd class="col-sm-9">{{ product.quantityInStock }} piece(s)</dd>
+
+                        {# <dt class="col-sm-3">Active Variants</dt>
+                        <dd class="col-sm-9">{{ total_active }}</dd>
+
+                        <dt class="col-sm-3">Archived Variants</dt>
+                        <dd class="col-sm-9">{{ total_archived }}</dd> #}
+
+                        <dt class="col-sm-3">Loyalty Points</dt>
+                        <dd class="col-sm-9">{{ product.loyaltyPoints }} points</dd>
+
+                        {% if product.style %}
+                            <dt class="col-sm-3">Style</dt>
+                            <dd class="col-sm-9">{{ product.style.name }}</dd>
+                        {% endif %}
 
                         {% if product.category %}
                             <dt class="col-sm-3">Category</dt>
                             <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\CategoryCrudController').setAction('detail').setEntityId(product.category.id) }}">{{ product.category.name }}</a></dd>
                         {% endif %}
 
-                         {% if product.brand %}
+                        {% if product.brand %}
                             <dt class="col-sm-3">Brand</dt>
                             <dd class="col-sm-9"><a href="{{ ea_url().setController('App\\Controller\\Admin\\BrandCrudController').setAction('detail').setEntityId(product.brand.id) }}">{{ product.brand.name }}</a></dd>
                         {% endif %}
+
+                        <dt class="col-sm-3">Colors</dt>
+                        <dd class="col-sm-9">
+                            {% for color in product.colors %}
+                                <a href="{{ ea_url().setController('App\\Controller\\Admin\\ColorCrudController').setAction('detail').setEntityId(color.id) }}" class="btn btn-sm btn-primary me-1 mb-1">{{ color.name }}</a>
+                            {% else %}
+                                <span>No specific colors assigned.</span>
+                            {% endfor %}
+                        </dd>
                     </dl>
+
+                    {% if product.description %}
+                        <hr>
+                        <h4>Description</h4>
+                        <p>{{ product.description|raw }}</p>
+                    {% endif %}
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -97,4 +197,25 @@
             </div>
         </div>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const imageGalleryModalEl = document.getElementById('imageGalleryModal');
+    if (imageGalleryModalEl) {
+        const modalCarousel = new bootstrap.Carousel(imageGalleryModalEl.querySelector('#modalCarousel'), {
+            interval: false // Disable auto-sliding
+        });
+
+        imageGalleryModalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            if (button) {
+                const slideToIndex = parseInt(button.getAttribute('data-bs-slide-to'), 10);
+                if (!isNaN(slideToIndex)) {
+                    modalCarousel.to(slideToIndex);
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

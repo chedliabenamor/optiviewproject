@@ -46,20 +46,18 @@
                 </td>
             {% endfor %}
             <td class="actions text-right actions-column">
-                {% for action_dto in entity.actions %}
-                    {{ include(action_dto.templatePath, {
-                        'action': action_dto,
-                        'entity': entity,
-                        'ea': ea,
-                        'trans_parameters': ea.i18n.translationParameters,
-                        'translation_domain': ea.i18n.translationDomain
-                    }, with_context = false) }}
+                {% for action in entity.actions %}
+                    {{ include('@EasyAdmin/crud/action.html.twig', {
+                        action: action,
+                        entity: entity,
+                        is_dropdown: false
+                    }) }}
                 {% endfor %}
             </td>
         </tr>
     {% else %}
         <tr>
-            <td colspan="{{ea.crud.actions.count  + (batch_actions|length > 0 ? 1 : 0) + fields|length }}" class="no-results">
+            <td colspan="{{ ea.crud.getFieldAssets('index')|length + (batch_actions|length > 0 ? 1 : 0) + 1 }}" class="no-results">
                 {{ 'crud.no_results_found'|trans(domain = 'EasyAdminBundle') }}
             </td>
         </tr>

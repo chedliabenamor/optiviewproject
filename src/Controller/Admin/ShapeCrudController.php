@@ -46,18 +46,25 @@ class ShapeCrudController extends AbstractCrudController
         $imageFile = TextField::new('imageFile')->setFormType(VichImageType::class)->hideOnIndex();
         $imageName = ImageField::new('imageName')->setBasePath('/uploads/shapes')->setLabel('Image')->hideOnForm();
 
-        $fields = [
-            IdField::new('id')->hideOnForm(),
-            TextField::new('name'),
-            AssociationField::new('products')->hideOnForm(),
-        ];
-
-        if ($pageName === Crud::PAGE_NEW || $pageName === Crud::PAGE_EDIT) {
-            $fields[] = $imageFile;
+        if ($pageName === Crud::PAGE_INDEX) {
+            $fields = [
+                $imageName, // First column: image
+                TextField::new('name'),
+                AssociationField::new('products')->hideOnForm(),
+            ];
+        } elseif ($pageName === Crud::PAGE_NEW || $pageName === Crud::PAGE_EDIT) {
+            $fields = [
+                TextField::new('name'),
+                AssociationField::new('products')->hideOnForm(),
+                $imageFile,
+            ];
         } else {
-            $fields[] = $imageName;
+            $fields = [
+                TextField::new('name'),
+                AssociationField::new('products')->hideOnForm(),
+                $imageName,
+            ];
         }
-
         return $fields;
     }
 

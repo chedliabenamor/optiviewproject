@@ -30,7 +30,8 @@ class OrderItemType extends AbstractType
                 'class' => Product::class,
                 'choice_label' => 'name',
                 'placeholder' => 'Select a product',
-                'required' => true,
+                'required' => false,
+                'help' => 'Choose either a product or a variant. Not both.',
                 'attr' => [
                     'data-controller' => 'order-item-form',
                     'data-action' => 'change->order-item-form#onProductSelect',
@@ -44,6 +45,7 @@ class OrderItemType extends AbstractType
             ]);
 
         $builder->addEventSubscriber(new OrderItemVariantSubscriber($this->em));
+        $builder->addEventSubscriber(new \App\Form\EventSubscriber\OrderItemProductOrVariantExclusiveSubscriber());
     }
 
     public function configureOptions(OptionsResolver $resolver): void

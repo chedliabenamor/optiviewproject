@@ -51,11 +51,12 @@ class CategoryCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         return [
-            IdField::new('id')->hideOnForm(),
-            TextField::new('name'),
-            AssociationField::new('products')->hideOnForm(),
+            // IdField::new('id')->hideOnForm(),
             TextField::new('imageFile')->setFormType(VichImageType::class)->onlyOnForms(),
-            ImageField::new('imageName')->setBasePath($this->params->get('app.path.category_images'))->hideOnForm()
+            ImageField::new('imageName')->setBasePath($this->params->get('app.path.category_images'))->hideOnForm()->setLabel('Image'),
+            TextField::new('name'),
+            AssociationField::new('products')->hideOnForm()
+           
         ];
     }
 

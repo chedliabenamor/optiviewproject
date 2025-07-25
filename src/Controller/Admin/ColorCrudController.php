@@ -56,10 +56,11 @@ class ColorCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
-        yield TextField::new('name');
+        // yield IdField::new('id')->hideOnForm();
         yield TextField::new('imageFile', 'Image File')->setFormType(VichImageType::class)->onlyOnForms();
         yield ImageField::new('imageName', 'Image')->setBasePath('/uploads/images/colors')->hideOnForm();
+        yield TextField::new('name');
+       
 
         if (Crud::PAGE_INDEX === $pageName) {
             yield IntegerField::new('productsCount', 'Products')

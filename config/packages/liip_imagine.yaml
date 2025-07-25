@@ -1,0 +1,18 @@
+# Documentation: https://symfony.com/doc/current/bundles/LiipImagineBundle/basic-usage.html
+liip_imagine:
+    # valid drivers are [gd, imagick, gmagick]
+    driver: "gd"
+
+    filter_sets:
+        # the name of the filter set is the key used in the template
+        my_thumb:
+            # quality of the output image
+            quality: 75
+            # list of filters to apply to the image
+            filters:
+                # create a thumbnail
+                thumbnail:
+                    # set the size of the thumbnail
+                    size: [350, 350]
+                    # set the mode for the thumbnail
+                    mode: outbound

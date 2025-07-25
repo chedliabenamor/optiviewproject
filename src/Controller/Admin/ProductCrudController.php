@@ -177,12 +177,13 @@ class ProductCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         return [
-            IdField::new('id')->hideOnForm(),
+            IdField::new('id')->hideOnForm()->hideOnIndex(),
             ImageField::new('overviewImage', 'Overview Image')
                 ->setBasePath('/uploads/products')
-                ->setLabel('Overview Image File')
+                ->setLabel('Overview Image')
                 ->onlyOnIndex(),
             TextField::new('name')->setColumns('col-md-12'),
+        TextField::new('sku')->setColumns('col-md-12'),
             TextEditorField::new('description')->hideOnIndex()->setColumns('col-md-12'),
             MoneyField::new('price')->setCurrency('EUR')->setColumns('col-md-6'),
             IntegerField::new('quantityInStock', 'Stock')->setColumns('col-md-6'),
@@ -330,6 +331,17 @@ class ProductCrudController extends AbstractCrudController
         // Fetch filters from request for both tabs
         $filters_active = $request->query->all('filters_active');
         $filters_archived = $request->query->all('filters_archived');
+
+        // Check if a filter reset was requested and clear the appropriate filters
+        if ($request->query->getBoolean('reset')) {
+            $activeTab = $request->query->get('active_tab', 'active');
+            if ($activeTab === 'active') {
+                $filters_active = [];
+            } else {
+                $filters_archived = [];
+            }
+            // No redirect needed; we just render the page with the cleared filters.
+        }
 
         // Fetch all colors from the Color entity for the filter dropdown
         $availableColors = $this->colorRepository->findAll();

@@ -20,4 +20,12 @@ class ProductRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Product::class);
     }
+
+    public function findProductsForOfferQueryBuilder(int $offerId): \Doctrine\ORM\QueryBuilder
+    {
+        return $this->createQueryBuilder('p')
+            ->innerJoin('p.productOffers', 'po')
+            ->where('po.id = :offerId')
+            ->setParameter('offerId', $offerId);
+    }
 }

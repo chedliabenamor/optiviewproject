@@ -16,6 +16,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
 class ProductOffer
 {
+    #[ORM\ManyToMany(targetEntity: Category::class)]
+    private Collection $categories;
         #[ORM\ManyToMany(targetEntity: ProductVariant::class, inversedBy: 'productOffers')]
     private Collection $productVariants;
 
@@ -73,11 +75,12 @@ class ProductOffer
     public const TYPE_PERCENTAGE = 'percentage';
     public const TYPE_FIXED = 'fixed';
 
-        public function __construct()
+    public function __construct()
     {
         $this->products = new ArrayCollection();
         $this->brands = new ArrayCollection();
         $this->productVariants = new ArrayCollection();
+        $this->categories = new ArrayCollection();
         $this->createdAt = new \DateTime();
     }
 
@@ -173,6 +176,28 @@ class ProductOffer
     {
         $this->discountType = $discountType;
 
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Category>
+     */
+    public function getCategories(): Collection
+    {
+        return $this->categories;
+    }
+
+    public function addCategory(Category $category): static
+    {
+        if (!$this->categories->contains($category)) {
+            $this->categories->add($category);
+        }
+        return $this;
+    }
+
+    public function removeCategory(Category $category): static
+    {
+        $this->categories->removeElement($category);
         return $this;
     }
 

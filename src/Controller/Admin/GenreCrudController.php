@@ -42,7 +42,7 @@ class GenreCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         return [
-            IdField::new('id')->hideOnForm(),
+            // IdField::new('id')->hideOnForm(),
             TextField::new('name'),
             AssociationField::new('products')->hideOnForm(),
         ];

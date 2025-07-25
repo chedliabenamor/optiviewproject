@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Product;
 use App\Entity\ProductOffer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -17,6 +18,15 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class ProductOfferRepository extends ServiceEntityRepository
 {
+    public function findAssociatedProductsQueryBuilder(int $offerId): QueryBuilder
+    {
+        return $this->createQueryBuilder('o')
+            ->innerJoin('o.products', 'p')
+            ->where('o.id = :offerId')
+            ->setParameter('offerId', $offerId)
+            ->select('p');
+    }
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, ProductOffer::class);
