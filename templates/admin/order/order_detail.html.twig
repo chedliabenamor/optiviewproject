@@ -1,0 +1,202 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{# ✅ Page title #}
+{% block page_title %}
+    {% set status_badge_class = {
+        'pending': 'bg-warning',
+        'processing': 'bg-info',
+        'shipped': 'bg-primary',
+        'delivered': 'bg-success',
+        'cancelled': 'bg-danger',
+    }[entity.instance.status] ?? 'bg-secondary' %}
+    Order Details #{{ entity.instance.id }} <span class="badge {{ status_badge_class }}">{{ entity.instance.status|capitalize }}</span>
+{% endblock %}
+
+{# ✅ Page actions #}
+{% block page_actions %}
+    <a href="{{ ea_url()
+        .setController('App\\Controller\\Admin\\OrderCrudController')
+        .setAction('edit')
+        .setEntityId(entity.instance.id) }}"
+        class="btn btn-primary">
+        <i class="fas fa-edit"></i> Edit Order
+    </a>
+    <a href="{{ ea_url()
+        .setController('App\\Controller\\Admin\\OrderCrudController')
+        .setAction('index') }}"
+        class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to list
+    </a>
+     <button type="button" class="btn btn-secondary" onclick="window.print()">
+        <i class="fas fa-print"></i> Print Order
+    </button>
+{% endblock %}
+
+{% block main %}
+    {# ✅ Customer + Payment info #}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Customer Details</h5>
+                </div>
+                <div class="card-body">
+                    {% if entity.instance.user %}
+                        <p><strong>Name:</strong> {{ entity.instance.user.name }} {{ entity.instance.user.lastname }}</p>
+                        <p><strong>Email:</strong> {{ entity.instance.user.email }}</p>
+                        <a href="{{ ea_url()
+                            .setController('App\\Controller\\Admin\\UserCrudController')
+                            .setAction('detail')
+                            .setEntityId(entity.instance.user.id) }}"
+                            class="btn btn-primary"
+                            target="_blank">
+                            <i class="fas fa-user"></i>
+                            View Customer
+                        </a>
+                    {% else %}
+                        <p>No customer associated with this order.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">Payment Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Payment Method:</strong> {{ entity.instance.paymentMethod|default('N/A') }}</p>
+                    <p>
+                        <strong>Payment Status:</strong>
+                        <span class="badge badge-info">
+                            {{ entity.instance.paymentStatus|default('N/A')|capitalize }}
+                        </span>
+                    </p>
+                    <p><strong>Transaction ID:</strong> {{ entity.instance.transactionId|default('N/A') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ✅ Addresses #}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="card-title">Shipping Address</h5></div>
+                <div class="card-body">
+                    <p>{{ entity.instance.shippingAddress|nl2br }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="card-title">Billing Address</h5></div>
+                <div class="card-body">
+                    <p>{{ entity.instance.billingAddress|nl2br }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ✅ Order items #}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="card-title">Order Items</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Subtotal</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in entity.instance.orderItems %}
+                        <tr>
+                            <td>
+                                {% if item.productVariant and item.productVariant.product and item.productVariant.product.image %}
+                                    <a href="#"
+                                       class="image-popup-trigger"
+                                       data-image-url="{{ asset('uploads/images/products/' ~ item.productVariant.product.image) }}">
+                                        <img src="{{ asset('uploads/images/products/' ~ item.productVariant.product.image) }}"
+                                             alt="{{ item.productVariant }}"
+                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.productVariant ?: 'Product not available' }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.unitPrice|format_currency('EUR') }}</td>
+                            <td>{{ (item.quantity * item.unitPrice)|format_currency('EUR') }}</td>
+                            <td>
+                                {% if item.productVariant and item.productVariant.product %}
+                                    <a href="{{ ea_url()
+                                        .setController('App\\Controller\\Admin\\ProductCrudController')
+                                        .setAction('detail')
+                                        .setEntityId(item.productVariant.product.id) }}"
+                                        class="btn btn-secondary btn-sm"
+                                        target="_blank">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ ea_url()
+                                        .setController('App\\Controller\\Admin\\ProductCrudController')
+                                        .setAction('edit')
+                                        .setEntityId(item.productVariant.product.id) }}"
+                                        class="btn btn-primary btn-sm"
+                                        target="_blank">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="text-end pe-3"><strong>Total Amount:</strong></td>
+                        <td><strong>{{ entity.instance.totalAmount|format_currency('EUR') }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    {# ✅ Image Modal #}
+    <div class="modal fade" id="image-popup-modal" tabindex="-1" aria-labelledby="image-popup-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <img src="" id="popup-image" class="img-fluid" alt="Product Image">
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{# ✅ JS for popup #}
+{% block body_javascript %}
+    {{ parent() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalElement = document.getElementById('image-popup-modal');
+            const popupImage = document.getElementById('popup-image');
+            const imagePopupModal = new bootstrap.Modal(modalElement);
+
+            document.querySelectorAll('.image-popup-trigger').forEach(trigger => {
+                trigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const imageUrl = this.dataset.imageUrl;
+                    popupImage.src = imageUrl;
+                    imagePopupModal.show();
+                });
+            });
+        });
+    </script>
+{% endblock %}

@@ -13,6 +13,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use App\Form\OrderItemType;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -53,12 +54,12 @@ class OrderCrudController extends AbstractCrudController
     {
         return $crud
             ->setPageTitle('index', 'Orders')
-            ->setPageTitle('detail', fn (Order $order) => sprintf('Order #%d', $order->getId()))
-            ->setPaginatorPageSize(10) // Number of orders per page
-            ->setPaginatorRangeSize(4) // Number of page links to show
-            // ->overrideTemplate('crud/detail', 'admin/order/order_detail.html.twig')
+            ->setPageTitle('detail', fn (Order $order) => sprintf('Order  #%d', $order->getId()))
+            ->setPaginatorPageSize(10)
+            ->setPaginatorRangeSize(4) 
+            ->overrideTemplate('crud/detail', 'admin/order/order_detail.html.twig')
             ->overrideTemplate('crud/index', 'admin/order/index.html.twig')
-            ->showEntityActionsInlined(); 
+            ->showEntityActionsInlined();
     }
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
@@ -121,66 +122,55 @@ class OrderCrudController extends AbstractCrudController
         
         $order->setTotalAmount($total);
     }
-
     public function configureFields(string $pageName): iterable
     {
+        // Index Page Fields
         yield IdField::new('id')->hideOnForm();
-        yield AssociationField::new('user', 'Customer')
-            ->setColumns('col-md-6')
-            ->setRequired(true);
-            
-        $statusField = ChoiceField::new('status')
+        yield AssociationField::new('user', 'Customer')->onlyOnIndex();
+        yield IntegerField::new('orderItems.count', 'Items')->onlyOnIndex();
+        yield MoneyField::new('totalAmount', 'Total')->setCurrency('EUR')->onlyOnIndex();
+        yield ChoiceField::new('status')->onlyOnIndex();
+        yield DateTimeField::new('createdAt', 'Created At')->onlyOnIndex();
+
+        // Form Fields (New/Edit)
+        yield AssociationField::new('user', 'Customer')->setColumns('col-md-6')->hideOnIndex();
+
+                $statusField = ChoiceField::new('status')
             ->setChoices([
-                'Pending' => Order::STATUS_PENDING,
-                'Processing' => Order::STATUS_PROCESSING,
-                'Shipped' => Order::STATUS_SHIPPED,
-                'Delivered' => Order::STATUS_DELIVERED,
-                'Cancelled' => Order::STATUS_CANCELLED,
-                'Refunded' => Order::STATUS_REFUNDED,
+                'Pending' => 'pending',
+                'Processing' => 'processing',
+                'Shipped' => 'shipped',
+                'Delivered' => 'delivered',
+                'Cancelled' => 'cancelled',
             ])
-            ->setColumns('col-md-6');
-            
+            ->setColumns('col-md-6')->hideOnIndex();
         if ($pageName === Crud::PAGE_NEW) {
-            // Set default value and make the field disabled
             $statusField
-                ->setFormTypeOption('data', Order::STATUS_PENDING)
-                ->setFormTypeOption('disabled', true)
-                ->setHelp('Status is set to Pending for new orders. You can change it after creation.');
+                ->setFormTypeOption('data', 'pending')
+                                ->setFormTypeOption('disabled', true)
+                ->setHelp('Status is automatically set to Pending for new orders.');
         }
-            
         yield $statusField;
 
+        yield TextareaField::new('shippingAddress')->setColumns('col-md-6')->onlyOnForms();
+        yield TextareaField::new('billingAddress')->setColumns('col-md-6')->onlyOnForms();
+        yield TextField::new('paymentMethod')->setColumns('col-md-6')->hideOnIndex();
+        yield TextField::new('paymentStatus')->setColumns('col-md-6')->hideOnIndex();
+        yield TextField::new('transactionId', 'Transaction ID')->setColumns('col-md-6')->hideOnIndex();
+
         yield CollectionField::new('orderItems')
-            ->setEntryType(OrderItemType::class)
-            ->setFormTypeOption('by_reference', false)
-            ->allowAdd()
-            ->allowDelete()
-            ->setEntryIsComplex()
-            ->setRequired(true)
-            ->renderExpanded()
-            ->setColumns('col-12')
             ->setLabel('Order Items')
-            ->setFormTypeOption('prototype', true)
-            ->setFormTypeOption('prototype_name', '__order_item__')
-            ->setFormTypeOption('allow_extra_fields', true)
-            ->setFormTypeOption('entry_options', [
-                'label' => false,
-            ]);
-
-        yield MoneyField::new('totalAmount')->setCurrency('USD')->hideOnForm();
-        yield DateTimeField::new('createdAt', 'Order Date')->hideOnForm();
-
-        yield TextareaField::new('shippingAddress')->hideOnIndex()->setColumns('col-md-6');
-        yield TextareaField::new('billingAddress')->hideOnIndex()->setColumns('col-md-6');
-
-        yield TextField::new('paymentMethod')->hideOnIndex()->setColumns('col-md-6');
-        yield TextField::new('paymentStatus')->hideOnIndex()->setColumns('col-md-6');
-
-        yield TextField::new('transactionId', 'Transaction ID')->hideOnIndex()->setColumns('col-md-6');
+            ->setEntryIsComplex(true)
+            ->setEntryType(OrderItemType::class)
+            ->setFormTypeOptions(['by_reference' => false])
+            ->setColumns('col-12')
+            ->onlyOnForms();
     }
 
-       public function configureActions(Actions $actions): Actions
-{
+
+
+    public function configureActions(Actions $actions): Actions
+    {
     $request = $this->requestStack->getCurrentRequest();
     $isArchivedView = $request?->query->get('show') === 'archived';
 

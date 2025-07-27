@@ -20,7 +20,7 @@
         confirmationModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
             const action = button.getAttribute('data-action');
-            console.log('Action:', action);
+
             const actionUrl = button.getAttribute('href');
             
             actionText.textContent = action === 'archive' ? 'archive' : 'restore';

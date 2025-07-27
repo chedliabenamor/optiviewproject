@@ -309,7 +309,10 @@ class ProductVariant
 
     public function __toString(): string
     {
-        return $this->getProduct()?->getName() . ' - ' . ($this->getColor()?->getName() ?? '') . ($this->getSku() ? ' (' . $this->getSku() . ')' : '');
+        $productName = $this->product ? $this->product->getName() : '[No Product]';
+        $colorName = $this->color ? $this->color->getName() : '[No Color]';
+    
+        return sprintf('%s - %s', $productName, $colorName);
     }
 
     public function getDeletedAt(): ?\DateTimeInterface

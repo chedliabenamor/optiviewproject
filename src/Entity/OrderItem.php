@@ -78,17 +78,21 @@ class OrderItem
         return $this->productVariant;
     }
 
-    public function setProductVariant(?ProductVariant $productVariant): static
+    public function setProductVariant(?ProductVariant $productVariant): self
     {
         $this->productVariant = $productVariant;
-        
+
+        // Also set the parent Product to ensure data consistency
+        if ($productVariant) {
+            $this->setProduct($productVariant->getProduct());
+        }
+
         // Automatically set the unit price from the product variant
         if ($productVariant !== null) {
             $price = $productVariant->getPrice();
-            if ($price === null) {
-                throw new \RuntimeException(sprintf('Product variant %s has no price set', $productVariant->getId()));
+            if ($price !== null) {
+                $this->setUnitPrice($price);
             }
-            $this->unitPrice = $price;
         }
 
         return $this;
@@ -103,6 +107,22 @@ class OrderItem
     {
         $this->quantity = $quantity;
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        $variant = $this->getProductVariant();
+        
+        if ($variant) {
+            // This uses the __toString() method from ProductVariant we created earlier
+            $productName = (string) $variant; 
+        } else {
+            $productName = 'N/A';
+        }
+        
+        $quantity = $this->getQuantity() ?? 0;
+
+        return sprintf('%s (Quantity: %d)', $productName, $quantity);
     }
 
     public function getUnitPrice(): ?string
