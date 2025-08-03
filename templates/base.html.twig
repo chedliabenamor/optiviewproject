@@ -33,6 +33,7 @@
             {{ encore_entry_link_tags('app') }}
         {{ encore_entry_link_tags('app') }}
     {% endblock %}
+    <script>window.isAuthenticated = {{ app.user ? 'true' : 'false' }};</script>
 </head>
 <body class="animsition">
     {% include 'partials/_header.html.twig' %}

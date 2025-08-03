@@ -1,0 +1,45 @@
+{# templates/partials/_product_card.html.twig #}
+<div class="col-sm-6 col-md-4 col-lg-3 p-b-35 isotope-item
+    {{ product.category ? product.category.name|lower|replace({' ':'-'}) : '' }}
+    {% if product.brand %} brand-{{ product.brand.name|lower|replace({' ':'-'}) }}{% endif %}
+    {% if product.genre %} genre-{{ product.genre.name|lower|replace({' ':'-'}) }}{% endif %}
+    {% if product.shape %} shape-{{ product.shape.name|lower|replace({' ':'-'}) }}{% endif %}
+    {# Loop colors if product.colors is a collection #}
+    {% if product.colors is defined and product.colors|length > 0 %}
+        {% for color in product.colors %} color-{{ color.name|lower|replace({' ':'-'}) }}{% endfor %}
+    {% endif %}
+">
+    <div class="block2">
+        <div class="block2-pic hov-img0">
+            {# Use VichUploader for the overview image if available, else fallback #}
+            {% if product.overviewImage %}
+                <img src="{{ vich_uploader_asset(product, 'overviewImageFile') }}" alt="{{ product.name }}">
+            {% else %}
+                <img src="{{ asset('assets/images/no-image.png') }}" alt="No image">
+            {% endif %}
+            <a href="{{ path('product_show', {id: product.id}) }}" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1">
+                Quick View
+            </a>
+        </div>
+        <div class="block2-txt flex-w flex-t p-t-14">
+            <div class="block2-txt-child1 flex-col-l ">
+                <a href="{{ path('product_show', {id: product.id}) }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">
+                    {{ product.name }}
+                </a>
+                <span class="stext-105 cl3">
+                    {{ product.price|number_format(2) }} {{ product.currency|default('EUR') }}
+                </span>
+            </div>
+            <div class="block2-txt-child2 flex-r p-t-3">
+                <a href="#" class="btn-addwish-b2 dis-block pos-relative js-addwish-b2"
+    data-product-id="{{ product.id }}"
+    data-product-name="{{ product.name|e('js') }}"
+    data-product-image="{{ product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png') }}"
+    data-product-price="{{ product.price|number_format(2) }} {{ product.currency|default('EUR') }}">
+    <img class="icon-heart1 dis-block trans-04" src="{{ asset('assets/images/icons/icon-heart-01.png') }}" alt="ICON">
+    <img class="icon-heart2 dis-block trans-04 ab-t-l" src="{{ asset('assets/images/icons/icon-heart-02.png') }}" alt="ICON">
+</a>
+            </div>
+        </div>
+    </div>
+</div>

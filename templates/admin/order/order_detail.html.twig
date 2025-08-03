@@ -9,98 +9,148 @@
         'delivered': 'bg-success',
         'cancelled': 'bg-danger',
     }[entity.instance.status] ?? 'bg-secondary' %}
-    Order Details #{{ entity.instance.id }} <span class="badge {{ status_badge_class }}">{{ entity.instance.status|capitalize }}</span>
+    Order Details #{{ entity.instance.id }} <span class="badge text-white {{ status_badge_class }}">{{ entity.instance.status|capitalize }}</span>
 {% endblock %}
 
 {# ✅ Page actions #}
 {% block page_actions %}
-    <a href="{{ ea_url()
-        .setController('App\\Controller\\Admin\\OrderCrudController')
-        .setAction('edit')
-        .setEntityId(entity.instance.id) }}"
-        class="btn btn-primary">
+    <a href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(entity.instance.id) }}" class="btn btn-primary">
         <i class="fas fa-edit"></i> Edit Order
     </a>
-    <a href="{{ ea_url()
-        .setController('App\\Controller\\Admin\\OrderCrudController')
-        .setAction('index') }}"
-        class="btn btn-secondary">
+    <a href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('index') }}" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back to list
     </a>
-     <button type="button" class="btn btn-secondary" onclick="window.print()">
+    <button type="button" class="btn btn-secondary" onclick="window.print()">
         <i class="fas fa-print"></i> Print Order
     </button>
 {% endblock %}
 
+{# ✅ Main content #}
 {% block main %}
-    {# ✅ Customer + Payment info #}
     <div class="row mb-4">
-        <div class="col-md-6">
+        {# Customer Details #}
+        <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title">Customer Details</h5>
-                </div>
+                <div class="card-header"><h5 class="card-title">Customer Details</h5></div>
                 <div class="card-body">
                     {% if entity.instance.user %}
                         <p><strong>Name:</strong> {{ entity.instance.user.name }} {{ entity.instance.user.lastname }}</p>
                         <p><strong>Email:</strong> {{ entity.instance.user.email }}</p>
-                        <a href="{{ ea_url()
-                            .setController('App\\Controller\\Admin\\UserCrudController')
-                            .setAction('detail')
-                            .setEntityId(entity.instance.user.id) }}"
-                            class="btn btn-primary"
-                            target="_blank">
-                            <i class="fas fa-user"></i>
-                            View Customer
+                        <p><strong>Phone:</strong> {{ entity.instance.user.phone|default('N/A') }}</p>
+                        <a href="{{ ea_url().setController('App\\Controller\\Admin\\UserCrudController').setAction('detail').setEntityId(entity.instance.user.id) }}"
+                           class="btn btn-sm btn-primary" target="_blank">
+                            <i class="fas fa-user"></i> View Customer
                         </a>
                     {% else %}
-                        <p>No customer associated with this order.</p>
+                        <p>No customer associated.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
-
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title">Payment Information</h5>
-                </div>
-                <div class="card-body">
-                    <p><strong>Payment Method:</strong> {{ entity.instance.paymentMethod|default('N/A') }}</p>
-                    <p>
-                        <strong>Payment Status:</strong>
-                        <span class="badge badge-info">
-                            {{ entity.instance.paymentStatus|default('N/A')|capitalize }}
-                        </span>
-                    </p>
-                    <p><strong>Transaction ID:</strong> {{ entity.instance.transactionId|default('N/A') }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {# ✅ Addresses #}
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
+        <div class="col-md-4">
+            <div class="card  h-100">
                 <div class="card-header"><h5 class="card-title">Shipping Address</h5></div>
                 <div class="card-body">
                     <p>{{ entity.instance.shippingAddress|nl2br }}</p>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-6">
-            <div class="card">
+        <div class="col-md-4">
+            <div class="card h-100">
                 <div class="card-header"><h5 class="card-title">Billing Address</h5></div>
                 <div class="card-body">
                     <p>{{ entity.instance.billingAddress|nl2br }}</p>
                 </div>
             </div>
         </div>
+             
+        
     </div>
 
-    {# ✅ Order items #}
+        {# Payment & Status #}
+       <div class="col-md-12">
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">Payment & Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Currency:</div>
+                <div class="col-sm-8">{{ entity.instance.currency|default('EUR') }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Total Amount:</div>
+                <div class="col-sm-8 text-danger">
+                    {{ (entity.instance.getSubtotal() + entity.instance.getTaxAmount() + entity.instance.getShippingFee())|format_currency(entity.instance.currency|default('EUR')) }}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Subtotal:</div>
+                <div class="col-sm-8">{{ entity.instance.getSubtotal()|format_currency(entity.instance.currency|default('EUR')) }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Tax Amount (7%):</div>
+                <div class="col-sm-8">{{ entity.instance.getTaxAmount()|format_currency(entity.instance.currency|default('EUR')) }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Shipping Fee:</div>
+                <div class="col-sm-8">{{ entity.instance.getShippingFee()|format_currency(entity.instance.currency|default('EUR')) }}</div>
+            </div>
+
+            <hr>
+
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Shipping Provider:</div>
+                <div class="col-sm-8 text-muted">{{ entity.instance.shippingProvider|default('N/A') }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Delivery Type:</div>
+                <div class="col-sm-8 text-muted">{{ entity.instance.deliveryType|default('N/A') }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Destination:</div>
+                <div class="col-sm-8 text-muted">{{ entity.instance.destination|default('N/A') }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Total Points Earned:</div>
+                <div class="col-sm-8">{{ entity.instance.totalPointsEarned }} point(s)</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Payment Method:</div>
+                <div class="col-sm-8 text-muted">{{ entity.instance.paymentMethod|capitalize|default('N/A') }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Payment Status:</div>
+                <div class="col-sm-8">
+                    <span class="badge bg-info text-dark">
+                        {{ entity.instance.paymentStatus|default('N/A')|capitalize }}
+                    </span>
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Transaction ID:</div>
+                <div class="col-sm-8 text-muted">{{ entity.instance.transactionId|default('N/A') }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-sm-4 fw-semibold">Tracking Number:</div>
+                <div class="col-sm-8 text-muted">{{ entity.instance.trackingNumber|default('N/A') }}</div>
+            </div>
+            {% if entity.instance.notes %}
+                <hr>
+                <div class="row mb-2">
+                    <div class="col-sm-4 fw-semibold">Notes:</div>
+                    <div class="col-sm-8">{{ entity.instance.notes|nl2br }}</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+ 
+
+   
+   
+
+    {# Order Items Table with Image and Links #}
     <div class="card mt-4">
         <div class="card-header">
             <h5 class="card-title">Order Items</h5>
@@ -111,9 +161,12 @@
                     <tr>
                         <th>Image</th>
                         <th>Product</th>
-                        <th>Quantity</th>
-                        <th>Unit Price</th>
-                        <th>Subtotal</th>
+                        <th class="text-center">Quantity</th>
+                        <th class="text-center" >Unit Price</th>
+                        <th class="text-center">Subtotal</th>
+                        <th class="text-center">Tax Amount (7%)</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">Points</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -121,54 +174,80 @@
                     {% for item in entity.instance.orderItems %}
                         <tr>
                             <td>
-                                {% if item.productVariant and item.productVariant.product and item.productVariant.product.image %}
-                                    <a href="#"
-                                       class="image-popup-trigger"
-                                       data-image-url="{{ asset('uploads/images/products/' ~ item.productVariant.product.image) }}">
-                                        <img src="{{ asset('uploads/images/products/' ~ item.productVariant.product.image) }}"
-                                             alt="{{ item.productVariant }}"
-                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
-                                    </a>
+                                {% if item.productVariant %}
+                                    {% set images = item.productVariant.images ?? [] %}
+                                    {% set firstImage = images|length > 0 ? images[0] : null %}
+                                    {% if firstImage %}
+                                        <a href="#" class="image-popup-trigger" data-image-url="{{ asset('uploads/images/products/' ~ firstImage) }}">
+                                            <img src="{{ asset('uploads/images/products/' ~ firstImage) }}" alt="{{ item.productVariant }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">No image</span>
+                                    {% endif %}
+                                {% else %}
+                                    {% set product = item.product ?: null %}
+                                    {% if product and product.overviewImage %}
+                                        <a href="#" class="image-popup-trigger" data-image-url="{{ asset('uploads/images/products/' ~ product.overviewImage) }}">
+                                            <img src="{{ asset('uploads/images/products/' ~ product.overviewImage) }}" alt="{{ product.name }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">No image</span>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             <td>{{ item.productVariant ?: 'Product not available' }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>{{ item.unitPrice|format_currency('EUR') }}</td>
-                            <td>{{ (item.quantity * item.unitPrice)|format_currency('EUR') }}</td>
+                            <td class="text-center" >{{ item.quantity }}</td>
+                            <td class="text-center" >{{ item.unitPrice|format_currency(entity.instance.currency|default('EUR')) }}</td>
+                            <td class="text-center">{{ (item.quantity * item.unitPrice)|format_currency(entity.instance.currency|default('EUR')) }}</td>
+                            <td class="text-center">{{ item.getVatAmount()|format_currency(entity.instance.currency|default('EUR')) }}</td>
+                            <td class="text-center">{{ item.getTotalWithVat()|format_currency(entity.instance.currency|default('EUR')) }}</td>
+                            <td class="text-center">{{ item.pointsEarned }} point(s)</td>
                             <td>
                                 {% if item.productVariant and item.productVariant.product %}
-                                    <a href="{{ ea_url()
-                                        .setController('App\\Controller\\Admin\\ProductCrudController')
-                                        .setAction('detail')
-                                        .setEntityId(item.productVariant.product.id) }}"
-                                        class="btn btn-secondary btn-sm"
-                                        target="_blank">
+                                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('detail').setEntityId(item.productVariant.product.id) }}"
+                                       class="btn btn-secondary btn-sm" target="_blank">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ ea_url()
-                                        .setController('App\\Controller\\Admin\\ProductCrudController')
-                                        .setAction('edit')
-                                        .setEntityId(item.productVariant.product.id) }}"
-                                        class="btn btn-primary btn-sm"
-                                        target="_blank">
+                                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('edit').setEntityId(item.productVariant.product.id) }}"
+                                       class="btn btn-primary btn-sm" target="_blank">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 {% endif %}
                             </td>
                         </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No items in this order.</td>
+                        </tr>
                     {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="5" class="text-end pe-3"><strong>Total Amount:</strong></td>
-                        <td><strong>{{ entity.instance.totalAmount|format_currency('EUR') }}</strong></td>
+                        <td colspan="7" class="text-end pe-3"><strong>Subtotal:</strong></td>
+                        <td class="text-end"><strong>{{ entity.instance.getSubtotal()|format_currency(entity.instance.currency|default('EUR')) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="7" class="text-end pe-3"><strong>Tax Amount (7%):</strong></td>
+                        <td class="text-end"><strong>{{ entity.instance.getTaxAmount()|format_currency(entity.instance.currency|default('EUR')) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="7" class="text-end pe-3"><strong>Shipping Fee:</strong></td>
+                        <td class="text-end"><strong>{{ entity.instance.getShippingFee()|format_currency(entity.instance.currency|default('EUR')) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="7" class="text-end pe-3"><strong>Total:</strong></td>
+                        <td class="text-end"><strong>{{ (entity.instance.getSubtotal() + entity.instance.getTaxAmount() + entity.instance.getShippingFee())|format_currency(entity.instance.currency|default('EUR')) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="7" class="text-end pe-3"><strong>Total Points Earned:</strong></td>
+                        <td class="text-end"><strong>{{ entity.instance.totalPointsEarned }} point(s)</strong></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
     </div>
 
-    {# ✅ Image Modal #}
+    {# Image Modal #}
     <div class="modal fade" id="image-popup-modal" tabindex="-1" aria-labelledby="image-popup-modal-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -178,22 +257,23 @@
             </div>
         </div>
     </div>
+
+
 {% endblock %}
 
 {# ✅ JS for popup #}
 {% block body_javascript %}
     {{ parent() }}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const modalElement = document.getElementById('image-popup-modal');
             const popupImage = document.getElementById('popup-image');
             const imagePopupModal = new bootstrap.Modal(modalElement);
 
             document.querySelectorAll('.image-popup-trigger').forEach(trigger => {
-                trigger.addEventListener('click', function(e) {
+                trigger.addEventListener('click', function (e) {
                     e.preventDefault();
-                    const imageUrl = this.dataset.imageUrl;
-                    popupImage.src = imageUrl;
+                    popupImage.src = this.dataset.imageUrl;
                     imagePopupModal.show();
                 });
             });

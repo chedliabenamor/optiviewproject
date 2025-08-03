@@ -41,6 +41,9 @@ class Order
     #[Assert\PositiveOrZero]
     private ?string $totalAmount = '0.00';
 
+    #[ORM\Column(type: Types::INTEGER, options: ["default" => 0])]
+    private int $totalPointsEarned = 0;
+
     #[ORM\Column(length: 50)]
     #[Assert\NotBlank]
     #[Assert\Choice(choices: [
@@ -59,14 +62,45 @@ class Order
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $billingAddress = null; // Could be denormalized or linked to an Address entity
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Choice(choices: ['paypal', 'credit card'])]
     private ?string $paymentMethod = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Choice(choices: ['DHL', 'UPS', 'Poste', 'GLS'])]
+    private ?string $shippingProvider = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Choice(choices: ['Standard', 'Express', 'Same-day'])]
+    private ?string $deliveryType = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Choice(choices: ['Domestic', 'International'])]
+    private ?string $destination = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $paymentStatus = null; // e.g., 'paid', 'pending', 'failed'
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $transactionId = null; // From payment gateway
+
+
+    // Static tax amount (7%)
+    public const TAX_PERCENT = 7;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    private ?string $taxAmount = '0.00';
+
+
+    #[ORM\Column(length: 10, nullable: false)]
+    #[Assert\Choice(choices: ['EUR', 'USD'])]
+    private ?string $currency = 'EUR';
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $notes = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $trackingNumber = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -121,7 +155,7 @@ class Order
         if (!$this->orderItems->contains($orderItem)) {
             $this->orderItems->add($orderItem);
             $orderItem->setRelatedOrder($this);
-            $this->updateTotalAmount();
+            $this->updateTotals(); // Use the new comprehensive update method
         }
         return $this;
     }
@@ -133,16 +167,34 @@ class Order
             if ($orderItem->getRelatedOrder() === $this) {
                 $orderItem->setRelatedOrder(null);
             }
-            $this->updateTotalAmount();
+            $this->updateTotals(); // Use the new comprehensive update method
         }
         return $this;
     }
-    
-    private function updateTotalAmount(): void
+
+    public function getTotalPointsEarned(): int
     {
-        $total = '0.00';
-        
+        return $this->totalPointsEarned;
+    }
+
+    public function setTotalPointsEarned(int $totalPointsEarned): static
+    {
+        $this->totalPointsEarned = $totalPointsEarned;
+
+        return $this;
+    }
+
+    /**
+     * Recalculates the total amount and total points earned from the order items.
+     * It's crucial to call this method whenever the collection of order items changes.
+     */
+    public function updateTotals(): void
+    {
+        $totalAmount = '0.00';
+        $totalPoints = 0;
+
         foreach ($this->orderItems as $item) {
+            // Calculate total amount
             $unitPrice = $item->getUnitPrice();
             if ($unitPrice === null) {
                 throw new \RuntimeException(sprintf(
@@ -151,10 +203,15 @@ class Order
                     $item->getProductVariant() ? $item->getProductVariant()->getId() : 'none'
                 ));
             }
-            $total = bcadd($total, bcmul($item->getQuantity(), $unitPrice, 2), 2);
+            $totalAmount = bcadd($totalAmount, bcmul($item->getQuantity(), $unitPrice, 2), 2);
+
+            // Calculate total points
+            // This assumes points are set on the OrderItem when it's created.
+            $totalPoints += $item->getPointsEarned();
         }
-        
-        $this->totalAmount = $total;
+
+        $this->totalAmount = $totalAmount;
+        $this->totalPointsEarned = $totalPoints;
     }
 
     public function getTotalAmount(): ?string
@@ -234,6 +291,127 @@ class Order
         return $this;
     }
 
+
+    /**
+     * Calculate subtotal from order items
+     */
+    public function getSubtotal(): string
+    {
+        $subtotal = '0.00';
+        foreach ($this->orderItems as $item) {
+            $subtotal = bcadd($subtotal, bcmul($item->getQuantity(), $item->getUnitPrice(), 2), 2);
+        }
+        return $subtotal;
+    }
+
+
+    /**
+     * Get tax amount (7% of subtotal)
+     */
+    public function getTaxAmount(): string
+    {
+        return bcmul($this->getSubtotal(), self::TAX_PERCENT / 100, 2);
+    }
+
+    /**
+     * Calculate shipping fee based on destination, deliveryType, total, and currency
+     */
+    public function getShippingFee(): string
+    {
+        $currency = $this->getCurrency() ?? 'EUR';
+        $subtotal = (float)$this->getSubtotal();
+        // Free shipping if subtotal (before tax) >= 100 in selected currency
+        if ($subtotal >= 100) {
+            return number_format(0, 2, '.', '');
+        }
+        $isEuro = $currency === 'EUR';
+        $base = 0;
+        $add = 0;
+        // Base fee by location
+        if ($this->destination === 'International') {
+            $base = $isEuro ? 30.90 : 30.90;
+        } else {
+            $base = $isEuro ? 20.90 : 20.90;
+        }
+        // Additional by delivery type
+        if ($this->deliveryType === 'Express') {
+            $add = $isEuro ? 15.00 : 15.00;
+        } elseif ($this->deliveryType === 'Same-day') {
+            $add = $isEuro ? 20.00 : 20.00;
+        } else {
+            $add = 0.00;
+        }
+        $fee = $base + $add;
+        return number_format($fee, 2, '.', '');
+    }
+
+    public function getCurrency(): ?string
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(?string $currency): static
+    {
+        $this->currency = $currency;
+        return $this;
+    }
+
+    public function getShippingProvider(): ?string
+    {
+        return $this->shippingProvider;
+    }
+
+    public function setShippingProvider(?string $shippingProvider): static
+    {
+        $this->shippingProvider = $shippingProvider;
+        return $this;
+    }
+
+    public function getDeliveryType(): ?string
+    {
+        return $this->deliveryType;
+    }
+
+    public function setDeliveryType(?string $deliveryType): static
+    {
+        $this->deliveryType = $deliveryType;
+        return $this;
+    }
+
+    public function getDestination(): ?string
+    {
+        return $this->destination;
+    }
+
+    public function setDestination(?string $destination): static
+    {
+        $this->destination = $destination;
+        return $this;
+    }
+
+
+    public function getNotes(): ?string
+    {
+        return $this->notes;
+    }
+
+    public function setNotes(?string $notes): static
+    {
+        $this->notes = $notes;
+        return $this;
+    }
+
+    public function getTrackingNumber(): ?string
+    {
+        return $this->trackingNumber;
+    }
+
+    public function setTrackingNumber(?string $trackingNumber): static
+    {
+        $this->trackingNumber = $trackingNumber;
+        return $this;
+    }
+
     public function getCreatedAt(): ?\DateTimeInterface
     {
         return $this->createdAt;
@@ -275,5 +453,36 @@ class Order
             $total += $item->getSubtotal();
         }
         $this->totalAmount = (string)$total;
+    }
+    /**
+     * Get conversion rate from EUR to USD using Frankfurter API
+     */
+    public function getConversionRate(): float
+    {
+        if ($this->currency === 'USD') {
+            try {
+                $amount = 1;
+                $url = "https://api.frankfurter.app/latest?amount=$amount&from=EUR&to=USD";
+                $response = @file_get_contents($url);
+                if ($response !== false) {
+                    $data = json_decode($response, true);
+                    if (isset($data['rates']['USD'])) {
+                        return (float)$data['rates']['USD'];
+                    }
+                }
+            } catch (\Exception $e) {}
+            // fallback to 1 if API fails
+            return 1.0;
+        }
+        return 1.0;
+    }
+
+    /**
+     * Convert an amount from EUR to USD if needed
+     */
+    public function getConvertedAmount($amount): string
+    {
+        $rate = $this->getConversionRate();
+        return number_format((float)$amount * $rate, 2, '.', '');
     }
 }

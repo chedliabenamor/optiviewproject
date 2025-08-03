@@ -23,7 +23,14 @@
                         <tr>
                             <th scope="col">Order ID</th>
                             <th scope="col">Date</th>
+                            <th scope="col">Subtotal</th>
+                            <th scope="col">Tax</th>
+                            <th scope="col">Shipping</th>
+                            <th scope="col">Discount</th>
                             <th scope="col">Total</th>
+                            <th scope="col">Currency</th>
+                            <th scope="col">Shipping Method</th>
+                            <th scope="col">Tracking #</th>
                             <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
@@ -33,7 +40,14 @@
                             <tr>
                                 <td>#{{ order.id }}</td>
                                 <td>{{ order.createdAt|date('Y-m-d H:i') }}</td>
-                                <td>{{ order.totalAmount | number_format(2, '.', ',') }} TND</td> {# Assuming TND, adjust currency as needed #}
+                                <td>{{ order.subtotal | number_format(2, '.', ',') }}</td>
+                                <td>{{ order.taxAmount | number_format(2, '.', ',') }}</td>
+                                <td>{{ order.shippingFee | number_format(2, '.', ',') }}</td>
+                                <td>-{{ order.discountAmount | number_format(2, '.', ',') }}</td>
+                                <td>{{ order.totalAmount | number_format(2, '.', ',') }}</td>
+                                <td>{{ order.currency|upper }}</td>
+                                <td>{{ order.shippingMethod|default('N/A') }}</td>
+                                <td>{{ order.trackingNumber|default('N/A') }}</td>
                                 <td>{{ order.status | default('Pending') }}</td>
                                 <td>
                                     <a href="#" class="btn btn-sm btn-info">View Details</a> {# Placeholder for order detail view #}

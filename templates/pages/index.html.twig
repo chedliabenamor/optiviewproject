@@ -118,5 +118,47 @@
 			</div>
 		</div>
 	</div>
-    
+
+    {# Product Overview Section #}
+    <section class="bg0 p-t-23 p-b-140">
+        <div class="container">
+            <div class="p-b-10">
+                <h3 class="ltext-103 cl5">
+                    Product Overview
+                </h3>
+            </div>
+            <div class="flex-w flex-sb-m p-b-52">
+                
+                <div class="flex-w flex-l-m filter-tope-group m-tb-10">
+                    <button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5 how-active1" data-filter="*">
+                        All Products
+                    </button>
+                    {% for category in categories %}
+                        <button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".{{ category.name|lower|replace({' ':'-'}) }}">
+                            {{ category.name }}
+                        </button>
+                    {% endfor %}
+                </div>
+				{% include 'partials/products/_product_filter_panel.html.twig' with { brands: brands, colors: colors, shapes: shapes, genres: genres } %}
+            </div>
+            <div class="row isotope-grid" id="product-grid">
+    {% for product in products %}
+        <div class="product-item-wrapper{% if loop.index > 8 %} d-none{% endif %}">
+            {% include 'partials/products/_product_card.html.twig' with { product: product } %}
+        </div>
+    {% else %}
+        <p>No products found.</p>
+    {% endfor %}
+</div>
+<div class="flex-c-m flex-w w-full p-t-45">
+    <a href="#" id="load-more-btn" class="flex-c-m stext-101 cl5 size-103 bg2 bor1 hov-btn1 p-lr-15 trans-04">
+        Load More
+    </a>
+    <a href="#" id="show-less-btn" class="flex-c-m stext-101 cl5 size-103 bg2 bor1 hov-btn1 p-lr-15 trans-04" style="display:none;">
+        Show Less
+    </a>
+</div>
+        </div>
+    </section>
+
 {% endblock %}

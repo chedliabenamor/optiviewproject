@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ product.name }} | Product Details{% endblock %}
+
+{% block body %}
+<section class="bg0 p-t-60 p-b-60">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                {% if product.overviewImage %}
+                    <img src="{{ vich_uploader_asset(product, 'overviewImageFile') }}" class="img-fluid" alt="{{ product.name }}">
+                {% else %}
+                    <img src="{{ asset('images/no-image.png') }}" class="img-fluid" alt="No image">
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h1>{{ product.name }}</h1>
+                <p class="lead">{{ product.price|number_format(2) }} {{ product.currency|default('EUR') }}</p>
+                <p>{{ product.description }}</p>
+                <p><strong>Stock:</strong> {{ product.quantityInStock }}</p>
+                {% if product.brand %}
+                    <p><strong>Brand:</strong> {{ product.brand.name }}</p>
+                {% endif %}
+                {% if product.category %}
+                    <p><strong>Category:</strong> {{ product.category.name }}</p>
+                {% endif %}
+                <a href="#" class="btn btn-primary">Add to Cart</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

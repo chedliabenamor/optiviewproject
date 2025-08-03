@@ -1,0 +1,89 @@
+{# Product Filter/Search Panel Partial #}
+<div class="flex-w flex-c-m m-tb-10">
+    <div class="flex-c-m stext-106 cl6 size-104 bor4 pointer hov-btn3 trans-04 m-r-8 m-tb-4 js-show-filter">
+        <i class="icon-filter cl2 m-r-6 fs-15 trans-04 zmdi zmdi-filter-list"></i>
+        <i class="icon-close-filter cl2 m-r-6 fs-15 trans-04 zmdi zmdi-close dis-none"></i>
+        Filter
+    </div>
+    <div class="flex-c-m stext-106 cl6 size-105 bor4 pointer hov-btn3 trans-04 m-tb-4 js-show-search">
+        <i class="icon-search cl2 m-r-6 fs-15 trans-04 zmdi zmdi-search"></i>
+        <i class="icon-close-search cl2 m-r-6 fs-15 trans-04 zmdi zmdi-close dis-none"></i>
+        Search
+    </div>
+</div>
+<!-- Search product -->
+<div class="dis-none panel-search w-full p-t-10 p-b-15">
+    <div class="bor8 dis-flex p-l-15">
+        <button class="size-113 flex-c-m fs-16 cl2 hov-cl1 trans-04">
+            <i class="zmdi zmdi-search"></i>
+        </button>
+        <input class="mtext-107 cl2 size-114 plh2 p-r-15" type="text" name="search-product" placeholder="Search">
+    </div>
+</div>
+<!-- Advanced Filter Panel (hidden by default, appears on Filter click) -->
+<div class="dis-none panel-filter w-full p-t-10">
+    <div class="wrap-filter flex-w bg6 w-full p-lr-40 p-t-27 p-lr-15-sm">
+        <div class="filter-tope-group w-full flex-w">
+            <div class="filter-col1 p-r-15 p-b-27">
+                <div class="mtext-102 cl4 p-b-15">Sort By</div>
+                <ul>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04 filter-link-active" data-filter="*">Newness</button></li>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04" data-filter=".sort-price-low">Price: Low to High</button></li>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04" data-filter=".sort-price-high">Price: High to Low</button></li>
+                </ul>
+            </div>
+            <div class="filter-col4 p-r-15 p-b-27">
+                <div class="mtext-102 cl2 p-b-15">Price</div>
+                <ul>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04 filter-link-active" data-filter="*">All</button></li>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04" data-filter=".price-0-50">$0.00 - $50.00</button></li>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04" data-filter=".price-50-100">$50.00 - $100.00</button></li>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04" data-filter=".price-100-150">$100.00 - $150.00</button></li>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04" data-filter=".price-150-200">$150.00 - $200.00</button></li>
+                    <li class="p-b-6"><button type="button" class="filter-link stext-106 trans-04" data-filter=".price-200">$200.00+</button></li>
+                </ul>
+            </div>
+            <div class="filter-col3 p-r-15 p-b-27">
+                <div class="mtext-102 cl2 p-b-15">Brand</div>
+                <ul>
+                    {% for brand in brands %}
+                        <li class="p-b-6">
+                            <button type="button" class="filter-link stext-106 trans-04" data-filter=".brand-{{ brand.name|lower|replace({' ':'-'}) }}">{{ brand.name }}</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div class="mtext-102 cl2 p-b-15 m-t-20">Shape</div>
+                <ul>
+                    {% for shape in shapes %}
+                        <li class="p-b-6">
+                            <button type="button" class="filter-link stext-106 trans-04" data-filter=".shape-{{ shape.name|lower|replace({' ':'-'}) }}">{{ shape.name }}</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="filter-col4 p-r-15 p-b-27">
+                <div class="mtext-102 cl2 p-b-15">Color</div>
+                <ul>
+                    {% for color in colors %}
+                        <li class="p-b-6">
+                            <span class="fs-15 lh-12 m-r-6">
+                                {% if color.imageName is defined and color.imageName %}
+                                    <img src="{{ vich_uploader_asset(color, 'imageFile') }}" alt="{{ color.name }}" style="width:22px;height:22px;border-radius:50%;border:1px solid #ccc;object-fit:cover;vertical-align:middle;">
+                                {% else %}
+                                    <span class="color-circle" style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#eee;border:1px solid #ccc;"></span>
+                                {% endif %}
+                            </span>
+                            <button type="button" class="filter-link stext-106 trans-04" data-filter=".color-{{ color.name|lower|replace({' ':'-'}) }}">{{ color.name }}</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div class="mtext-102 cl2 p-b-15">Genre</div>
+                <div class="flex-w p-t-4 m-r--5">
+                    {% for genre in genres %}
+                        <button type="button" class="flex-c-m stext-107 cl6 size-301 bor7 p-lr-15 hov-tag1 trans-04 m-r-5 m-b-5 filter-link" data-filter=".genre-{{ genre.name|lower|replace({' ':'-'}) }}">{{ genre.name }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

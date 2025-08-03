@@ -277,6 +277,223 @@
         $('.js-modal1').removeClass('show-modal1');
     });
 
+    /*==================================================================
+    [ Wishlist - Full Implementation ]*/
+    // Set this in your Twig template: <script>window.isAuthenticated = {{ app.user ? 'true' : 'false' }};</script>
 
+    function getWishlist() {
+        if (window.isAuthenticated) {
+            // For authenticated users, fetch from backend (AJAX)
+            return $.ajax({
+                url: '/wishlist', // adjust route if needed
+                method: 'GET',
+                dataType: 'json',
+            });
+        } else {
+            // For guests, get from localStorage
+            let wishlist = localStorage.getItem('wishlist');
+            return $.Deferred().resolve(wishlist ? JSON.parse(wishlist) : []).promise();
+        }
+    }
+
+    function saveWishlist(wishlist) {
+        if (!window.isAuthenticated) {
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+        }
+    }
+
+    function addToWishlist(product) {
+        if (window.isAuthenticated) {
+            // AJAX to backend
+            return $.ajax({
+                url: '/wishlist/add',
+                method: 'POST',
+                data: product,
+                headers: {'X-Requested-With': 'XMLHttpRequest'},
+            });
+        } else {
+            let wishlist = localStorage.getItem('wishlist');
+            wishlist = wishlist ? JSON.parse(wishlist) : [];
+            if (!wishlist.find(item => item.id == product.id)) {
+                wishlist.push(product);
+                localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            }
+            return $.Deferred().resolve(wishlist).promise();
+        }
+    }
+
+    function removeFromWishlist(productId) {
+        if (window.isAuthenticated) {
+            // AJAX to backend
+            return $.ajax({
+                url: '/wishlist/remove',
+                method: 'POST',
+                data: { id: productId },
+                headers: {'X-Requested-With': 'XMLHttpRequest'},
+            });
+        } else {
+            let wishlist = localStorage.getItem('wishlist');
+            wishlist = wishlist ? JSON.parse(wishlist) : [];
+            wishlist = wishlist.filter(item => item.id != productId);
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            return $.Deferred().resolve(wishlist).promise();
+        }
+    }
+
+    function updateWishlistUI(wishlist) {
+        // Update all product cards
+        $('.js-addwish-b2').each(function() {
+            var $btn = $(this);
+            var pid = $btn.data('product-id');
+            if (wishlist.find(item => item.id == pid)) {
+                $btn.addClass('js-addedwish-b2');
+            } else {
+                $btn.removeClass('js-addedwish-b2');
+            }
+        });
+        // Update header count
+        var count = wishlist.length;
+        $('.icon-header-noti').each(function() {
+            var $icon = $(this);
+            if ($icon.find('.zmdi-favorite-outline').length > 0) {
+                $icon.attr('data-notify', count);
+            }
+        });
+    }
+
+    // On page load, initialize wishlist
+    getWishlist().then(function(wishlist) {
+        updateWishlistUI(wishlist);
+    });
+
+    // Wishlist button click handler (add/remove)
+    $(document).on('click', '.js-addwish-b2', function(e){
+        e.preventDefault();
+        var $this = $(this);
+        var product = {
+            id: $this.data('product-id'),
+            name: $this.data('product-name'),
+            image: $this.data('product-image'),
+            price: $this.data('product-price')
+        };
+        var isAdded = $this.hasClass('js-addedwish-b2');
+        if (!isAdded) {
+            addToWishlist(product).then(function(wishlist) {
+                updateWishlistUI(wishlist);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Added to Wishlist!',
+                        text: product.name + ' has been added to your wishlist.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else if (typeof swal !== 'undefined') {
+                    swal(product.name, "is added to wishlist!", "success");
+                } else {
+                    alert(product.name + ' has been added to your wishlist.');
+                }
+            });
+        } else {
+            removeFromWishlist(product.id).then(function(wishlist) {
+                updateWishlistUI(wishlist);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Removed from Wishlist',
+                        text: product.name + ' has been removed from your wishlist.',
+                        showConfirmButton: false,
+                        timer: 1200
+                    });
+                } else if (typeof swal !== 'undefined') {
+                    swal(product.name, "is removed from wishlist!", "info");
+                } else {
+                    alert(product.name + ' has been removed from your wishlist.');
+                }
+            });
+        }
+    });
+
+
+    $(document).ready(function() {
+        /* Progressive product loading */
+        console.log("Progressive product loading");
+        var productsPerPage = 4;
+        var initialProducts = 8;
+        var $productGrid = $('#product-grid');
+        var $productItems = $productGrid.find('.product-item-wrapper');
+        var $loadMoreBtn = $('#load-more-btn');
+        var $showLessBtn = $('#show-less-btn');
+        var isotopeInstance = $productGrid.data('isotope');
+
+        function updateProductVisibility(count) {
+            $productItems.each(function(i) {
+                if (i < count) {
+                    $(this).removeClass('d-none');
+                } else {
+                    $(this).addClass('d-none');
+                }
+            });
+            if (isotopeInstance) {
+                $productGrid.isotope('layout');
+            }
+        }
+
+        function shownCount() {
+            return $productItems.not('.d-none').length;
+        }
+        
+        function totalCount() {
+            return $productItems.length;
+        }
+
+        $loadMoreBtn.on('click', function(e) {
+            e.preventDefault();
+            var currentlyShown = shownCount();
+            var toShow = currentlyShown + productsPerPage;
+            updateProductVisibility(toShow);
+            if (toShow >= totalCount()) {
+                $loadMoreBtn.hide();
+                $showLessBtn.show();
+            }
+        });
+
+        $showLessBtn.on('click', function(e) {
+            e.preventDefault();
+            updateProductVisibility(initialProducts);
+            $showLessBtn.hide();
+            $loadMoreBtn.show();
+        });
+
+        // On page load, set initial state
+        updateProductVisibility(initialProducts);
+        if (totalCount() > initialProducts) {
+            $loadMoreBtn.show();
+            $showLessBtn.hide();
+        } else {
+            $loadMoreBtn.hide();
+            $showLessBtn.hide();
+        }
+
+        // When filters are changed, reset to first 8 visible
+        $productGrid.on('arrangeComplete', function(event, filteredItems) {
+            // Hide all but first 8 filtered
+            var $filtered = $productItems.filter(function(){ return $(this).css('display') !== 'none'; });
+            $filtered.each(function(i){
+                if(i < initialProducts) {
+                    $(this).removeClass('d-none');
+                } else {
+                    $(this).addClass('d-none');
+                }
+            });
+            if ($filtered.length > initialProducts) {
+                $loadMoreBtn.show();
+                $showLessBtn.hide();
+            } else {
+                $loadMoreBtn.hide();
+                $showLessBtn.hide();
+            }
+        });
+    });
 
 })(jQuery);

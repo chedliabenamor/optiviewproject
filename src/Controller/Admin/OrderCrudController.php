@@ -64,8 +64,7 @@ class OrderCrudController extends AbstractCrudController
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof Order) {
-            $this->ensureOrderItemsHavePrices($entityInstance);
-            $this->updateOrderTotal($entityInstance);
+            $this->updateOrderPointsAndTotals($entityInstance);
         }
         parent::persistEntity($entityManager, $entityInstance);
     }
@@ -86,8 +85,7 @@ class OrderCrudController extends AbstractCrudController
     public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof Order) {
-            $this->ensureOrderItemsHavePrices($entityInstance);
-            $this->updateOrderTotal($entityInstance);
+            $this->updateOrderPointsAndTotals($entityInstance);
         }
         parent::updateEntity($entityManager, $entityInstance);
     }
@@ -109,18 +107,21 @@ class OrderCrudController extends AbstractCrudController
         return $orderItem;
     }
 
-    private function updateOrderTotal(Order $order): void
+    private function updateOrderPointsAndTotals(Order $order): void
     {
-        $total = '0.00';
-        
         foreach ($order->getOrderItems() as $item) {
-            if ($item->getUnitPrice() === null) {
-                throw new \RuntimeException('Order item is missing unit price');
+            // Ensure price is set before calculating points
+            if ($item->getUnitPrice() === null && $item->getProductVariant() !== null) {
+                $item->setUnitPrice($item->getProductVariant()->getPrice());
             }
-            $total = bcadd($total, bcmul($item->getQuantity(), $item->getUnitPrice(), 2), 2);
+
+            // Calculate and set points for each item
+            $points = $item->calculatePointsEarned();
+            $item->setPointsEarned($points);
         }
-        
-        $order->setTotalAmount($total);
+
+        // Now, update the order's totals (both amount and points)
+        $order->updateTotals();
     }
     public function configureFields(string $pageName): iterable
     {
@@ -128,8 +129,30 @@ class OrderCrudController extends AbstractCrudController
         yield IdField::new('id')->hideOnForm();
         yield AssociationField::new('user', 'Customer')->onlyOnIndex();
         yield IntegerField::new('orderItems.count', 'Items')->onlyOnIndex();
-        yield MoneyField::new('totalAmount', 'Total')->setCurrency('EUR')->onlyOnIndex();
-        yield ChoiceField::new('status')->onlyOnIndex();
+        yield MoneyField::new('totalAmount', 'Total')
+            ->setCurrency('EUR') // fallback, but we format manually below
+            ->formatValue(function ($value, $entity) {
+                $currency = (method_exists($entity, 'getCurrency') && $entity->getCurrency()) ? $entity->getCurrency() : 'EUR';
+                $formatter = new \NumberFormatter('en', \NumberFormatter::CURRENCY);
+                $formatted = $formatter->formatCurrency($value, $currency);
+                return sprintf('<span class="fw-bold">%s</span>', $formatted);
+            })
+            ->onlyOnIndex();
+        yield IntegerField::new('totalPointsEarned', 'Total Points')->onlyOnIndex();
+        yield ChoiceField::new('status')
+            ->formatValue(function ($value) {
+                $map = [
+                    'pending' => 'bg-warning',
+                    'processing' => 'bg-info',
+                    'shipped' => 'bg-primary',
+                    'delivered' => 'bg-success',
+                    'cancelled' => 'bg-danger',
+                    'refunded' => 'bg-secondary',
+                ];
+                $class = $map[$value] ?? 'bg-secondary';
+                return sprintf('<span class="badge %s text-white">%s</span>', $class, ucfirst($value));
+            })
+            ->onlyOnIndex();
         yield DateTimeField::new('createdAt', 'Created At')->onlyOnIndex();
 
         // Form Fields (New/Edit)
@@ -154,9 +177,53 @@ class OrderCrudController extends AbstractCrudController
 
         yield TextareaField::new('shippingAddress')->setColumns('col-md-6')->onlyOnForms();
         yield TextareaField::new('billingAddress')->setColumns('col-md-6')->onlyOnForms();
-        yield TextField::new('paymentMethod')->setColumns('col-md-6')->hideOnIndex();
+        yield ChoiceField::new('paymentMethod')
+            ->setChoices([
+                'PayPal' => 'paypal',
+                'Credit Card' => 'credit card',
+            ])
+            ->setColumns('col-md-6')->hideOnIndex();
         yield TextField::new('paymentStatus')->setColumns('col-md-6')->hideOnIndex();
         yield TextField::new('transactionId', 'Transaction ID')->setColumns('col-md-6')->hideOnIndex();
+
+        // Subtotal and Tax Amount are now auto-calculated and not editable
+        yield TextField::new('shippingFee')
+            ->setLabel('Shipping Fee (auto)')
+            ->setFormTypeOption('disabled', true)
+            ->setColumns('col-md-6')->hideOnIndex();
+        yield ChoiceField::new('currency')
+            ->setChoices([
+                'Euro (€)' => 'EUR',
+                'Dollar ($)' => 'USD',
+            ])
+            ->setColumns('col-md-6')->hideOnIndex();
+        // Removed Discount Amount and Currency fields
+        yield ChoiceField::new('shippingProvider')
+            ->setChoices([
+                'DHL' => 'DHL',
+                'UPS' => 'UPS',
+                'Poste' => 'Poste',
+                'GLS' => 'GLS',
+            ])
+            ->setColumns('col-md-6')->hideOnIndex();
+
+        yield ChoiceField::new('deliveryType')
+            ->setChoices([
+                'Standard' => 'Standard',
+                'Express' => 'Express',
+                'Same-day' => 'Same-day',
+            ])
+            ->setColumns('col-md-6')->hideOnIndex();
+
+        yield ChoiceField::new('destination')
+            ->setChoices([
+                'Domestic' => 'Domestic',
+                'International' => 'International',
+            ])
+            ->setColumns('col-md-6')->hideOnIndex();
+        // Shipping Method removed from entity
+        yield TextField::new('trackingNumber')->setLabel('Tracking Number')->setColumns('col-md-6')->hideOnIndex();
+        yield TextareaField::new('notes')->setLabel('Notes')->setColumns('col-md-12')->hideOnIndex();
 
         yield CollectionField::new('orderItems')
             ->setLabel('Order Items')
