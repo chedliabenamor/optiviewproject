@@ -25,6 +25,17 @@ class HomeController extends AbstractController
         $shapes = $shapeRepository->findAll();
         $genres = $genreRepository->findAll();
 
+        // Fetch tab categories by name
+        $bestSellerCategory = $categoryRepository->findOneBy(['name' => 'Best Seller']);
+        $featuredCategory   = $categoryRepository->findOneBy(['name' => 'Featured']);
+        $saleCategory       = $categoryRepository->findOneBy(['name' => 'Sale']);
+        $topRateCategory    = $categoryRepository->findOneBy(['name' => 'Top Rate']);
+
+        $bestSellerProducts = $bestSellerCategory ? $bestSellerCategory->getProducts() : [];
+        $featuredProducts   = $featuredCategory ? $featuredCategory->getProducts() : [];
+        $saleProducts       = $saleCategory ? $saleCategory->getProducts() : [];
+        $topRateProducts    = $topRateCategory ? $topRateCategory->getProducts() : [];
+
         return $this->render('pages/index.html.twig', [
             'categories' => $categories,
             'products' => $products,
@@ -32,6 +43,10 @@ class HomeController extends AbstractController
             'colors' => $colors,
             'shapes' => $shapes,
             'genres' => $genres,
+            'bestSellerProducts' => $bestSellerProducts,
+            'featuredProducts' => $featuredProducts,
+            'saleProducts' => $saleProducts,
+            'topRateProducts' => $topRateProducts,
         ]);
     }
 }

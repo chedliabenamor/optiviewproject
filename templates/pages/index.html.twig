@@ -113,52 +113,54 @@
 							</div>
 						</a>
 					</div>
+
 				</div>
 				{% endfor %}
 			</div>
 		</div>
 	</div>
 
-    {# Product Overview Section #}
-    <section class="bg0 p-t-23 p-b-140">
-        <div class="container">
-            <div class="p-b-10">
-                <h3 class="ltext-103 cl5">
-                    Product Overview
-                </h3>
-            </div>
-            <div class="flex-w flex-sb-m p-b-52">
-                
-                <div class="flex-w flex-l-m filter-tope-group m-tb-10">
-                    <button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5 how-active1" data-filter="*">
-                        All Products
-                    </button>
-                    {% for category in categories %}
-                        <button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".{{ category.name|lower|replace({' ':'-'}) }}">
-                            {{ category.name }}
-                        </button>
-                    {% endfor %}
-                </div>
-				{% include 'partials/products/_product_filter_panel.html.twig' with { brands: brands, colors: colors, shapes: shapes, genres: genres } %}
-            </div>
-            <div class="row isotope-grid" id="product-grid">
-    {% for product in products %}
-        <div class="product-item-wrapper{% if loop.index > 8 %} d-none{% endif %}">
-            {% include 'partials/products/_product_card.html.twig' with { product: product } %}
-        </div>
-    {% else %}
-        <p>No products found.</p>
-    {% endfor %}
-</div>
-<div class="flex-c-m flex-w w-full p-t-45">
-    <a href="#" id="load-more-btn" class="flex-c-m stext-101 cl5 size-103 bg2 bor1 hov-btn1 p-lr-15 trans-04">
-        Load More
-    </a>
-    <a href="#" id="show-less-btn" class="flex-c-m stext-101 cl5 size-103 bg2 bor1 hov-btn1 p-lr-15 trans-04" style="display:none;">
-        Show Less
-    </a>
-</div>
-        </div>
-    </section>
+	{# Dynamic Product Tabs Section #}
+
+	<section class="sec-product bg0 p-t-100 p-b-50">
+		<div class="container">
+			<div class="p-b-32">
+				<h3 class="ltext-105 cl5 txt-center respon1">
+					Store Overview
+				</h3>
+			</div>
+			<!-- Tab01 -->
+			<div class="tab01">
+				<!-- Nav tabs -->
+				<ul class="nav nav-tabs" role="tablist">
+					{% for category in categories %}
+						<li class="nav-item p-b-10">
+							<a class="nav-link {% if loop.first %}active{% endif %}" data-toggle="tab" href="#tab-{{ category.id }}" role="tab">{{ category.name }}</a>
+						</li>
+					{% endfor %}
+				</ul>
+				<!-- Tab panes -->
+				<div class="tab-content p-t-50">
+					{% for category in categories %}
+						<div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="tab-{{ category.id }}" role="tabpanel">
+							<div class="wrap-slick2">
+								<div class="slick2">
+									{% set products = category.products ?? [] %}
+									{% for product in products %}
+										<div class="item-slick2 p-l-15 p-r-15 p-t-15 p-b-15">
+											{% include 'partials/products/_homepage_product_card.html.twig' with { product: product } %}
+										</div>
+									{% else %}
+										<div class="col-12"><p class="text-center">No products found in this category.</p></div>
+									{% endfor %}
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+	</section>
+
 
 {% endblock %}

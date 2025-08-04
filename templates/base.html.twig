@@ -37,7 +37,7 @@
 </head>
 <body class="animsition">
     {% include 'partials/_header.html.twig' %}
-    
+    {% include 'partials/_wishlist_cart_panel.html.twig' %}
     <main class="main-content">
         {% block body %}{% endblock %}
     </main>
@@ -69,6 +69,7 @@
     <!-- Custom JS -->
     <script src="{{ asset('assets/js/slick-custom.js') }}"></script>
     <script src="{{ asset('assets/js/main.js') }}"></script>
+    <script src="{{ asset('assets/js/wishlist-cart-panel.js') }}"></script>
     
     <!-- Initialize plugins -->
     <script>

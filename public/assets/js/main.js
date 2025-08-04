@@ -201,7 +201,13 @@
     $('.js-hide-cart').on('click',function(){
         $('.js-panel-cart').removeClass('show-header-cart');
     });
+    $('.js-show-wishlist').on('click',function(){
+        $('.js-panel-cart').addClass('show-header-cart');
+    });
 
+    $('.js-hide-wishlist').on('click',function(){
+        $('.js-panel-cart').removeClass('show-header-cart');
+    });
     /*==================================================================
     [ Cart ]*/
     $('.js-show-sidebar').on('click',function(){
@@ -376,44 +382,75 @@
             image: $this.data('product-image'),
             price: $this.data('product-price')
         };
-        var isAdded = $this.hasClass('js-addedwish-b2');
-        if (!isAdded) {
-            addToWishlist(product).then(function(wishlist) {
-                updateWishlistUI(wishlist);
+        var isAuthenticated = (typeof window.isAuthenticated !== 'undefined' && window.isAuthenticated === true) || (typeof window.isAuthenticated === 'string' && window.isAuthenticated === 'true');
+        if (!isAuthenticated) {
+            // Guest wishlist via localStorage
+            var wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+            var idx = wishlist.findIndex(function(item){ return item.id == product.id; });
+            if ($this.hasClass('added')) {
+                // Remove
+                if (idx !== -1) wishlist.splice(idx, 1);
+                localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                $this.removeClass('added');
                 if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Added to Wishlist!',
-                        text: product.name + ' has been added to your wishlist.',
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
-                } else if (typeof swal !== 'undefined') {
-                    swal(product.name, "is added to wishlist!", "success");
-                } else {
-                    alert(product.name + ' has been added to your wishlist.');
-                }
-            });
-        } else {
-            removeFromWishlist(product.id).then(function(wishlist) {
-                updateWishlistUI(wishlist);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Removed from Wishlist',
-                        text: product.name + ' has been removed from your wishlist.',
-                        showConfirmButton: false,
-                        timer: 1200
-                    });
+                    Swal.fire({ icon: 'info', title: 'Removed from Wishlist', text: product.name + ' has been removed from your wishlist.', showConfirmButton: false, timer: 1200 });
                 } else if (typeof swal !== 'undefined') {
                     swal(product.name, "is removed from wishlist!", "info");
                 } else {
                     alert(product.name + ' has been removed from your wishlist.');
                 }
-            });
+            } else {
+                // Add
+                if (idx === -1) wishlist.push(product);
+                localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                $this.addClass('added');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'success', title: 'Added to Wishlist', text: product.name + ' has been added to your wishlist.', showConfirmButton: false, timer: 1500 });
+                } else if (typeof swal !== 'undefined') {
+                    swal(product.name, "is added to wishlist!", "success");
+                } else {
+                    alert(product.name + ' has been added to your wishlist.');
+                }
+            }
+        } else {
+            // Authenticated: use backend
+            if ($this.hasClass('added')) {
+                removeFromWishlist(product.id).then(function(wishlist) {
+                    updateWishlistUI(wishlist);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Removed from Wishlist',
+                            text: product.name + ' has been removed from your wishlist.',
+                            showConfirmButton: false,
+                            timer: 1200
+                        });
+                    } else if (typeof swal !== 'undefined') {
+                        swal(product.name, "is removed from wishlist!", "info");
+                    } else {
+                        alert(product.name + ' has been removed from your wishlist.');
+                    }
+                });
+            } else {
+                addToWishlist(product).then(function(wishlist) {
+                    updateWishlistUI(wishlist);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Added to Wishlist',
+                            text: product.name + ' has been added to your wishlist.',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    } else if (typeof swal !== 'undefined') {
+                        swal(product.name, "is added to wishlist!", "success");
+                    } else {
+                        alert(product.name + ' has been added to your wishlist.');
+                    }
+                });
+            }
         }
     });
-
 
     $(document).ready(function() {
         /* Progressive product loading */
