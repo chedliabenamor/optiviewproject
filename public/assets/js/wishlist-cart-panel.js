@@ -67,16 +67,17 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         items.forEach(function(item) {
-            var img = item.image ? `<img src="${item.image}" alt="${item.name}" class="header-cart-item-img">` : '';
-            var html = `<li class="header-cart-item flex-w flex-t m-b-12">\
-                <div class="header-cart-item-img">${img}</div>\
-                <div class="header-cart-item-txt p-t-8">\
-                    <a href="/product/${item.id}" class="header-cart-item-name m-b-18 hov-cl1 trans-04">${item.name}</a>\
-                    <span class="header-cart-item-info">${item.price}</span>\
-                </div>\
-            </li>`;
-            list.innerHTML += html;
-        });
+    var img = item.image ? `<img src="${item.image}" alt="${item.name}" class="header-cart-item-img">` : '';
+    var removeBtn = `<button class="wishlist-remove-btn" data-product-id="${item.id}" title="Remove from wishlist" style="background:none;border:none;padding:0;margin-left:8px;cursor:pointer;"><i class="zmdi zmdi-close"></i></button>`;
+    var html = `<li class="header-cart-item flex-w flex-t m-b-12">\
+        <div class="header-cart-item-img">${img}${removeBtn}</div>\
+        <div class="header-cart-item-txt p-t-8">\
+            <a href="/product/${item.id}" class="header-cart-item-name m-b-18 hov-cl1 trans-04">${item.name}</a>\
+            <span class="header-cart-item-info">${item.price}</span>\
+        </div>\
+    </li>`;
+    list.innerHTML += html;
+});
     }
     wishlistHideBtns.forEach(function (btn) {
         btn.addEventListener('click', function () {
