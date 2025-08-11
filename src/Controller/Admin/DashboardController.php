@@ -63,6 +63,12 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Orders', 'fas fa-shopping-cart', Order::class)->setController(OrderCrudController::class);
         yield MenuItem::linkToCrud('Reviews', 'fas fa-star', Review::class);
 
+        yield MenuItem::section('Blog');
+        yield MenuItem::linkToCrud('Posts', 'fas fa-newspaper', \App\Entity\Post::class)->setController(\App\Controller\Admin\PostCrudController::class);
+        yield MenuItem::linkToCrud('Categories', 'fas fa-folder', \App\Entity\Categorypost::class)->setController(\App\Controller\Admin\CategorypostCrudController::class);
+        yield MenuItem::linkToCrud('Tags', 'fas fa-tag', \App\Entity\Tag::class)->setController(\App\Controller\Admin\TagCrudController::class);
+        yield MenuItem::linkToCrud('Comments', 'fas fa-comments', \App\Entity\Comment::class)->setController(\App\Controller\Admin\CommentCrudController::class);
+
         // Add more sections and entities as needed
     }
    public function configureAssets(): Assets

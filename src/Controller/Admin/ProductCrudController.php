@@ -183,7 +183,7 @@ class ProductCrudController extends AbstractCrudController
                 ->setLabel('Overview Image')
                 ->onlyOnIndex(),
             TextField::new('name')->setColumns('col-md-12'),
-        TextField::new('sku')->setColumns('col-md-12'),
+            TextField::new('sku')->setColumns('col-md-12'),
             TextEditorField::new('description')->hideOnIndex()->setColumns('col-md-12'),
             MoneyField::new('price')->setCurrency('EUR')->setColumns('col-md-6'),
             IntegerField::new('quantityInStock', 'Stock')->setColumns('col-md-6'),
