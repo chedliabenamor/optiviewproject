@@ -1,0 +1,44 @@
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block page_title %}
+    <h2 class="mb-4"><i class="fa fa-file-alt text-primary"></i> {{ entity.instance.title }}</h2>
+{% endblock %}
+
+{% block main %}
+    <div class="container mt-4">
+       
+           
+                <div class="card shadow-lg border-0 mb-4">
+                    {% if entity.instance.image %}
+                    <div class="card-image">
+                        <img src="{{ asset('uploads/posts/' ~ entity.instance.image) }}" class="card-img-top rounded-top" alt="{{ entity.instance.title }}">
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-info text-white">{{ entity.instance.category ? entity.instance.category.name : 'Uncategorized' }}</span>
+                            <small class="text-muted">
+                                <i class="fa fa-user"></i> {{ entity.instance.author ? entity.instance.author.name ~ ' ' ~ entity.instance.author.lastname : 'Unknown' }} |
+                                <i class="fa fa-calendar"></i> {{ entity.instance.date ? entity.instance.date|date('F j, Y') : 'Draft' }}
+                            </small>
+                        </div>
+                        <h3 class="card-title">{{ entity.instance.title }}</h3>
+                        <hr>
+                        <div class="post-content mb-3">
+                            {{ entity.instance.content|raw }}
+                        </div>
+                        {% if entity.instance.tags is not null and entity.instance.tags|length > 0 %}
+                            <div class="mt-3">
+                                <strong>Tags:</strong>
+                                {% for tag in entity.instance.tags %}
+                                    <span class="badge bg-info text-white">{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+          
+        
+    </div>
+{% endblock %}
+

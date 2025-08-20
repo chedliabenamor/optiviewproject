@@ -1,0 +1,39 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}
+    {{ 'Category Details'|trans }}: {{ entity.instance.name }}
+{% endblock %}
+
+{% block main %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ entity.instance.name }}</h5>
+            <p class="card-text"><small class="text-muted">Slug: {{ entity.instance.slug }}</small></p>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4>{{ 'Posts in this Category'|trans }} ({{ entity.instance.posts.count }})</h4>
+        <hr>
+        {% if entity.instance.posts is not empty %}
+            <div class="row">
+                {% for post in entity.instance.posts %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            {% if post.image %}
+                                <img src="{{ asset('uploads/posts/' ~ post.image) }}" class="card-img-top" alt="{{ post.title }}" style="height: 180px; object-fit: cover;">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ post.title }}</h5>
+                                <p class="card-text"><small class="text-muted">By {{ post.author.name }} {{ post.author.lastname }} on {{ post.date|date('Y-m-d') }}</small></p>
+                                                                <a href="{{ ea_url().setController('App\\Controller\\Admin\\PostCrudController').setAction('detail').setEntityId(post.id) }}" class="btn btn-sm btn-primary">View Post</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">{{ 'No posts found in this category.'|trans }}</div>
+        {% endif %}
+    </div>
+{% endblock %}

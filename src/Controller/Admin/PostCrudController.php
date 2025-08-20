@@ -19,9 +19,21 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
-
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
+use Doctrine\ORM\QueryBuilder;
 class PostCrudController extends AbstractCrudController
 {
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            ->add(EntityFilter::new('category'))
+            ->add(EntityFilter::new('tags'));
+    }
     private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
 
@@ -98,7 +110,8 @@ class PostCrudController extends AbstractCrudController
             ->remove(Crud::PAGE_INDEX, Action::DELETE)
             ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)
             ->add(Crud::PAGE_INDEX, $toggleArchivedAction)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName]);
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, $archiveOrRestoreActionName])
+            ->remove(Crud::PAGE_DETAIL, Action::DELETE);
     }
  
 
@@ -165,5 +178,19 @@ class PostCrudController extends AbstractCrudController
             ->setController(self::class)
             ->setAction(Action::INDEX)
             ->generateUrl());
+    }
+
+    public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
+    {
+        $queryBuilder = parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters);
+        $isArchivedView = $this->requestStack->getCurrentRequest()?->query->get('show') === 'archived';
+
+        if ($isArchivedView) {
+            $queryBuilder->andWhere('entity.deletedAt IS NOT NULL');
+        } else {
+            $queryBuilder->andWhere('entity.deletedAt IS NULL');
+        }
+
+        return $queryBuilder;
     }
 }

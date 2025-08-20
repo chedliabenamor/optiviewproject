@@ -27,6 +27,7 @@ class Categorypost
     #[ORM\OneToMany(mappedBy: 'category', targetEntity: Post::class)]
     private Collection $posts;
 
+
     public function __construct()
     {
         $this->posts = new ArrayCollection();
@@ -96,6 +97,7 @@ class Categorypost
         }
         return $this;
     }
+
 
     public function __toString(): string
     {
