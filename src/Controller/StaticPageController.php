@@ -32,4 +32,12 @@ class StaticPageController extends AbstractController
             'page_title' => 'Our Blog',
         ]);
     }
+
+    #[Route('/policy', name: 'app_static_policy')]
+    public function policy(): Response
+    {
+        return $this->render('pages/static/privacy_policy.html.twig', [
+            'page_title' => 'Our Privacy Policy',
+        ]);
+    }
 }

@@ -991,7 +991,7 @@ Input, textarea : 14px/1.6 '', Arial, sans-serif;
 .header-cart-item-img img {
   width: 100%;
 }
-
+/* 
 .header-cart-item-img::after {
   content: '\e870';
   font-family: Linearicons-Free;
@@ -1019,8 +1019,44 @@ Input, textarea : 14px/1.6 '', Arial, sans-serif;
 
 .header-cart-item-img:hover:after {
   opacity: 1;
-}
+} */
 
+.header-cart-item-img button.wishlist-remove-btn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  opacity: 0;
+}
+.header-cart-item-img:hover button.wishlist-remove-btn {
+ 
+  opacity: 1;
+}
+h2#access-title, h2#privacy-title, h2.contact {
+  margin: 0 0 15px;
+  color: #323232;
+  font-weight: bold;
+  position: relative;
+  padding: 0 0 15px;
+  border-bottom: 1px solid #dfdfdf;
+}
+.grid h3 {
+  margin: 10px 0 12px;
+  color: #4d4d4d;
+}
+.header-cart-item .add-to-cart-btn {
+  width: fit-content;
+  min-width: unset;
+  height: unset;
+  padding: 7px;
+  font-size: 12px;
+  line-height: 1;
+}
 /*---------------------------------------------*/
 .header-cart-item-txt {
   width: calc(100% - 80px);
@@ -3347,5 +3383,4 @@ input.num-product::-webkit-inner-spin-button {
   .respon3 {
     padding: 20px;
   }
-
 }

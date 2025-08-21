@@ -1,0 +1,188 @@
+{# Quick View Modal #}
+<div class="wrap-modal1 js-modal1 p-t-60 p-b-20">
+    <div class="overlay-modal1 js-hide-modal1"></div>
+
+    <div class="container">
+        <div class="bg0 p-t-60 p-b-30 p-lr-15-lg how-pos3-parent">
+            <button class="how-pos3 hov3 trans-04 js-hide-modal1">
+                <img src="{{ asset('assets/images/icons/icon-close.png') }}" alt="CLOSE">
+            </button>
+
+            <div class="row">
+                <div class="col-md-6 col-lg-7 p-b-30">
+                    <div class="p-l-25 p-r-30 p-lr-0-lg">
+                        <div class="wrap-slick3 flex-sb flex-w">
+                            <div class="wrap-slick3-dots"></div>
+                            <div class="wrap-slick3-arrows flex-sb-m flex-w"></div>
+
+                            <div class="slick3 gallery-lb js-product-images">
+                             
+                               
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-5 p-b-30">
+                    <div class="p-r-50 p-t-5 p-lr-0-lg">
+                        <!-- Brand -->
+                        <div class="js-product-brand cl13 m-b-5" style="font-weight: 500;">
+                            <!-- Brand name will be loaded here -->
+                        </div>
+
+                        <h4 class="mtext-105 cl2 js-product-name p-b-14">
+                            <!-- Product name will be loaded here -->
+                        </h4>
+
+                        <!-- Price -->
+                        <div class="m-b-15">
+                            <h2 class="product-title" id="quick-view-product-title"></h2>
+                            <div class="product-category" id="quick-view-product-category" style="font-size: 0.9rem; color: #6c757d; margin-bottom: 1rem;"></div>
+                            <span class="mtext-106 cl2 js-product-price">
+                                <!-- Price will be loaded here -->
+                            </span>
+                            <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: none;">
+                                <!-- Original price for discounted items -->
+                            </span>
+                            <span class="js-product-currency">
+                                <!-- Currency will be loaded here -->
+                            </span>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="js-product-description stext-102 cl3 p-t-10 p-b-20">
+                            <!-- Description will be loaded here -->
+                        </div>
+
+                        <!-- Stock Status -->
+                        <div class="p-b-10">
+                            <span class="js-stock-status" style="font-size: 14px; font-weight: 500;">
+                                <!-- Stock status will be loaded here -->
+                            </span>
+                        </div>
+
+                        <!-- Product Variants -->
+                        <div class="js-product-variants" style="display: none;">
+                            <!-- Variant selector will be loaded here if variants exist -->
+                        </div>
+
+                        <!-- Size Selector (if no variants or sizes in variants) -->
+                        <div class="js-size-selector" style="display: none;">
+                            <div class="flex-w flex-r-m p-b-10">
+                                <div class="size-203 flex-c-m respon6">
+                                    {{ 'Size'|trans }}
+                                </div>
+                                <div class="size-204 respon6-next">
+                                    <div class="rs1-select2 bor8 bg0">
+                                        <select class="js-select2 js-select-size" name="size">
+                                            <option value="">{{ 'Choose a size'|trans }}</option>
+                                            <!-- Sizes will be loaded here -->
+                                        </select>
+                                        <div class="dropDownSelect2"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Color Selector (if no variants or colors in variants) -->
+                        <div class="js-color-selector" style="display: none;">
+                            <div class="flex-w flex-r-m p-b-10">
+                                <div class="size-203 flex-c-m respon6">
+                                    {{ 'Color'|trans }}
+                                </div>
+                                <div class="size-204 respon6-next">
+                                    <div class="rs1-select2 bor8 bg0">
+                                        <select class="js-select2 js-select-color" name="color">
+                                            <option value="">{{ 'Choose a color'|trans }}</option>
+                                            <!-- Colors will be loaded here -->
+                                        </select>
+                                        <div class="dropDownSelect2"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Variant Selection -->
+                        <div class="p-t-33">
+                            <!-- This container will be populated by JS if variants exist -->
+                            <div class="js-variant-selectors-container"></div>
+
+                            <div class="flex-w flex-r-m p-b-10">
+                                <div class="size-204 flex-w flex-m respon6-next">
+                                    <div class="wrap-num-product flex-w m-r-20 m-tb-10">
+                                        <div class="btn-num-product-down cl8 hov-btn3 trans-04 flex-c-m">
+                                            <i class="fs-16 zmdi zmdi-minus"></i>
+                                        </div>
+
+                                        <input class="mtext-104 cl3 txt-center num-product" type="number" name="num-product" value="1">
+
+                                        <div class="btn-num-product-up cl8 hov-btn3 trans-04 flex-c-m">
+                                            <i class="fs-16 zmdi zmdi-plus"></i>
+                                        </div>
+                                    </div>
+
+                                    <button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail" data-product-id="">
+                                        {{ 'Add to cart'|trans }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stock info -->
+                        <div class="js-stock-info p-b-10" style="display: none;">
+                            <span class="stext-102 cl6">
+                                <span class="js-stock-quantity">0</span> {{ 'in stock'|trans }}
+                            </span>
+                        </div>
+
+                        <!-- Product meta -->
+                        <div class="product-meta p-t-20">
+                            <div class="meta-item js-meta-category" >
+                                <span class="meta-label">{{ 'Category'|trans }}:</span>
+                                <span class="meta-value js-product-category"></span>
+                            </div>
+                            <div class="meta-item js-meta-brand" >
+                                <span class="meta-label">{{ 'Brand'|trans }}:</span>
+                                <span class="meta-value js-product-brand"></span>
+                            </div>
+                            <div class="meta-item js-meta-style" >
+                                <span class="meta-label">{{ 'Style'|trans }}:</span>
+                                <span class="meta-value js-product-style"></span>
+                            </div>
+                            <div class="meta-item js-meta-shape" >
+                                <span class="meta-label">{{ 'Shape'|trans }}:</span>
+                                <span class="meta-value js-product-shape"></span>
+                            </div>
+                            <div class="meta-item js-meta-genre" >
+                                <span class="meta-label">{{ 'Genre'|trans }}:</span>
+                                <span class="meta-value js-product-genre"></span>
+                            </div>
+                             <div class="meta-item js-meta-loyalty-points" >
+                                <span class="meta-label">{{ 'Loyalty Points'|trans }}:</span>
+                                <span class="meta-value js-product-loyalty-points"></span>
+                            </div>
+                        </div>
+
+                        <!-- Share -->
+                        <div class="flex-w p-t-20">
+                            <span class="stext-102 cl3 m-r-15">
+                                {{ 'Share'|trans }}:
+                            </span>
+                            <div class="flex-w">
+                                <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
+                                    <i class="fa fa-facebook"></i>
+                                </a>
+                                <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
+                                    <i class="fa fa-twitter"></i>
+                                </a>
+                                <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Pinterest">
+                                    <i class="fa fa-pinterest"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

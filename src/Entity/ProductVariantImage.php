@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductVariantImageRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -34,6 +35,7 @@ class ProductVariantImage
     private ?File $imageFile = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['product_quick_view'])]
     private ?string $imageName = null;
 
     #[ORM\Column(nullable: true)]
@@ -41,6 +43,7 @@ class ProductVariantImage
     // End Vich Uploader fields
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['product_quick_view'])]
     private ?string $altText = null;
 
     
@@ -165,6 +168,15 @@ class ProductVariantImage
         if (null !== $this->imageFile) { // Ensure updatedAt is set if imageFile is changing
              $this->updatedAt = new \DateTimeImmutable();
         }
+    }
+
+    #[Groups(['product_quick_view'])]
+    public function getImageUrl(): ?string
+    {
+        if ($this->getImageName()) {
+            return '/uploads/images/product_variants/' . $this->getImageName();
+        }
+        return null;
     }
 
     public function __toString(): string

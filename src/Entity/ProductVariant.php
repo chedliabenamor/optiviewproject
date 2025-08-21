@@ -11,6 +11,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use App\Entity\Style;
 use App\Entity\Genre;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductVariantRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -33,6 +34,7 @@ class ProductVariant
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['product_quick_view'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'productVariants')]
@@ -40,30 +42,37 @@ class ProductVariant
     private ?Product $product = null;
 
     #[ORM\ManyToOne(inversedBy: 'productVariants')]
+    #[Groups(['product_quick_view'])]
     private ?Color $color = null;
 
     #[ORM\ManyToOne(targetEntity: Style::class)]
+    #[Groups(['product_quick_view'])]
     private ?Style $style = null;
 
     #[ORM\ManyToOne(targetEntity: Genre::class)]
+    #[Groups(['product_quick_view'])]
     private ?Genre $genre = null;
 
     #[ORM\Column(length: 255, unique: true, nullable: true)]
+    #[Groups(['product_quick_view'])]
     private ?string $sku = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    #[Groups(['product_quick_view'])]
     private ?string $price = null;
 
     #[ORM\Column(length: 255)]
     private ?string $currency = 'EUR';
 
     #[ORM\Column]
+    #[Groups(['product_quick_view'])]
     private ?int $stock = 0;
 
     #[ORM\Column]
     private ?bool $isActive = true;
 
     #[ORM\OneToMany(mappedBy: 'productVariant', targetEntity: ProductVariantImage::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['product_quick_view'])]
     private Collection $productVariantImages;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]

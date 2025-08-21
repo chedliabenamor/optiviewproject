@@ -70,6 +70,10 @@
     <script src="{{ asset('assets/js/slick-custom.js') }}"></script>
     <script src="{{ asset('assets/js/main.js') }}"></script>
     <script src="{{ asset('assets/js/wishlist-cart-panel.js') }}"></script>
+    <script src="{{ asset('assets/js/quick-view.js') }}"></script>
+    
+    <!-- Quick View Modal -->
+    {% include 'partials/products/_quick_view_modal.html.twig' %}
     
     <!-- Initialize plugins -->
     <script>
@@ -94,6 +98,32 @@
                     mainClass: 'mfp-fade'
                 });
             });
+            
+            // Initialize Slick Slider for Quick View
+            if ($('.slick3').length) {
+                $('.slick3').slick({
+                    slidesToShow: 1,
+                    slidesToScroll: 1,
+                    arrows: true,
+                    fade: true,
+                    asNavFor: '.wrap-slick3-dots',
+                    speed: 600,
+                    customPaging: function(slider, i) {
+                        return '<div class="slick3-dot" data-role="none"></div>';
+                    },
+                    responsive: [
+                        {
+                            breakpoint: 1200,
+                            settings: {
+                                slidesToShow: 1,
+                                slidesToScroll: 1,
+                                infinite: true,
+                                dots: true
+                            }
+                        }
+                    ]
+                });
+            }
             
             // Wishlist
             $('.js-addwish-b2, .js-addwish-detail').on('click', function(e){

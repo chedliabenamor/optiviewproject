@@ -17,7 +17,14 @@
             {% else %}
                 <img src="{{ asset('assets/images/no-image.png') }}" alt="No image">
             {% endif %}
-            <a href="{{ path('product_show', {id: product.id}) }}" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1">
+            <a href="#" 
+               class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1"
+               data-product-id="{{ product.id }}"
+               data-product-name="{{ product.name|e('js') }}"
+               data-product-price="{{ product.price|number_format(2, '.', '') }}"
+               data-product-currency="{{ product.currency|default('EUR') }}"
+               data-product-description="{{ product.description|default('')|e('js') }}"
+               data-product-image="{{ product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png') }}">
                 Quick View
             </a>
         </div>

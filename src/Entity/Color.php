@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\File\File;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\DBAL\Types\Types;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -27,6 +28,7 @@ class Color
 
     #[ORM\Column(length: 255, unique: true)]
     #[Assert\NotBlank]
+    #[Groups(['product_quick_view'])]
     private string $name = '';
 
     #[Vich\UploadableField(mapping: 'color_images', fileNameProperty: 'imageName')]

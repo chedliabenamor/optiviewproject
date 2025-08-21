@@ -10,6 +10,7 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\DBAL\Types\Types;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: GenreRepository::class)]
 #[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
 #[UniqueEntity(fields: ["name"], message: "This color name already exists.")]
@@ -22,6 +23,7 @@ class Genre
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
+    #[Groups(['product_quick_view'])]
     private ?string $name = null;
 
     #[ORM\OneToMany(mappedBy: 'genre', targetEntity: Product::class)]

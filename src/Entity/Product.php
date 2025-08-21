@@ -13,6 +13,7 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 use App\Entity\ProductVariant;
 use App\Entity\Color;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 
@@ -23,21 +24,26 @@ class Product
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['product_quick_view'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Groups(['product_quick_view'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['product_quick_view'])]
     private ?string $sku = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['product_quick_view'])]
     private ?string $description = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\NotBlank]
     #[Assert\PositiveOrZero]
+    #[Groups(['product_quick_view'])]
     private ?string $price = null;
 
     #[ORM\Column(name: "stock", type: Types::INTEGER)]
@@ -46,16 +52,19 @@ class Product
     private ?int $quantityInStock = null;
 
     #[ORM\Column(type: Types::INTEGER, options: ["default" => 0])]
+    #[Groups(['product_quick_view'])]
     private int $loyaltyPoints = 0;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null; // Main product image (Consider if this is still needed or can be removed)
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product_quick_view'])]
     private ?string $currency = 'EUR';
 
     // Vich Uploadable Field for the overview image file
     #[Vich\UploadableField(mapping: 'product_overview_images', fileNameProperty: 'overviewImage')]
+    #[Groups(['product_quick_view'])]
     private ?File $overviewImageFile = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -67,7 +76,7 @@ class Product
     private ?Brand $brand = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
-    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['product_quick_view'])]
     private ?Category $category = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
@@ -86,13 +95,14 @@ class Product
     private Collection $colors;
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ProductModelImage::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['product_quick_view'])]
     private Collection $productModelImages;
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: Review::class, orphanRemoval: true)]
     private Collection $reviews;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $updatedAt = null;
@@ -107,29 +117,52 @@ class Product
     private Collection $cartItems;
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ProductVariant::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['product_quick_view'])]
     private Collection $productVariants;
 
     public function __construct()
     {
+        $this->colors = new ArrayCollection();
         $this->productModelImages = new ArrayCollection();
         $this->reviews = new ArrayCollection();
-        $this->createdAt = new \DateTimeImmutable(); // Changed to DateTimeImmutable
         $this->productOffers = new ArrayCollection();
         $this->cartItems = new ArrayCollection();
         $this->productVariants = new ArrayCollection();
-        $this->colors = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable(); // Changed to DateTimeImmutable
+    }
+
+    public function setOverviewImageFile(?File $file = null): void
+    {
+        $this->overviewImageFile = $file;
+
+        if (null !== $file) {
+            $this->updatedAt = new \DateTime();
+        }
+    }
+
+    public function getOverviewImageFile(): ?File
+    {
+        return $this->overviewImageFile;
+    }
+
+    public function getOverviewImage(): ?string
+    {
+        return $this->overviewImage;
+    }
+    
+    public function setOverviewImage(?string $overviewImage): self
+    {
+        $this->overviewImage = $overviewImage;
+        return $this;
     }
 
     #[ORM\PrePersist]
     public function prePersist(): void
     {
         $this->createdAt = new \DateTimeImmutable();
-        // If an overview image file is set during creation, also set updatedAt
-        // to ensure VichUploaderBundle processes it correctly.
-        if (null !== $this->overviewImageFile) {
-            $this->updatedAt = new \DateTimeImmutable();
-        }
+        $this->updatedAt = new \DateTime();
     }
+    
 
     #[ORM\PreUpdate]
     public function preUpdate(): void
@@ -246,18 +279,6 @@ class Product
     }
 
 
-    // Update getter/setter methods
-    public function getOverviewImage(): ?string
-    {
-        return $this->overviewImage;
-    }
-
-    public function setOverviewImage(?string $overviewImage): static
-    {
-        $this->overviewImage = $overviewImage;
-        return $this;
-    }
-
     // Virtual field for EasyAdmin Stock Status
     public function getStockStatus(): string
     {
@@ -304,21 +325,7 @@ class Product
         return $this;
     }
 
-    public function setOverviewImageFile(?File $overviewImageFile = null): void
-    {
-        $this->overviewImageFile = $overviewImageFile;
 
-        if (null !== $overviewImageFile) {
-            // It is required that at least one field changes if you are using doctrine
-            // otherwise the event listeners won't be called and the file is lost
-            $this->updatedAt = new \DateTimeImmutable();
-        }
-    }
-
-    public function getOverviewImageFile(): ?File
-    {
-        return $this->overviewImageFile;
-    }
 
     public function getBrand(): ?Brand
     {
@@ -487,6 +494,20 @@ class Product
         $this->deletedAt = $deletedAt;
 
         return $this;
+    }
+
+    /**
+     * Calculates the total stock from all product variants.
+     *
+     * @return int
+     */
+    public function getTotalStock(): int
+    {
+        $totalStock = 0;
+        foreach ($this->getProductVariants() as $variant) {
+            $totalStock += $variant->getStock();
+        }
+        return $totalStock;
     }
 
     public function __toString(): string

@@ -6,9 +6,14 @@
             {% else %}
                 <img src="{{ asset('assets/images/no-image.png') }}" alt="No image">
             {% endif %}
-        <a href="#" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1">
-            Quick View
-        </a>
+        <a href="#"
+   class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1 quickViewBtn"
+   data-product-id="{{ product.id }}"
+   data-product-name="{{ product.name|e('js') }}"
+   data-product-image="{{ product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png') }}"
+   data-product-price="{{ product.price|number_format(2) }} {{ product.currency|default('EUR') }}">
+    Quick View
+</a>
     </div>
     <div class="block2-txt flex-w flex-t p-t-14">
         <div class="block2-txt-child1 flex-col-l ">
