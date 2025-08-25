@@ -19,13 +19,12 @@ class Wishlist
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
-    #[ORM\ManyToMany(targetEntity: Product::class)]
-    #[ORM\JoinTable(name: 'wishlist_product')]
-    private Collection $products;
+    #[ORM\OneToMany(mappedBy: 'wishlist', targetEntity: WishlistItem::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $wishlistItems;
 
     public function __construct()
     {
-        $this->products = new ArrayCollection();
+        $this->wishlistItems = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -45,29 +44,48 @@ class Wishlist
     }
 
     /**
-     * @return Collection<int, Product>
+     * @return Collection<int, WishlistItem>
      */
-    public function getProducts(): Collection
+    public function getWishlistItems(): Collection
     {
-        return $this->products;
+        return $this->wishlistItems;
     }
 
-    public function addProduct(Product $product): static
+    public function addWishlistItem(WishlistItem $wishlistItem): static
     {
-        if (!$this->products->contains($product)) {
-            $this->products->add($product);
+        if (!$this->wishlistItems->contains($wishlistItem)) {
+            $this->wishlistItems->add($wishlistItem);
+            $wishlistItem->setWishlist($this);
         }
         return $this;
     }
 
-    public function removeProduct(Product $product): static
+    public function removeWishlistItem(WishlistItem $wishlistItem): static
     {
-        $this->products->removeElement($product);
+        if ($this->wishlistItems->removeElement($wishlistItem)) {
+            if ($wishlistItem->getWishlist() === $this) {
+                $wishlistItem->setWishlist(null);
+            }
+        }
         return $this;
+    }
+
+    public function hasProduct(Product $product, ?ProductVariant $variant = null): bool
+    {
+        foreach ($this->wishlistItems as $item) {
+            if ($item->getProduct() === $product) {
+                if ($variant === null && $item->getProductVariant() === null) {
+                    return true;
+                } elseif ($variant !== null && $item->getProductVariant() === $variant) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public function __toString(): string
     {
-        return sprintf('Wishlist (ID: %d) - %d products', $this->getId(), $this->getProducts()->count());
+        return sprintf('Wishlist (ID: %d) - %d items', $this->getId(), $this->getWishlistItems()->count());
     }
 }

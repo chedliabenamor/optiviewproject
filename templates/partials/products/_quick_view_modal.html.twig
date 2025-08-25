@@ -15,7 +15,7 @@
                             <div class="wrap-slick3-dots"></div>
                             <div class="wrap-slick3-arrows flex-sb-m flex-w"></div>
 
-                            <div class="slick3 gallery-lb js-product-images">
+                            <div class="slick3 gallery-lb">
                              
                                
                             </div>
@@ -25,28 +25,58 @@
 
                 <div class="col-md-6 col-lg-5 p-b-30">
                     <div class="p-r-50 p-t-5 p-lr-0-lg">
-                        <!-- Brand -->
-                        <div class="js-product-brand cl13 m-b-5" style="font-weight: 500;">
-                            <!-- Brand name will be loaded here -->
+                        <!-- Category above product name -->
+                        <div class="js-product-category-top stext-102 cl6 m-b-8" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">
+                            <!-- Category will be loaded here -->
                         </div>
 
-                        <h4 class="mtext-105 cl2 js-product-name p-b-14">
+                        <h4 class="mtext-105 cl2 js-product-name p-b-8">
                             <!-- Product name will be loaded here -->
                         </h4>
+
+                        <!-- Brand below product name -->
+                        <div class="js-product-brand-below stext-102 cl3 m-b-15" style="font-size: 1rem; font-weight: 600;">
+                            <!-- Brand name will be loaded here -->
+                        </div>
 
                         <!-- Price -->
                         <div class="m-b-15">
                             <h2 class="product-title" id="quick-view-product-title"></h2>
                             <div class="product-category" id="quick-view-product-category" style="font-size: 0.9rem; color: #6c757d; margin-bottom: 1rem;"></div>
-                            <span class="mtext-106 cl2 js-product-price">
-                                <!-- Price will be loaded here -->
-                            </span>
-                            <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: none;">
-                                <!-- Original price for discounted items -->
-                            </span>
-                            <span class="js-product-currency">
-                                <!-- Currency will be loaded here -->
-                            </span>
+                            
+                            <!-- Offer Badge -->
+                            <div class="js-offer-badge" style="display: none; margin-bottom: 10px;">
+                                <span class="offer-badge" style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: bold;">
+                                    <!-- Discount label will be loaded here -->
+                                </span>
+                            </div>
+                            
+                            <!-- Price Container -->
+                            <div class="price-container">
+                                <span class="mtext-106 cl2 js-product-price">
+                                    <!-- Price will be loaded here -->
+                                </span>
+                                <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: none;">
+                                    <!-- Original price for discounted items -->
+                                </span>
+                                <span class="js-product-currency">
+                                    <!-- Currency will be loaded here -->
+                                </span>
+                            </div>
+                            
+                            <!-- Countdown Timer -->
+                            <div class="js-offer-countdown" style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                                <div style="font-size: 14px; font-weight: 600; color: #e74c3c; margin-bottom: 5px;">⏰ Limited Time Offer</div>
+                                <div class="countdown-timer" style="font-size: 16px; font-weight: bold; color: #333;">
+                                    <span class="js-countdown-days">00</span>d 
+                                    <span class="js-countdown-hours">00</span>h 
+                                    <span class="js-countdown-minutes">00</span>m 
+                                    <span class="js-countdown-seconds">00</span>s
+                                </div>
+                                <div class="js-countdown-expired" style="display: none; color: #999; font-style: italic;">
+                                    Offer expired
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Description -->
@@ -137,48 +167,44 @@
 
                         <!-- Product meta -->
                         <div class="product-meta p-t-20">
-                            <div class="meta-item js-meta-category" >
-                                <span class="meta-label">{{ 'Category'|trans }}:</span>
-                                <span class="meta-value js-product-category"></span>
+                            
+                            <div class="meta-item js-meta-style" style="display: none; margin-bottom: 8px;">
+                                <span class="meta-label stext-102 cl6" style="font-weight: 600; margin-right: 8px;">{{ 'Style'|trans }}:</span>
+                                <span class="meta-value js-product-style stext-102 cl3"></span>
                             </div>
-                            <div class="meta-item js-meta-brand" >
-                                <span class="meta-label">{{ 'Brand'|trans }}:</span>
-                                <span class="meta-value js-product-brand"></span>
+                            <div class="meta-item js-meta-shape" style="display: none; margin-bottom: 8px;">
+                                <span class="meta-label stext-102 cl6" style="font-weight: 600; margin-right: 8px;">{{ 'Shape'|trans }}:</span>
+                                <span class="meta-value js-product-shape stext-102 cl3"></span>
                             </div>
-                            <div class="meta-item js-meta-style" >
-                                <span class="meta-label">{{ 'Style'|trans }}:</span>
-                                <span class="meta-value js-product-style"></span>
+                            <div class="meta-item js-meta-genre" style="display: none; margin-bottom: 8px;">
+                                <span class="meta-label stext-102 cl6" style="font-weight: 600; margin-right: 8px;">{{ 'Genre'|trans }}:</span>
+                                <span class="meta-value js-product-genre stext-102 cl3"></span>
                             </div>
-                            <div class="meta-item js-meta-shape" >
-                                <span class="meta-label">{{ 'Shape'|trans }}:</span>
-                                <span class="meta-value js-product-shape"></span>
-                            </div>
-                            <div class="meta-item js-meta-genre" >
-                                <span class="meta-label">{{ 'Genre'|trans }}:</span>
-                                <span class="meta-value js-product-genre"></span>
-                            </div>
-                             <div class="meta-item js-meta-loyalty-points" >
-                                <span class="meta-label">{{ 'Loyalty Points'|trans }}:</span>
-                                <span class="meta-value js-product-loyalty-points"></span>
+                             <div class="meta-item js-meta-loyalty-points" style="display: none; margin-bottom: 8px;">
+                                <span class="meta-label stext-102 cl6" style="font-weight: 600; margin-right: 8px;">{{ 'Loyalty Points'|trans }}:</span>
+                                <span class="meta-value js-product-loyalty-points stext-102 cl3"></span>
                             </div>
                         </div>
 
-                        <!-- Share -->
-                        <div class="flex-w p-t-20">
-                            <span class="stext-102 cl3 m-r-15">
-                                {{ 'Share'|trans }}:
-                            </span>
-                            <div class="flex-w">
-                                <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
-                                    <i class="fa fa-facebook"></i>
-                                </a>
-                                <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
-                                    <i class="fa fa-twitter"></i>
-                                </a>
-                                <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Pinterest">
-                                    <i class="fa fa-pinterest"></i>
-                                </a>
+                        <!-- Wishlist and Share -->
+                        <div class="flex-w flex-m p-t-20 respon7">
+                            <div class="flex-m bor9 p-r-10 m-r-11">
+                                <button type="button" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100 bg-transparent border-0" data-tooltip="Add to Wishlist">
+                                    <i class="zmdi zmdi-favorite"></i>
+                                </button>
                             </div>
+
+                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
+                                <i class="fa fa-facebook"></i>
+                            </a>
+
+                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
+                                <i class="fa fa-twitter"></i>
+                            </a>
+
+                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Google Plus">
+                                <i class="fa fa-google-plus"></i>
+                            </a>
                         </div>
                     </div>
                 </div>

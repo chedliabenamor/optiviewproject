@@ -13,12 +13,14 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 
 class ProductApiController extends AbstractController
 {
+    private string $productModelImagesUriPrefix;
+
     public function __construct(
         private ProductRepository $productRepository,
         private SerializerInterface $serializer,
-        private string $overviewImagesPath,
-        private string $productModelImagesPath
+        array $vichUploaderMappings
     ) {
+        $this->productModelImagesUriPrefix = $vichUploaderMappings['product_model_images']['uri_prefix'];
     }
 
     #[Route('/api/products/{id}/quick-view', name: 'api_product_quick_view', methods: ['GET'])]
@@ -38,11 +40,9 @@ class ProductApiController extends AbstractController
             );
 
             // Add additional data that might not be in the serialization groups
-            $data['overviewImage'] = $product->getOverviewImage() ? $this->overviewImagesPath . '/' . $product->getOverviewImage() : null;
+            $data['overviewImage'] = $product->getOverviewImage();
             $data['quantityInStock'] = $product->getTotalStock();
             $data['description'] = $product->getDescription();
-            $data['category'] = $product->getCategory() ? $product->getCategory()->getName() : null;
-            $data['categoryName'] = $product->getCategory() ? $product->getCategory()->getName() : null;
             $currency = $product->getCurrency();
             $data['currency'] = is_object($currency) ? $currency->getCode() : ($currency ?? 'EUR');
 
@@ -54,6 +54,7 @@ class ProductApiController extends AbstractController
                         'name' => (string) $variant,
                         'price' => $variant->getPrice(),
                         'quantityInStock' => $variant->getStock(),
+                        'sku' => $variant->getSku(),
                         'currency' => is_object($variant->getCurrency()) ? $variant->getCurrency()->getCode() : ($variant->getCurrency() ?? 'EUR')
                     ];
                 })->toArray();
@@ -64,7 +65,7 @@ class ProductApiController extends AbstractController
                 $data['productModelImages'] = $product->getProductModelImages()->map(function($image) {
                     return [
                         'id' => $image->getId(),
-                        'imageUrl' => $this->productModelImagesPath . '/' . $image->getImageUrl(),
+                        'imageUrl' => $this->productModelImagesUriPrefix . '/' . $image->getImageUrl(),
                         'altText' => $image->getAltText()
                     ];
                 })->toArray();

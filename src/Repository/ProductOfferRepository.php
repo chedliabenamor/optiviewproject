@@ -76,4 +76,40 @@ class ProductOfferRepository extends ServiceEntityRepository
 
         return null;
     }
+
+    /**
+     * Find active offers by category
+     */
+    public function findActiveOffersByCategory($category): array
+    {
+        $now = new \DateTime();
+        
+        return $this->createQueryBuilder('po')
+            ->where(':category MEMBER OF po.categories')
+            ->andWhere('po.startDate <= :now')
+            ->andWhere('po.endDate >= :now')
+            ->andWhere('po.deletedAt IS NULL')
+            ->setParameter('category', $category)
+            ->setParameter('now', $now)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Find active offers by brand
+     */
+    public function findActiveOffersByBrand($brand): array
+    {
+        $now = new \DateTime();
+        
+        return $this->createQueryBuilder('po')
+            ->where(':brand MEMBER OF po.brands')
+            ->andWhere('po.startDate <= :now')
+            ->andWhere('po.endDate >= :now')
+            ->andWhere('po.deletedAt IS NULL')
+            ->setParameter('brand', $brand)
+            ->setParameter('now', $now)
+            ->getQuery()
+            ->getResult();
+    }
 }

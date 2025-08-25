@@ -1,0 +1,137 @@
+/* Offer System Styles */
+
+/* Discount Badge */
+.discount-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    padding: 5px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Price Container */
+.price-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.price-container .discounted-price {
+    font-weight: bold;
+    color: #e74c3c;
+    font-size: 1.1em;
+}
+
+.price-container .original-price {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 0.9em;
+}
+
+/* Offer Badge in Quick View */
+.offer-badge {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Countdown Timer */
+.js-offer-countdown {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #e74c3c;
+}
+
+.countdown-timer {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    font-family: 'Courier New', monospace;
+}
+
+.countdown-timer span {
+    background: #333;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin: 0 2px;
+    min-width: 25px;
+    display: inline-block;
+    text-align: center;
+}
+
+.js-countdown-expired {
+    color: #999;
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Offer urgency indicators */
+.offer-urgent {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.7; }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .discount-badge {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+    
+    .countdown-timer {
+        font-size: 14px;
+    }
+    
+    .countdown-timer span {
+        padding: 1px 4px;
+        min-width: 20px;
+        font-size: 12px;
+    }
+}
+
+/* Hover effects for product cards with offers */
+.block2:hover .discount-badge {
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+/* Special styling for limited time offers */
+.limited-time-offer {
+    border: 2px solid #e74c3c;
+    border-radius: 8px;
+    padding: 8px;
+    background: linear-gradient(45deg, rgba(231, 76, 60, 0.1), rgba(192, 57, 43, 0.1));
+}
+
+.limited-time-offer .offer-title {
+    color: #e74c3c;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 5px;
+}

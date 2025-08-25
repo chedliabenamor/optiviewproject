@@ -32,8 +32,8 @@ services:
 
     App\Controller\Api\ProductApiController:
         arguments:
-            $overviewImagesPath: '%app.path.product_overview_images%'
-            $productModelImagesPath: '%app.path.product_images%'
+            $vichUploaderMappings: '%vich_uploader.mappings%'
+        tags: ['controller.service_arguments']
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

@@ -129,30 +129,9 @@ class OrderCrudController extends AbstractCrudController
         yield IdField::new('id')->hideOnForm();
         yield AssociationField::new('user', 'Customer')->onlyOnIndex();
         yield IntegerField::new('orderItems.count', 'Items')->onlyOnIndex();
-        yield MoneyField::new('totalAmount', 'Total')
-            ->setCurrency('EUR') // fallback, but we format manually below
-            ->formatValue(function ($value, $entity) {
-                $currency = (method_exists($entity, 'getCurrency') && $entity->getCurrency()) ? $entity->getCurrency() : 'EUR';
-                $formatter = new \NumberFormatter('en', \NumberFormatter::CURRENCY);
-                $formatted = $formatter->formatCurrency($value, $currency);
-                return sprintf('<span class="fw-bold">%s</span>', $formatted);
-            })
-            ->onlyOnIndex();
+        yield MoneyField::new('totalAmount', 'Total')->setCurrency('EUR')->onlyOnIndex();
         yield IntegerField::new('totalPointsEarned', 'Total Points')->onlyOnIndex();
-        yield ChoiceField::new('status')
-            ->formatValue(function ($value) {
-                $map = [
-                    'pending' => 'bg-warning',
-                    'processing' => 'bg-info',
-                    'shipped' => 'bg-primary',
-                    'delivered' => 'bg-success',
-                    'cancelled' => 'bg-danger',
-                    'refunded' => 'bg-secondary',
-                ];
-                $class = $map[$value] ?? 'bg-secondary';
-                return sprintf('<span class="badge %s text-white">%s</span>', $class, ucfirst($value));
-            })
-            ->onlyOnIndex();
+        yield ChoiceField::new('status')->onlyOnIndex();
         yield DateTimeField::new('createdAt', 'Created At')->onlyOnIndex();
 
         // Form Fields (New/Edit)

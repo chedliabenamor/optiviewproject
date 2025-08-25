@@ -319,11 +319,6 @@ class Order
     public function getShippingFee(): string
     {
         $currency = $this->getCurrency() ?? 'EUR';
-        $subtotal = (float)$this->getSubtotal();
-        // Free shipping if subtotal (before tax) >= 100 in selected currency
-        if ($subtotal >= 100) {
-            return number_format(0, 2, '.', '');
-        }
         $isEuro = $currency === 'EUR';
         $base = 0;
         $add = 0;
@@ -342,6 +337,11 @@ class Order
             $add = 0.00;
         }
         $fee = $base + $add;
+        // Free shipping if Standard and total (with tax) >= 100
+        $totalWithTax = (float)$this->getTotalAmount() + (float)$this->getTaxAmount();
+        if ($this->deliveryType === 'Standard' && $totalWithTax >= 100) {
+            $fee = 0.00;
+        }
         return number_format($fee, 2, '.', '');
     }
 
