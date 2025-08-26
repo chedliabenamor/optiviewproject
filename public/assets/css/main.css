@@ -3113,6 +3113,7 @@ input.num-product::-webkit-inner-spin-button {
 .hov-img0 {
   display: block;
   overflow: hidden;
+  height: 250px;
 }
 
 .hov-img0 img{

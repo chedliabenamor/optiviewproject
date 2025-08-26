@@ -6,6 +6,7 @@ use App\Entity\Categorypost;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\SlugField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -44,7 +45,7 @@ class CategorypostCrudController extends AbstractCrudController
         return [
             IdField::new('id')->hideOnIndex()->hideOnForm(),
             TextField::new('name'),
-            TextField::new('slug'),
+            SlugField::new('slug')->setTargetFieldName('name')->hideOnIndex(),
             AssociationField::new('posts')->hideOnForm()
         ];
     }

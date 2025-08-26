@@ -1,0 +1,11 @@
+{% if field.value %}
+    <span class="badge bg-success">
+        <i class="fa fa-check me-1"></i>
+        Approved
+    </span>
+{% else %}
+    <span class="badge bg-warning text-dark">
+        <i class="fa fa-clock me-1"></i>
+        Not Approved
+    </span>
+{% endif %}

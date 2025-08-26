@@ -21,7 +21,7 @@ class ProductVariantController extends AbstractController
 
             $this->addFlash('success', 'Variant has been archived.');
         } else {
-            $this->addFlash('error', 'Invalid CSRF token.');
+            $this->addFlash('danger', 'Invalid CSRF token.');
         }
 
         return $this->redirect($request->headers->get('referer'));

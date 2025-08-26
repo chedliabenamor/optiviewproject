@@ -15,9 +15,12 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -60,6 +63,7 @@ class CommentCrudController extends AbstractCrudController
 
         yield AssociationField::new('post')->setColumns('col-md-12');
         yield TextEditorField::new('content')->setColumns('col-md-12')->hideOnIndex();
+        yield BooleanField::new('isApproved', 'Approved')->setColumns('col-md-6');
         yield DateTimeField::new('createdAt')->hideOnForm();
 
         if (Crud::PAGE_NEW === $pageName || Crud::PAGE_EDIT === $pageName) {
@@ -128,6 +132,18 @@ class CommentCrudController extends AbstractCrudController
             $archiveOrRestoreActionName = 'archive';
         }
 
+        $approveAction = Action::new('approve', 'Approve')
+            ->setIcon('fa fa-check')
+            ->setCssClass('btn btn-success btn-sm text-white')
+            ->linkToCrudAction('approveComment')
+            ->displayIf(fn($entity) => !$entity->isApproved());
+
+        $unapproveAction = Action::new('unapprove', 'Unapprove')
+            ->setIcon('fa fa-times')
+            ->setCssClass('btn btn-danger btn-sm text-white')
+            ->linkToCrudAction('unapproveComment')
+            ->displayIf(fn($entity) => $entity->isApproved());
+
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->update(Crud::PAGE_INDEX, Action::DETAIL, fn(Action $action) =>
@@ -176,5 +192,11 @@ class CommentCrudController extends AbstractCrudController
         }
 
         return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
+    }
+
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            ->add(BooleanFilter::new('isApproved', 'Approval Status'));
     }
 }

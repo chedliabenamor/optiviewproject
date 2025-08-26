@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Repository\CategoryRepository;
+use App\Repository\PostRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -12,6 +13,7 @@ class HomeController extends AbstractController
     #[Route('/', name: 'app_home')]
     public function index(
         CategoryRepository $categoryRepository,
+        PostRepository $postRepository,
         \App\Repository\ProductRepository $productRepository,
         \App\Repository\BrandRepository $brandRepository,
         \App\Repository\ColorRepository $colorRepository,
@@ -24,6 +26,13 @@ class HomeController extends AbstractController
         $colors = $colorRepository->findAll();
         $shapes = $shapeRepository->findAll();
         $genres = $genreRepository->findAll();
+        
+        // Fetch latest 3 blog posts
+        $latestPosts = $postRepository->findBy(
+            ['deletedAt' => null], 
+            ['createdAt' => 'DESC'], 
+            3
+        );
 
         // Fetch tab categories by name
         $bestSellerCategory = $categoryRepository->findOneBy(['name' => 'Best Seller']);
@@ -47,6 +56,7 @@ class HomeController extends AbstractController
             'featuredProducts' => $featuredProducts,
             'saleProducts' => $saleProducts,
             'topRateProducts' => $topRateProducts,
+            'latestPosts' => $latestPosts,
         ]);
     }
 }

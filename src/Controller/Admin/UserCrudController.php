@@ -283,7 +283,7 @@ class UserCrudController extends AbstractCrudController
             $this->userManager->deactivateUser($user);
             $this->addFlash('success', sprintf('User %s has been deactivated.', $user->getUserIdentifier()));
         } else {
-            $this->addFlash('error', 'Invalid user entity.');
+            $this->addFlash('danger', 'Invalid user entity.');
         }
 
         $url = $context->getReferrer();
@@ -301,7 +301,7 @@ class UserCrudController extends AbstractCrudController
             $this->userManager->activateUser($user);
             $this->addFlash('success', sprintf('User %s has been activated.', $user->getUserIdentifier()));
         } else {
-            $this->addFlash('error', 'Invalid user entity.');
+            $this->addFlash('danger', 'Invalid user entity.');
         }
 
         $url = $context->getReferrer();

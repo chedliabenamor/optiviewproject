@@ -38,6 +38,22 @@
                             <div class="col-md-2"><strong>Created At:</strong></div>
                             <div class="col-md-10">{{ entity.instance.createdAt|date('F j, Y, g:i a') }}</div>
                         </div>
+                        <div class="row mb-3">
+                            <div class="col-md-2"><strong>Status:</strong></div>
+                            <div class="col-md-10">
+                                {% if entity.instance.isApproved %}
+                                    <span class="badge bg-success text-white">
+                                        <i class="fa fa-check me-1"></i>
+                                        Approved
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fa fa-clock me-1"></i>
+                                        Not Approved
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
                         <hr>
                         <div>
                             <h5>Content</h5>

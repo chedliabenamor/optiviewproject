@@ -176,7 +176,7 @@
                                                         {% elseif order.status == 'shipped' %}{% set status_badge = 'primary' %}
                                                         {% elseif order.status == 'cancelled' %}{% set status_badge = 'danger' %}
                                                         {% endif %}
-                                                        <span class="badge bg-{{ status_badge }}">{{ order.status|replace({'_': ' '})|capitalize }}</span>
+                                                        <span class="badge text-white bg-{{ status_badge }}">{{ order.status|replace({'_': ' '})|capitalize }}</span>
                                                     </td>
                                                     <td class="text-end">${{ order.totalAmount|number_format(2) }}</td>
                                                     <td class="text-center">
