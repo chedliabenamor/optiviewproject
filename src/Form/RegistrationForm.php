@@ -11,9 +11,13 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\BirthdayType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 
 class RegistrationForm extends AbstractType
 {
@@ -21,23 +25,83 @@ class RegistrationForm extends AbstractType
     {
         $builder
             ->add('name', TextType::class, [
+                'label' => 'First Name',
+                'attr' => [
+                    'placeholder' => 'Enter your first name',
+                    'class' => 'form-control'
+                ],
                 'constraints' => [
                     new NotBlank([
                         'message' => 'Please enter your first name',
                     ]),
+                    new Length([
+                        'min' => 2,
+                        'max' => 50,
+                        'minMessage' => 'Your first name must be at least {{ limit }} characters long',
+                        'maxMessage' => 'Your first name cannot be longer than {{ limit }} characters',
+                    ]),
+                    new Regex([
+                        'pattern' => '/^[a-zA-Z\s\-\']+$/',
+                        'message' => 'Your first name can only contain letters, spaces, hyphens, and apostrophes',
+                    ]),
                 ],
             ])
             ->add('lastname', TextType::class, [
+                'label' => 'Last Name',
+                'attr' => [
+                    'placeholder' => 'Enter your last name',
+                    'class' => 'form-control'
+                ],
                 'constraints' => [
                     new NotBlank([
                         'message' => 'Please enter your last name',
                     ]),
+                    new Length([
+                        'min' => 2,
+                        'max' => 50,
+                        'minMessage' => 'Your last name must be at least {{ limit }} characters long',
+                        'maxMessage' => 'Your last name cannot be longer than {{ limit }} characters',
+                    ]),
+                    new Regex([
+                        'pattern' => '/^[a-zA-Z\s\-\']+$/',
+                        'message' => 'Your last name can only contain letters, spaces, hyphens, and apostrophes',
+                    ]),
                 ],
             ])
-            ->add('email') // Email field remains as is
+            ->add('email', EmailType::class, [
+                'label' => 'Email Address',
+                'attr' => [
+                    'placeholder' => 'Enter your email address',
+                    'class' => 'form-control'
+                ],
+                'constraints' => [
+                    new NotBlank([
+                        'message' => 'Please enter your email address',
+                    ]),
+                    new Email([
+                        'message' => 'Please enter a valid email address',
+                    ]),
+                ],
+            ])
             ->add('phone', TextType::class, [
-                'required' => false, // Set to true if phone is mandatory
+                'required' => false,
                 'label' => 'Phone Number (Optional)',
+                'attr' => [
+                    'placeholder' => 'Enter your phone number',
+                    'class' => 'form-control'
+                ],
+                'constraints' => [
+                    new Regex([
+                        'pattern' => '/^[\+]?[0-9\s\-\(\)]+$/',
+                        'message' => 'Please enter a valid phone number',
+                    ]),
+                    new Length([
+                        'min' => 10,
+                        'max' => 20,
+                        'minMessage' => 'Phone number must be at least {{ limit }} digits long',
+                        'maxMessage' => 'Phone number cannot be longer than {{ limit }} characters',
+                    ]),
+                ],
             ])
             ->add('sex', ChoiceType::class, [
                 'choices'  => [
@@ -67,20 +131,43 @@ class RegistrationForm extends AbstractType
                     ]),
                 ],
             ])
-            ->add('plainPassword', PasswordType::class, [
-                // instead of being set onto the object directly,
-                // this is read and encoded in the controller
+            ->add('plainPassword', RepeatedType::class, [
+                'type' => PasswordType::class,
                 'mapped' => false,
-                'attr' => ['autocomplete' => 'new-password'],
+                'invalid_message' => 'The password fields must match.',
+                'options' => [
+                    'attr' => [
+                        'autocomplete' => 'new-password',
+                        'class' => 'form-control'
+                    ]
+                ],
+                'required' => true,
+                'first_options' => [
+                    'label' => 'Password',
+                    'attr' => [
+                        'placeholder' => 'Enter your password',
+                        'class' => 'form-control'
+                    ]
+                ],
+                'second_options' => [
+                    'label' => 'Confirm Password',
+                    'attr' => [
+                        'placeholder' => 'Confirm your password',
+                        'class' => 'form-control'
+                    ]
+                ],
                 'constraints' => [
                     new NotBlank([
                         'message' => 'Please enter a password',
                     ]),
                     new Length([
-                        'min' => 6,
+                        'min' => 8,
                         'minMessage' => 'Your password should be at least {{ limit }} characters',
-                        // max length allowed by Symfony for security reasons
                         'max' => 4096,
+                    ]),
+                    new Regex([
+                        'pattern' => '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/',
+                        'message' => 'Password must contain at least one lowercase letter, one uppercase letter, one digit, and one special character (@$!%*?&)',
                     ]),
                 ],
             ])

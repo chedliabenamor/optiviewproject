@@ -3099,8 +3099,13 @@ input.num-product::-webkit-inner-spin-button {
 .focus-in0:focus:-ms-input-placeholder { color:transparent; }
 
 
+.p-t-15.p-b-15.form-group.form-check .form-check-input {
 
-
+  margin-left: 0;
+}
+textarea#user_profile_type_form_address::placeholder {
+  line-height: 3.8;
+}
 /*//////////////////////////////////////////////////////////////////
 [ Hover ]*/
 

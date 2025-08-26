@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Access Denied - OptiView{% endblock %}
+
+{% block body %}
+<!-- Title page -->
+<section class="bg-img1 txt-center p-lr-15 p-tb-92" style="background-image: url('{{ asset('assets/images/bg-01.jpg') }}');">
+    <h2 class="ltext-105 cl0 txt-center">
+        Access Denied
+    </h2>
+</section>
+
+<!-- Content -->
+<section class="bg0 p-t-104 p-b-116">
+    <div class="container">
+        <div class="flex-w flex-tr">
+            <div class="size-210 bor10 p-lr-70 p-t-55 p-b-70 p-lr-15-lg w-full-md d-table mx-auto">
+                <div class="txt-center">
+                    <!-- Icon -->
+                    <div class="m-b-30">
+                        <i class="zmdi zmdi-block-alt" style="font-size: 80px; color: #e74c3c;"></i>
+                    </div>
+
+                    <!-- Message -->
+                    <h3 class="ltext-104 cl2 txt-center p-b-16">
+                        You don't have permission to access this area
+                    </h3>
+
+                    <p class="stext-113 cl6 txt-center p-b-26">
+                        This section is restricted to administrators only. If you believe you should have access to this area, please contact our support team.
+                    </p>
+
+                    <!-- Actions -->
+                    <div class="flex-c-m flex-w w-full p-t-15">
+                        <a href="{{ path('app_home') }}" class="flex-c-m stext-101 cl0 size-121 bg3 bor1 hov-btn3 p-lr-15 trans-04 pointer m-r-10 m-b-10">
+                            <i class="zmdi zmdi-home m-r-5"></i>
+                            Go to Homepage
+                        </a>
+                        
+                        {% if app.user %}
+                            <a href="{{ path('app_logout') }}" class="flex-c-m stext-101 cl2 size-121 bg8 bor1 hov-btn4 p-lr-15 trans-04 pointer m-b-10">
+                                <i class="zmdi zmdi-power m-r-5"></i>
+                                Logout
+                            </a>
+                        {% else %}
+                            <a href="{{ path('app_login') }}" class="flex-c-m stext-101 cl2 size-121 bg8 bor1 hov-btn4 p-lr-15 trans-04 pointer m-b-10">
+                                <i class="zmdi zmdi-account m-r-5"></i>
+                                Login
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="p-t-30">
+                        <p class="stext-111 cl6 txt-center">
+                            Need help? <a href="mailto:support@optiview.com" class="cl1 hov-cl1 trans-04">Contact Support</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

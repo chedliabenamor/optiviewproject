@@ -5,6 +5,9 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # Custom error pages
+    error_controller: null
+
     #esi: true
     #fragments: true
 

@@ -20,41 +20,69 @@
 
         {# Name #}
         <div class="bor8 m-b-20 how-pos4-parent">
-            {{ form_widget(registrationForm.name, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Name'}}) }}
+            {{ form_widget(registrationForm.name, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'First Name'}}) }}
             <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-user.png') }}" alt="ICON-USER" style="opacity:0.5; top:calc(50% - 10px); width:20px; height:20px;">
         </div>
-        {{ form_errors(registrationForm.name) }}
+        {% if form_errors(registrationForm.name) %}
+            <div class="alert alert-danger m-b-15">
+                {{ form_errors(registrationForm.name) }}
+            </div>
+        {% endif %}
 
         {# Lastname #}
         <div class="bor8 m-b-20 how-pos4-parent">
-            {{ form_widget(registrationForm.lastname, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Lastname'}}) }}
+            {{ form_widget(registrationForm.lastname, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Last Name'}}) }}
             <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-user.png') }}" alt="ICON-USER" style="opacity:0.5; top:calc(50% - 10px); width:20px; height:20px;">
         </div>
-        {{ form_errors(registrationForm.lastname) }}
+        {% if form_errors(registrationForm.lastname) %}
+            <div class="alert alert-danger m-b-15">
+                {{ form_errors(registrationForm.lastname) }}
+            </div>
+        {% endif %}
 
         {# Email #}
         <div class="bor8 m-b-20 how-pos4-parent">
             {{ form_widget(registrationForm.email, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Email Address'}}) }}
             <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-email.png') }}" alt="ICON-EMAIL">
         </div>
-        {{ form_errors(registrationForm.email) }}
+        {% if form_errors(registrationForm.email) %}
+            <div class="alert alert-danger m-b-15">
+                {{ form_errors(registrationForm.email) }}
+            </div>
+        {% endif %}
 
         {# Phone #}
         <div class="bor8 m-b-20 how-pos4-parent">
-            {{ form_widget(registrationForm.phone, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Phone Number'}}) }}
+            {{ form_widget(registrationForm.phone, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Phone Number (Optional)'}}) }}
             <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/icon-phone-square.png') }}" alt="ICON-PHONE" style="opacity:0.5; top:calc(50% - 10px); width:20px; height:20px;">
         </div>
-        {{ form_errors(registrationForm.phone) }}
+        {% if form_errors(registrationForm.phone) %}
+            <div class="alert alert-danger m-b-15">
+                {{ form_errors(registrationForm.phone) }}
+            </div>
+        {% endif %}
 
-        {# Password (with toggle) #}
+        {# Password #}
         <div class="bor8 m-b-20 how-pos4-parent">
-            {{ form_label(registrationForm.plainPassword, 'Password', {'label_attr': {'class': 'sr-only'}}) }}
-            {{ form_widget(registrationForm.plainPassword, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Password', 'id': 'registration_form_plainPassword' }}) }}
+            {{ form_label(registrationForm.plainPassword.first, 'Password', {'label_attr': {'class': 'sr-only'}}) }}
+            {{ form_widget(registrationForm.plainPassword.first, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Password', 'id': 'registration_form_plainPassword_first' }}) }}
             <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/locked.png') }}" alt="ICON-LOCK" style="opacity:0.3; top:calc(50% - 14px);">
             <span id="toggleRegisterPasswordButton" class="how-pos4" style="left: auto; right: 15px; cursor: pointer; z-index: 10;" title="Show/Hide password">
                 <i class="zmdi zmdi-eye" id="toggleRegisterPasswordIcon"></i>
             </span>
         </div>
+        {{ form_errors(registrationForm.plainPassword.first) }}
+        
+        {# Confirm Password #}
+        <div class="bor8 m-b-20 how-pos4-parent">
+            {{ form_label(registrationForm.plainPassword.second, 'Confirm Password', {'label_attr': {'class': 'sr-only'}}) }}
+            {{ form_widget(registrationForm.plainPassword.second, {'attr': {'class': 'stext-111 cl2 plh3 size-116 p-l-62 p-r-30', 'placeholder': 'Confirm Password', 'id': 'registration_form_plainPassword_second' }}) }}
+            <img class="how-pos4 pointer-none" src="{{ asset('assets/images/icons/locked.png') }}" alt="ICON-LOCK" style="opacity:0.3; top:calc(50% - 14px);">
+            <span id="toggleRegisterConfirmPasswordButton" class="how-pos4" style="left: auto; right: 15px; cursor: pointer; z-index: 10;" title="Show/Hide password">
+                <i class="zmdi zmdi-eye" id="toggleRegisterConfirmPasswordIcon"></i>
+            </span>
+        </div>
+        {{ form_errors(registrationForm.plainPassword.second) }}
         {{ form_errors(registrationForm.plainPassword) }}
 
         {# Sex #}
@@ -109,7 +137,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const passwordInput = document.getElementById('registration_form_plainPassword');
+            // Password toggle functionality
+            const passwordInput = document.getElementById('registration_form_plainPassword_first');
             const togglePasswordButton = document.getElementById('toggleRegisterPasswordButton');
             const togglePasswordIcon = document.getElementById('toggleRegisterPasswordIcon');
 
@@ -127,6 +156,119 @@
                         togglePasswordIcon.classList.add('zmdi-eye-off');
                     }
                 });
+            }
+
+            // Confirm Password toggle functionality
+            const confirmPasswordInput = document.getElementById('registration_form_plainPassword_second');
+            const toggleConfirmPasswordButton = document.getElementById('toggleRegisterConfirmPasswordButton');
+            const toggleConfirmPasswordIcon = document.getElementById('toggleRegisterConfirmPasswordIcon');
+
+            if (confirmPasswordInput && toggleConfirmPasswordButton && toggleConfirmPasswordIcon) {
+                toggleConfirmPasswordButton.addEventListener('click', function (e) {
+                    e.preventDefault(); 
+                    const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    confirmPasswordInput.setAttribute('type', type);
+
+                    if (type === 'password') {
+                        toggleConfirmPasswordIcon.classList.remove('zmdi-eye-off');
+                        toggleConfirmPasswordIcon.classList.add('zmdi-eye');
+                    } else {
+                        toggleConfirmPasswordIcon.classList.remove('zmdi-eye');
+                        toggleConfirmPasswordIcon.classList.add('zmdi-eye-off');
+                    }
+                });
+            }
+
+            // Real-time password validation feedback
+            if (passwordInput) {
+                const passwordRequirements = document.createElement('div');
+                passwordRequirements.className = 'password-requirements m-t-10';
+                passwordRequirements.innerHTML = `
+                    <small class="text-muted">
+                        <div class="req-item" id="req-length">✗ At least 8 characters</div>
+                        <div class="req-item" id="req-lowercase">✗ One lowercase letter</div>
+                        <div class="req-item" id="req-uppercase">✗ One uppercase letter</div>
+                        <div class="req-item" id="req-number">✗ One number</div>
+                        <div class="req-item" id="req-special">✗ One special character (@$!%*?&)</div>
+                    </small>
+                `;
+                
+                passwordInput.parentNode.parentNode.insertBefore(passwordRequirements, passwordInput.parentNode.nextSibling);
+
+                passwordInput.addEventListener('input', function() {
+                    const password = this.value;
+                    
+                    // Length check
+                    const lengthReq = document.getElementById('req-length');
+                    if (password.length >= 8) {
+                        lengthReq.innerHTML = '✓ At least 8 characters';
+                        lengthReq.style.color = 'green';
+                    } else {
+                        lengthReq.innerHTML = '✗ At least 8 characters';
+                        lengthReq.style.color = 'red';
+                    }
+                    
+                    // Lowercase check
+                    const lowercaseReq = document.getElementById('req-lowercase');
+                    if (/[a-z]/.test(password)) {
+                        lowercaseReq.innerHTML = '✓ One lowercase letter';
+                        lowercaseReq.style.color = 'green';
+                    } else {
+                        lowercaseReq.innerHTML = '✗ One lowercase letter';
+                        lowercaseReq.style.color = 'red';
+                    }
+                    
+                    // Uppercase check
+                    const uppercaseReq = document.getElementById('req-uppercase');
+                    if (/[A-Z]/.test(password)) {
+                        uppercaseReq.innerHTML = '✓ One uppercase letter';
+                        uppercaseReq.style.color = 'green';
+                    } else {
+                        uppercaseReq.innerHTML = '✗ One uppercase letter';
+                        uppercaseReq.style.color = 'red';
+                    }
+                    
+                    // Number check
+                    const numberReq = document.getElementById('req-number');
+                    if (/\d/.test(password)) {
+                        numberReq.innerHTML = '✓ One number';
+                        numberReq.style.color = 'green';
+                    } else {
+                        numberReq.innerHTML = '✗ One number';
+                        numberReq.style.color = 'red';
+                    }
+                    
+                    // Special character check
+                    const specialReq = document.getElementById('req-special');
+                    if (/[@$!%*?&]/.test(password)) {
+                        specialReq.innerHTML = '✓ One special character (@$!%*?&)';
+                        specialReq.style.color = 'green';
+                    } else {
+                        specialReq.innerHTML = '✗ One special character (@$!%*?&)';
+                        specialReq.style.color = 'red';
+                    }
+                });
+            }
+
+            // Password confirmation matching
+            if (confirmPasswordInput && passwordInput) {
+                function checkPasswordMatch() {
+                    const password = passwordInput.value;
+                    const confirmPassword = confirmPasswordInput.value;
+                    
+                    if (confirmPassword.length > 0) {
+                        if (password === confirmPassword) {
+                            confirmPasswordInput.style.borderColor = 'green';
+                        } else {
+                            confirmPasswordInput.style.borderColor = 'red';
+                        }
+                    } else {
+                        confirmPasswordInput.style.borderColor = '';
+                    }
+                }
+                
+                passwordInput.addEventListener('input', checkPasswordMatch);
+                confirmPasswordInput.addEventListener('input', checkPasswordMatch);
             }
         });
     </script>

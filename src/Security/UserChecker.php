@@ -18,7 +18,7 @@ class UserChecker implements UserCheckerInterface
         if (!$user->isActive()) {
             // The user is deactivated, deny access
             throw new CustomUserMessageAuthenticationException(
-                'Your account has been deactivated. Please contact support.'
+                'Your account is currently inactive. Please contact our support team to activate your account.'
             );
         }
     }
