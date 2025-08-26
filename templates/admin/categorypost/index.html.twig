@@ -1,0 +1,36 @@
+{% extends '@!EasyAdmin/crud/index.html.twig' %}
+
+{% block content %}
+    {{ parent() }}
+    
+   {% include 'admin/components/_confirmation_modal.html.twig' with {'entityName': 'Post Category'} %}
+{% endblock %}
+
+{% block body_javascript %}
+    {{ parent() }}
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const confirmationModal = document.getElementById('confirmationModal');
+    if (confirmationModal) {
+        const modal = new bootstrap.Modal(confirmationModal);
+        const actionText = document.getElementById('actionText');
+        const confirmAction = document.getElementById('confirmAction');
+        
+        confirmationModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const action = button.getAttribute('data-action');
+            console.log('Action:', action);
+            const actionUrl = button.getAttribute('href');
+            
+            actionText.textContent = action === 'archive' ? 'archive' : 'restore';
+            confirmAction.href = actionUrl;
+        });
+        
+        confirmAction.addEventListener('click', function() {
+            modal.hide();
+        });
+    }
+});
+    </script>
+{% endblock %}

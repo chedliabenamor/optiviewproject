@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20250825183452 extends AbstractMigration
+final class Version20250826080712 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -41,6 +41,12 @@ final class Version20250825183452 extends AbstractMigration
         $this->addSql(<<<'SQL'
             DROP TABLE wishlist_product
         SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE product CHANGE created_at created_at DATETIME NOT NULL COMMENT '(DC2Type:datetime_immutable)'
+        SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE product_offer ADD is_active TINYINT(1) DEFAULT 1 NOT NULL
+        SQL);
     }
 
     public function down(Schema $schema): void
@@ -66,6 +72,12 @@ final class Version20250825183452 extends AbstractMigration
         SQL);
         $this->addSql(<<<'SQL'
             DROP TABLE wishlist_item
+        SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE product CHANGE created_at created_at DATETIME NOT NULL
+        SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE product_offer DROP is_active
         SQL);
     }
 }

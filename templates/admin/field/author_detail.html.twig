@@ -1,0 +1,14 @@
+{% if field.value %}
+    {% set user = field.value %}
+    {% set user_crud_controller = 'App\\Controller\\Admin\\UserCrudController' %}
+    {% set url = ea_url() 
+        .setController(user_crud_controller)
+        .setAction('detail')
+        .setEntityId(user.id) %}
+
+    <a href="{{ url }}">
+        {{ user.name }} {{ user.lastname }} ({{ user.email }})
+    </a>
+{% else %}
+    <span class="text-muted">No author</span>
+{% endif %}

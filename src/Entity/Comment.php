@@ -13,8 +13,9 @@ class Comment
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
-    private ?string $authorName = null;
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $author = null;
 
     #[ORM\Column(type: 'text')]
     private ?string $content = null;
@@ -34,14 +35,14 @@ class Comment
         return $this->id;
     }
 
-    public function getAuthorName(): ?string
+    public function getAuthor(): ?User
     {
-        return $this->authorName;
+        return $this->author;
     }
 
-    public function setAuthorName(?string $authorName): self
+    public function setAuthor(?User $author): self
     {
-        $this->authorName = $authorName;
+        $this->author = $author;
         return $this;
     }
 
@@ -93,7 +94,7 @@ class Comment
     {
         return sprintf(
             '%s (%s)',
-            $this->authorName ?? 'Unknown Author',
+            $this->author ? $this->author->getEmail() : 'Unknown Author',
             $this->createdAt?->format('Y-m-d H:i') ?? 'No Date'
         );
     }

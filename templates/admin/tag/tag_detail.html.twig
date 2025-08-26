@@ -1,0 +1,64 @@
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block page_title %}
+    <h2 class="mb-4"><i class="fas fa-tag text-primary"></i> Tag: {{ entity.instance.name }}</h2>
+{% endblock %}
+
+{% block main %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-1">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Tag Details</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <th style="width: 20%;">ID</th>
+                                <td>{{ entity.instance.id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Name</th>
+                                <td>{{ entity.instance.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Slug</th>
+                                <td>{{ entity.instance.slug }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card  border-1">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-newspaper"></i> Associated Posts</h4>
+                    <span class="badge bg-info rounded-pill text-white">{{ entity.instance.posts|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if entity.instance.posts is not empty %}
+                        <ul class="list-group list-group-flush">
+                            {% for post in entity.instance.posts %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{{ ea_url().setController('App\\Controller\\Admin\\PostCrudController').setAction('detail').setEntityId(post.id) }}">
+                                        {{ post.title }}
+                                    </a>
+                                    <small class="text-muted">{{ post.date|date('F j, Y') }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center text-muted">No posts are associated with this tag.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
