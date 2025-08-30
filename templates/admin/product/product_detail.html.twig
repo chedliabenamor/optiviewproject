@@ -100,7 +100,7 @@
                     <h4>Product Information</h4>
                     <dl class="row">
                         <dt class="col-sm-3">Price</dt>
-                        <dd class="col-sm-9">{{ product.price ? ((product.currency == 'EUR' ? '€' : product.currency) ~ (product.price / 100)|number_format(2, '.', '')) : 'N/A' }}</dd>
+                        <dd class="col-sm-9">{{ product.price ? ((product.currency == 'EUR' ? '€' : product.currency) ~ product.price|number_format(2, '.', '')) : 'N/A' }}</dd>
 
                         <dt class="col-sm-3">SKU</dt>
                         <dd class="col-sm-9">{{ product.sku }}</dd>

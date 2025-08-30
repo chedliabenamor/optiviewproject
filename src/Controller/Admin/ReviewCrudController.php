@@ -58,15 +58,27 @@ class ReviewCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield AssociationField::new('productVariant', 'Product')->setColumns('col-md-6');
-        yield AssociationField::new('user')->setColumns('col-md-6');
+        // Show product (product-level reviews)
+        yield AssociationField::new('product', 'Product')
+            ->setColumns('col-md-6')
+            ->setRequired(true)
+            ->autocomplete();
+        // Display user but do not allow changing from admin forms
+        yield AssociationField::new('user')->setColumns('col-md-6')->hideOnForm();
+        yield AssociationField::new('user')->setColumns('col-md-6')->onlyOnForms()->setFormTypeOption('disabled', true);
+        // Rating: read-only in admin
         yield IntegerField::new('rating')
             ->setColumns('col-md-6')
             ->setTemplatePath('admin/fields/rating_stars.html.twig')
             ->onlyOnIndex();
         yield IntegerField::new('rating')
             ->setColumns('col-md-6')
-            ->onlyOnForms();
+            ->setTemplatePath('admin/fields/rating_stars.html.twig')
+            ->onlyOnDetail();
+        yield IntegerField::new('rating')
+            ->setColumns('col-md-6')
+            ->onlyOnForms()
+            ->setFormTypeOption('disabled', true);
         yield BooleanField::new('isApproved')->setColumns('col-md-6');
         yield TextareaField::new('comment')->hideOnIndex()->setColumns('col-md-12');
         yield DateTimeField::new('createdAt')->hideOnForm();
@@ -129,6 +141,7 @@ class ReviewCrudController extends AbstractCrudController
                 fn(Action $action) =>
                 $action->setIcon('fa fa-edit')->setLabel('Edit')
             )
+            ->remove(Crud::PAGE_INDEX, Action::NEW)
             ->remove(Crud::PAGE_INDEX, Action::DELETE)
             ->remove(Crud::PAGE_DETAIL, Action::DELETE)
             ->add(Crud::PAGE_INDEX, $archiveOrRestoreAction)

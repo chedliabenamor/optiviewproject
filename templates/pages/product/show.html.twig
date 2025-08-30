@@ -3,30 +3,604 @@
 {% block title %}{{ product.name }} | Product Details{% endblock %}
 
 {% block body %}
-<section class="bg0 p-t-60 p-b-60">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6">
-                {% if product.overviewImage %}
-                    <img src="{{ vich_uploader_asset(product, 'overviewImageFile') }}" class="img-fluid" alt="{{ product.name }}">
-                {% else %}
-                    <img src="{{ asset('images/no-image.png') }}" class="img-fluid" alt="No image">
+<div class="container">
+		<div class="bread-crumb flex-w p-l-25 p-r-15 p-t-30 p-lr-0-lg">
+			<a href="{{ path('app_home') }}" class="stext-109 cl8 hov-cl1 trans-04">
+				Home
+				<i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
+			</a>
+
+			{% if product.category %}
+				<span class="stext-109 cl8">
+					{{ product.category.name }}
+					<i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
+				</span>
+			{% endif %}
+
+			<span class="stext-109 cl4">{{ product.name }}</span>
+		</div>
+	</div>
+		
+
+	<!-- Product Detail -->
+	<section class="sec-product-detail bg0 p-t-65 p-b-60">
+        <style>
+            /* Page-scoped styles for product detail gallery */
+            .wrap-slick3 .item-slick3 .wrap-pic-w { height: 480px; display:flex; align-items:center; justify-content:center; }
+            .wrap-slick3 .item-slick3 img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; }
+            .wrap-slick3-dots li img { width:60px; height:60px; object-fit:cover; border-radius:6px; }
+        </style>
+        <div class="container">
+			<div class="row">
+				<div class="col-md-6 col-lg-7 p-b-30">
+					<div class="p-l-25 p-r-30 p-lr-0-lg">
+						<div class="wrap-slick3 flex-sb flex-w">
+							<div class="wrap-slick3-dots"></div>
+							<div class="wrap-slick3-arrows flex-sb-m flex-w"></div>
+
+							<div class="slick3 gallery-lb">
+								{# Overview image first if available #}
+								{% if product.overviewImage %}
+									{% set overviewUrl = vich_uploader_asset(product, 'overviewImageFile') %}
+									<div class="item-slick3" data-thumb="{{ overviewUrl }}">
+										<div class="wrap-pic-w pos-relative">
+											<img src="{{ overviewUrl }}" alt="{{ product.name }}">
+											<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04" href="{{ overviewUrl }}">
+												<i class="fa fa-expand"></i>
+											</a>
+										</div>
+									</div>
+								{% endif %}
+
+								{# Product model images #}
+								{% for img in product.productModelImages %}
+									{% set imgUrl = vich_uploader_asset(img, 'imageFile') %}
+									{% if imgUrl %}
+										<div class="item-slick3" data-thumb="{{ imgUrl }}">
+											<div class="wrap-pic-w pos-relative">
+												<img src="{{ imgUrl }}" alt="{{ img.altText ?? product.name }}">
+												<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04" href="{{ imgUrl }}">
+													<i class="fa fa-expand"></i>
+												</a>
+											</div>
+										</div>
+									{% endif %}
+								{% endfor %}
+
+							</div>
+						</div>
+					</div>
+				</div>
+					
+				<div class="col-md-6 col-lg-5 p-b-30">
+					<div class="p-r-50 p-t-5 p-lr-0-lg">
+						<h4 class="mtext-105 cl2 js-name-detail p-b-14">{{ product.name }}</h4>
+
+						<span class="mtext-106 cl2" id="js-price">
+							{% set currencySymbol = product.currency == 'EUR' ? '€' : (product.currency == 'USD' ? '$' : (product.currency == 'GBP' ? '£' : product.currency)) %}
+							{{ currencySymbol }}{{ product.price|number_format(2, '.', ',') }}
+						</span>
+
+						<p class="stext-102 cl3 p-t-23">{{ product.description|striptags }}</p>
+						
+						<!--  -->
+						<div class="p-t-33">
+							{# Variant color selector with thumbnails #}
+							{% set variantOptions = [] %}
+							{% set seenColors = [] %}
+							{% for v in product.productVariants %}
+								{% if v.color and v.color.id not in seenColors %}
+									{% set thumb = null %}
+									{% for vimg in v.productVariantImages %}
+										{% if thumb is null %}
+											{% set t = vich_uploader_asset(vimg, 'imageFile') %}
+											{% if t %}
+												{% set thumb = t %}
+											{% endif %}
+										{% endif %}
+									{% endfor %}
+									{% set variantOptions = variantOptions|merge([{
+										'id': v.id,
+										'colorId': v.color.id,
+										'colorName': v.color.name,
+										'img': thumb
+									}]) %}
+									{% set seenColors = seenColors|merge([v.color.id]) %}
+								{% endif %}
+							{% endfor %}
+
+							{% if variantOptions|length > 0 %}
+							<div class="flex-w flex-r-m p-b-10">
+								<div class="size-203 flex-c-m respon6">Color</div>
+
+								<div class="size-204 respon6-next">
+									<div class="rs1-select2 bor8 bg0">
+										<select class="js-select2 js-variant-select" name="variant">
+											{# Base product option so users can revert #}
+                                            {% set productThumb = (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : (product.productModelImages|length > 0 ? vich_uploader_asset(product.productModelImages|first, 'imageFile') : null)) %}
+                                            {% set baseLabel = (product.colors is defined and product.colors|length > 0) ? (product.colors|first).name : product.name %}
+                                            <option value="product" selected
+                                                data-img="{{ productThumb }}"
+                                                data-color-name="{{ baseLabel }}"
+                                                data-sku="{{ product.sku }}"
+                                                data-price="{{ product.price }}"
+                                                data-genre="{{ product.genre ? product.genre.name : null }}"
+                                                data-style="{{ product.style ? product.style.name : null }}"
+                                                data-stock="{{ product.getTotalStock() }}"
+                                                data-stock-status="{{ product.getStockStatus() }}"
+                                            >{{ baseLabel }}</option>
+                                            {% for opt in variantOptions %}
+												{# find the variant again to extract sku/price #}
+												{% set _sku = null %}
+												{% set _price = null %}
+												{% set _genreName = null %}
+												{% set _styleName = null %}
+												{% set _stock = null %}
+												{% set _stockStatus = null %}
+												{% for v in product.productVariants %}
+													{% if _sku is null and v.id == opt.id %}
+														{% set _sku = v.sku %}
+														{% set _price = v.price %}
+														{% set _genreName = v.genre ? v.genre.name : null %}
+														{% set _styleName = v.style ? v.style.name : null %}
+														{% set _stock = v.stock %}
+														{% set _stockStatus = v.stockStatus %}
+													{% endif %}
+												{% endfor %}
+												<option value="{{ opt.id }}"
+													data-img="{{ opt.img }}"
+													data-color-name="{{ opt.colorName }}"
+													data-sku="{{ _sku }}"
+													data-price="{{ _price }}"
+													data-genre="{{ _genreName }}"
+													data-style="{{ _styleName }}"
+													data-stock="{{ _stock }}"
+													data-stock-status="{{ _stockStatus }}"
+												>{{ opt.colorName }}</option>
+											{% endfor %}
+										</select>
+										<div class="dropDownSelect2"></div>
+									</div>
+								</div>
+							</div>
+							{% endif %}
+
+							<div class="flex-w flex-r-m p-b-10">
+								<div class="size-204 flex-w flex-m respon6-next">
+									<div class="wrap-num-product flex-w m-r-20 m-tb-10">
+										<div class="btn-num-product-down cl8 hov-btn3 trans-04 flex-c-m">
+											<i class="fs-16 zmdi zmdi-minus"></i>
+										</div>
+
+										<input class="mtext-104 cl3 txt-center num-product" type="number" name="num-product" value="1" min="1">
+
+										<div class="btn-num-product-up cl8 hov-btn3 trans-04 flex-c-m">
+											<i class="fs-16 zmdi zmdi-plus"></i>
+										</div>
+									</div>
+
+									<button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail">
+										Add to cart
+									</button>
+								</div>
+							</div>
+						</div>
+
+						<!--  -->
+						<div class="flex-w flex-m p-l-100 p-t-40 respon7">
+							<div class="flex-m bor9 p-r-10 m-r-11">
+								<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100" data-tooltip="Add to Wishlist">
+									<i class="zmdi zmdi-favorite"></i>
+								</a>
+							</div>
+
+							<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
+								<i class="fa fa-facebook"></i>
+							</a>
+
+							<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
+								<i class="fa fa-twitter"></i>
+							</a>
+
+							<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Google Plus">
+								<i class="fa fa-google-plus"></i>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="bor10 m-t-50 p-t-43 p-b-40">
+				<!-- Tab01 -->
+				<div class="tab01">
+					<!-- Nav tabs -->
+					<ul class="nav nav-tabs" role="tablist">
+						<li class="nav-item p-b-10">
+							<a class="nav-link active" data-toggle="tab" href="#description" role="tab">Description</a>
+						</li>
+
+						<li class="nav-item p-b-10">
+							<a class="nav-link" data-toggle="tab" href="#information" role="tab">Additional information</a>
+						</li>
+
+						<li class="nav-item p-b-10">
+							<a class="nav-link" data-toggle="tab" href="#reviews" role="tab">Reviews</a>
+						</li>
+					</ul>
+
+					<!-- Tab panes -->
+					<div class="tab-content p-t-43">
+						<!-- - -->
+						<div class="tab-pane fade show active" id="description" role="tabpanel">
+							<div class="how-pos2 p-lr-15-md">
+								<p class="stext-102 cl6">{{ product.description|striptags }}</p>
+							</div>
+						</div>
+
+						<!-- - -->
+						<div class="tab-pane fade" id="information" role="tabpanel">
+							<div class="row">
+								<div class="col-sm-10 col-md-8 col-lg-6 m-lr-auto">
+									<ul class="p-lr-28 p-lr-15-sm">
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">SKU</span>
+											<span id="js-sku" class="stext-102 cl6 size-206">{{ product.sku ?? '-' }}</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Genre</span>
+											<span id="js-genre" class="stext-102 cl6 size-206">{{ product.genre ? product.genre.name : '-' }}</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Style</span>
+											<span id="js-style" class="stext-102 cl6 size-206">{{ product.style ? product.style.name : '-' }}</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Shape</span>
+											<span class="stext-102 cl6 size-206">{{ product.shape ? product.shape.name : '-' }}</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Brand</span>
+											<span class="stext-102 cl6 size-206">{{ product.brand ? product.brand.name : '-' }}</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Category</span>
+											<span class="stext-102 cl6 size-206">{{ product.category ? product.category.name : '-' }}</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Colors</span>
+											<span class="stext-102 cl6 size-206">
+												{# Build unique color set from both product.colors and variant colors #}
+												{% set seenIds = [] %}
+												{% set colorList = [] %}
+												{% for c in product.colors %}
+													{% if c and c.id not in seenIds %}
+														{% set seenIds = seenIds|merge([c.id]) %}
+														{% set colorList = colorList|merge([c]) %}
+													{% endif %}
+												{% endfor %}
+												{% for v in product.productVariants %}
+													{% if v.color and v.color.id not in seenIds %}
+														{% set seenIds = seenIds|merge([v.color.id]) %}
+														{% set colorList = colorList|merge([v.color]) %}
+													{% endif %}
+												{% endfor %}
+												{% if colorList|length > 0 %}
+													{% set names = [] %}
+													{% for c in colorList %}
+														{% set names = names|merge([c.name]) %}
+													{% endfor %}
+													{{ names|join(', ') }}
+												{% else %}-{% endif %}
+											</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Stock</span>
+											<span id="js-stock" class="stext-102 cl6 size-206">{{ product.getStockStatus() }} ({{ product.getTotalStock() }})</span>
+										</li>
+
+										<li class="flex-w flex-t p-b-7">
+											<span class="stext-102 cl3 size-205">Loyalty Points</span>
+											<span class="stext-102 cl6 size-206">{{ product.loyaltyPoints }}</span>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+
+						<!-- - -->
+						<div class="tab-pane fade" id="reviews" role="tabpanel">
+							<div class="row">
+								<div class="col-sm-10 col-md-8 col-lg-6 m-lr-auto">
+									<div class="p-b-30 m-lr-15-sm">
+										{# List existing approved reviews #}
+										{% if reviews is defined and reviews|length > 0 %}
+											{% for r in reviews %}
+												<div class="flex-w flex-t p-b-68">
+													<div class="wrap-pic-s size-109 bor0 of-hidden m-r-18 m-t-6">
+														<img src="{{ asset('assets/images/avatar-01.jpg') }}" alt="AVATAR">
+													</div>
+                                                      
+													<div class="size-207">
+														<div class="flex-w flex-sb-m p-b-17">
+															<span class="mtext-107 cl2 p-r-20">
+																{% if r.user %}
+																	{% if r.user.name and r.user.lastname %}
+																		{{ r.user.name }} {{ r.user.lastname }}
+																	{% else %}
+																		{{ r.user.name ?? r.user.lastname ?? 'User' }}
+																	{% endif %}
+																{% else %}
+																	User
+																{% endif %}
+															</span>
+
+															<span class="fs-18 cl11">
+																{% set stars = r.rating ?? 0 %}
+																{% for i in 1..5 %}
+																	<i class="zmdi {{ i <= stars ? 'zmdi-star' : 'zmdi-star-outline' }}"></i>
+																{% endfor %}
+															</span>
+														</div>
+
+														<p class="stext-102 cl6">{{ r.comment }}</p>
+														
+													</div>
+												</div>
+											{% endfor %}
+										{% else %}
+											<p class="stext-102 cl6">No reviews yet.</p>
+										{% endif %}
+
+										{# Add review form for authenticated users #}
+										{% if is_granted('IS_AUTHENTICATED_FULLY') %}
+											<h5 class="mtext-108 cl2 p-b-7">Add a review</h5>
+											{{ form_start(reviewForm, { attr: { class: 'w-full' } }) }}
+												<div class="flex-w flex-m p-t-10 p-b-20">
+													<span class="stext-102 cl3 m-r-16">Your Rating</span>
+													<span class="wrap-rating fs-18 cl11 pointer" data-input-id="{{ reviewForm.rating.vars.id }}">
+														<i class="item-rating pointer zmdi zmdi-star-outline" data-value="1"></i>
+														<i class="item-rating pointer zmdi zmdi-star-outline" data-value="2"></i>
+														<i class="item-rating pointer zmdi zmdi-star-outline" data-value="3"></i>
+														<i class="item-rating pointer zmdi zmdi-star-outline" data-value="4"></i>
+														<i class="item-rating pointer zmdi zmdi-star-outline" data-value="5"></i>
+													</span>
+													{{ form_widget(reviewForm.rating) }}
+												</div>
+												<div class="row p-b-25">
+													<div class="col-12 p-b-5">
+														{{ form_label(reviewForm.comment, null, { label_attr: { class: 'stext-102 cl3' } }) }}
+														{{ form_widget(reviewForm.comment) }}
+														{{ form_errors(reviewForm.comment) }}
+													</div>
+												</div>
+												<button class="flex-c-m stext-101 cl0 size-112 bg7 bor11 hov-btn3 p-lr-15 trans-04 m-b-10">Submit</button>
+											{{ form_end(reviewForm) }}
+										{% else %}
+											<p class="stext-102 cl6">Please <a href="{{ path('app_login') }}">log in</a> to add a review.</p>
+										{% endif %}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="bg6 flex-c-m flex-w size-302 m-t-73 p-tb-15">
+			<span class="stext-107 cl6 p-lr-25">SKU: <span id="js-sku-footer">{{ product.sku ?? '-' }}</span></span>
+			<span class="stext-107 cl6 p-lr-25">Category: {{ product.category ? product.category.name : '-' }}</span>
+		</div>
+	</section>
+
+    {# JS to render variant thumbnails in Select2 and update price/image/gallery on selection #}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        $('header').addClass('header-v4');
+        // Build variantsData from server-side
+        var variantsData = {};
+        {% for v in product.productVariants %}
+            variantsData[{{ v.id }}] = [];
+            {% for vimg in v.productVariantImages %}
+                {% set vurl = vich_uploader_asset(vimg, 'imageFile') %}
+                {% if vurl %}
+                    variantsData[{{ v.id }}].push({ url: '{{ vurl }}', alt: '{{ (vimg.altText ?? product.name)|e('js') }}' });
                 {% endif %}
-            </div>
-            <div class="col-md-6">
-                <h1>{{ product.name }}</h1>
-                <p class="lead">{{ product.price|number_format(2) }} {{ product.currency|default('EUR') }}</p>
-                <p>{{ product.description }}</p>
-                <p><strong>Stock:</strong> {{ product.quantityInStock }}</p>
-                {% if product.brand %}
-                    <p><strong>Brand:</strong> {{ product.brand.name }}</p>
-                {% endif %}
-                {% if product.category %}
-                    <p><strong>Category:</strong> {{ product.category.name }}</p>
-                {% endif %}
-                <a href="#" class="btn btn-primary">Add to Cart</a>
-            </div>
-        </div>
-    </div>
-</section>
+            {% endfor %}
+        {% endfor %}
+
+        // Capture default product images from current gallery
+        var defaultImages = [];
+        document.querySelectorAll('.slick3.gallery-lb .item-slick3 img').forEach(function(img){
+            defaultImages.push({ url: img.getAttribute('src'), alt: img.getAttribute('alt') || '{{ product.name|e('js') }}' });
+        });
+
+        function buildSlideHtml(entry) {
+            var url = entry.url, alt = entry.alt || '';
+            return '<div class="item-slick3" data-thumb="'+url+'">\
+                        <div class="wrap-pic-w pos-relative">\
+                            <img src="'+url+'" alt="'+alt+'">\
+                            <a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04" href="'+url+'">\
+                                <i class="fa fa-expand"></i>\
+                            </a>\
+                        </div>\
+                    </div>';
+        }
+
+        function updateGallery(imgs) {
+            var $ = window.jQuery;
+            var $gallery = $('.slick3.gallery-lb');
+            if (!$gallery.length) return;
+            var $wrap = $gallery.closest('.wrap-slick3');
+            var $dotsWrap = $wrap.find('.wrap-slick3-dots');
+            var $arrowsWrap = $wrap.find('.wrap-slick3-arrows');
+            // If slick is initialized, destroy it first (more robust across versions)
+            if ($ && $.fn.slick && $gallery.hasClass('slick-initialized')) {
+                try { $gallery.slick('unslick'); } catch(e){}
+            }
+            // Rebuild slides and clear auxiliary wrappers to avoid duplicates
+            $gallery.html(imgs.map(buildSlideHtml).join(''));
+            if ($dotsWrap && $dotsWrap.length) { try { $dotsWrap.empty(); } catch(e){} }
+            if ($arrowsWrap && $arrowsWrap.length) { try { $arrowsWrap.empty(); } catch(e){} }
+            // Re-init slick with theme-like settings
+            if ($ && $.fn.slick) {
+                try {
+                    $gallery.slick({
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                        infinite: true,
+                        arrows: true,
+                        fade: true,
+                        speed: 600,
+                        dots: true,
+                        appendArrows: $arrowsWrap.length ? $arrowsWrap : undefined,
+                        appendDots: $dotsWrap.length ? $dotsWrap : undefined,
+                        dotsClass: 'slick3-dots',
+                        customPaging: function(slick, index){
+                            var $slide = jQuery(slick.$slides[index]);
+                            var src = $slide.data('thumb') || $slide.find('img').attr('src') || '';
+                            return '<img src="'+src+'"/><div class="slick3-dot-overlay"></div>';
+                        }
+                    });
+                } catch(e){}
+            }
+            // Rebind Magnific popup
+            if (window.jQuery && window.jQuery.fn.magnificPopup) {
+                try { $('.gallery-lb').magnificPopup('destroy'); } catch(e){}
+                $('.gallery-lb').magnificPopup({ delegate: 'a', type: 'image', gallery: { enabled:true }, mainClass: 'mfp-fade' });
+            }
+        }
+
+        if (window.jQuery && window.jQuery.fn.select2) {
+            function formatOption(opt) {
+                if (!opt.id) return opt.text;
+                var img = jQuery(opt.element).data('img');
+                var text = opt.text;
+                if (img) {
+                    return jQuery('<span class="d-flex align-items-center"><img src="'+img+'" style="width:28px;height:28px;object-fit:cover;border-radius:4px;margin-right:8px;" />'+text+'</span>');
+                }
+                return text;
+            }
+            jQuery('.js-variant-select').each(function(){
+                var $t = jQuery(this);
+                // Attach dropdown to the adjacent helper container used by the theme
+                var $parent = $t.next('.dropDownSelect2');
+                try { if ($t.data('select2')) { $t.select2('destroy'); } } catch(e){}
+                $t.select2({
+                    templateResult: formatOption,
+                    templateSelection: formatOption,
+                    minimumResultsForSearch: -1,
+                    dropdownParent: $parent.length ? $parent : jQuery('body'),
+                    width: '100%'
+                });
+            });
+        }
+
+        var selectEl = document.querySelector('.js-variant-select');
+        if (!selectEl) return;
+        // Defaults to restore when needed
+        var defaultSku = (document.getElementById('js-sku')||{}).textContent || '{{ product.sku ?? '-' }}';
+        var defaultGenre = (document.getElementById('js-genre')||{}).textContent || '{{ product.genre ? product.genre.name : '-' }}';
+        var defaultStyle = (document.getElementById('js-style')||{}).textContent || '{{ product.style ? product.style.name : '-' }}';
+        var defaultStock = (document.getElementById('js-stock')||{}).textContent || '{{ product.getStockStatus() }} ({{ product.getTotalStock() }})';
+
+        function handleVariantChange() {
+            var opt = selectEl.options[selectEl.selectedIndex];
+            if (!opt) return;
+            var price = opt.getAttribute('data-price');
+            var priceEl = document.getElementById('js-price');
+            if (price && priceEl) {
+                // Map currency code to symbol for display
+                function currencySymbol(code){
+                    switch(code){
+                        case 'EUR': return '€';
+                        case 'USD': return '$';
+                        case 'GBP': return '£';
+                        default: return code || '';
+                    }
+                }
+                var currency = '{{ product.currency|e('js') }}';
+                var symbol = currencySymbol(currency);
+                try {
+                    var n = parseFloat(price);
+                    if (!isNaN(n)) priceEl.textContent = symbol + n.toFixed(2);
+                    else priceEl.textContent = symbol + price;
+                } catch(e) { priceEl.textContent = symbol + price; }
+            }
+            // Update info panel: SKU, Genre, Style, Stock
+            var sku = opt.getAttribute('data-sku');
+            var genreName = opt.getAttribute('data-genre');
+            var styleName = opt.getAttribute('data-style');
+            var stockQty = opt.getAttribute('data-stock');
+            var stockStatus = opt.getAttribute('data-stock-status');
+            var skuEl = document.getElementById('js-sku');
+            var skuFooterEl = document.getElementById('js-sku-footer');
+            if (skuEl) skuEl.textContent = sku || defaultSku;
+            if (skuFooterEl) skuFooterEl.textContent = sku || defaultSku;
+            var genreEl = document.getElementById('js-genre');
+            if (genreEl) genreEl.textContent = genreName || defaultGenre;
+            var styleEl = document.getElementById('js-style');
+            if (styleEl) styleEl.textContent = styleName || defaultStyle;
+            var stockEl = document.getElementById('js-stock');
+            if (stockEl) {
+                var stockText = (stockStatus ? stockStatus : '') + (stockQty ? ' ('+stockQty+')' : '');
+                stockEl.textContent = stockText.trim() || defaultStock;
+            }
+            // Update gallery with selected variant images; if none, keep default
+            var vid = opt.value;
+            var imgs = (vid === 'product') ? defaultImages : ((variantsData[vid] && variantsData[vid].length) ? variantsData[vid] : defaultImages);
+            updateGallery(imgs);
+        }
+
+        // Bind both native change and Select2 select event
+        selectEl.addEventListener('change', handleVariantChange);
+        if (window.jQuery && window.jQuery(selectEl).data('select2')) {
+            window.jQuery(selectEl).on('select2:select', handleVariantChange);
+        }
+        // Initial trigger if an option is preselected (or user navigates back)
+        if (selectEl.value) { handleVariantChange(); }
+    });
+    </script>
+    <script>
+    // Rating stars UI logic
+    document.addEventListener('DOMContentLoaded', function() {
+        var containers = document.querySelectorAll('.wrap-rating[data-input-id]');
+        containers.forEach(function(container){
+            var inputId = container.getAttribute('data-input-id');
+            var inputEl = document.getElementById(inputId);
+            var stars = Array.prototype.slice.call(container.querySelectorAll('.item-rating'));
+            function render(val){
+                stars.forEach(function(star){
+                    var v = parseInt(star.getAttribute('data-value'));
+                    star.classList.toggle('zmdi-star', v <= val);
+                    star.classList.toggle('zmdi-star-outline', v > val);
+                });
+            }
+            var current = inputEl && inputEl.value ? parseInt(inputEl.value) : 0;
+            render(current);
+            stars.forEach(function(star){
+                star.addEventListener('click', function(){
+                    var v = parseInt(star.getAttribute('data-value'));
+                    if (inputEl) { inputEl.value = v; }
+                    render(v);
+                });
+                star.addEventListener('mouseenter', function(){
+                    render(parseInt(star.getAttribute('data-value')));
+                });
+            });
+            container.addEventListener('mouseleave', function(){
+                var v = inputEl && inputEl.value ? parseInt(inputEl.value) : 0;
+                render(v);
+            });
+        });
+    });
+    </script>
+
 {% endblock %}

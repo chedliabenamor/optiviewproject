@@ -50,6 +50,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use App\Filter\StockStatusFilter;
 
 use App\Repository\ProductVariantRepository;
+use App\Service\SkuGeneratorService;
+use App\Entity\ProductVariant;
 
 class ProductCrudController extends AbstractCrudController
 {
@@ -62,6 +64,7 @@ class ProductCrudController extends AbstractCrudController
     private ShapeRepository $shapeRepository;
     private GenreRepository $genreRepository;
     private ProductVariantRepository $productVariantRepository;
+    private SkuGeneratorService $skuGeneratorService;
 
     public function __construct(
         RequestStack $requestStack,
@@ -72,7 +75,8 @@ class ProductCrudController extends AbstractCrudController
         StyleRepository $styleRepository,
         ShapeRepository $shapeRepository,
         GenreRepository $genreRepository,
-        ProductVariantRepository $productVariantRepository
+        ProductVariantRepository $productVariantRepository,
+        SkuGeneratorService $skuGeneratorService
     ) {
         $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
@@ -83,6 +87,7 @@ class ProductCrudController extends AbstractCrudController
         $this->shapeRepository = $shapeRepository;
         $this->genreRepository = $genreRepository;
         $this->productVariantRepository = $productVariantRepository;
+        $this->skuGeneratorService = $skuGeneratorService;
     }
 
 
@@ -182,10 +187,16 @@ class ProductCrudController extends AbstractCrudController
                 ->setBasePath('/uploads/products')
                 ->setLabel('Overview Image')
                 ->onlyOnIndex(),
+            
+            // VichImageType field for upload functionality in forms
+            Field::new('overviewImageFile', 'Upload Overview Image')
+                ->setFormType(VichImageType::class)
+                ->hideOnIndex()
+                ->setColumns('col-md-6'),
             TextField::new('name')->setColumns('col-md-12'),
-            TextField::new('sku')->setColumns('col-md-12'),
+            TextField::new('sku')->setColumns('col-md-12')->setHelp('SKU will be auto-generated if left empty'),
             TextEditorField::new('description')->hideOnIndex()->setColumns('col-md-12'),
-            MoneyField::new('price')->setCurrency('EUR')->setColumns('col-md-6'),
+            MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-6'),
             IntegerField::new('quantityInStock', 'Stock')->setColumns('col-md-6'),
             IntegerField::new('loyaltyPoints', 'Loyalty Points')->setColumns('col-md-6'),
 
@@ -222,6 +233,7 @@ class ProductCrudController extends AbstractCrudController
                 ->setCrudController(ColorCrudController::class)
                 ->setFormTypeOption('multiple', true)
                 ->setFormTypeOption('by_reference', false)
+                ->hideOnIndex()
                 ->setColumns('col-md-6')
                 ->autocomplete(),
 
@@ -368,5 +380,102 @@ class ProductCrudController extends AbstractCrudController
             'filters_archived' => $filters_archived,
             'available_colors' => $availableColors,
         ]);
+    }
+
+    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        if ($entityInstance instanceof Product) {
+            // Auto-generate SKU if not provided
+            if (empty($entityInstance->getSku())) {
+                // We need to persist first to get the ID, then generate SKU
+                $entityManager->persist($entityInstance);
+                $entityManager->flush();
+                
+                $sku = $this->skuGeneratorService->generateProductSku($entityInstance);
+                $entityInstance->setSku($sku);
+                
+                // Handle variants created with the product
+                $this->generateSkusForProductVariants($entityInstance, $entityManager);
+                
+                $entityManager->flush();
+            } else {
+                parent::persistEntity($entityManager, $entityInstance);
+                
+                // Still handle variants even if product SKU was provided
+                $this->generateSkusForProductVariants($entityInstance, $entityManager);
+            }
+        } else {
+            parent::persistEntity($entityManager, $entityInstance);
+        }
+    }
+
+    private function generateSkusForProductVariants(Product $product, EntityManagerInterface $entityManager): void
+    {
+        $variantCounter = 1;
+        foreach ($product->getProductVariants() as $variant) {
+            if (empty($variant->getSku())) {
+                // For variants created with product, use a sequential counter instead of ID
+                $category = $product->getCategory() ? $this->sanitizeForSku($product->getCategory()->getName()) : 'NOCAT';
+                $brand = $product->getBrand() ? $this->sanitizeForSku($product->getBrand()->getName()) : 'NOBRAND';
+                
+                $baseSku = "REF-{$product->getId()}-{$category}-{$brand}-V{$variantCounter}";
+                $uniqueSku = $this->ensureUniqueVariantSku($baseSku, $entityManager);
+                
+                $variant->setSku($uniqueSku);
+                $variantCounter++;
+            }
+        }
+    }
+
+    private function sanitizeForSku(string $input): string
+    {
+        // Remove accents and special characters, convert to uppercase
+        $sanitized = iconv('UTF-8', 'ASCII//TRANSLIT', $input);
+        // Remove non-alphanumeric characters and replace with nothing
+        $sanitized = preg_replace('/[^A-Za-z0-9]/', '', $sanitized);
+        // Convert to uppercase and limit length
+        return strtoupper(substr($sanitized, 0, 10));
+    }
+
+    private function ensureUniqueVariantSku(string $baseSku, EntityManagerInterface $entityManager): string
+    {
+        $repository = $entityManager->getRepository(ProductVariant::class);
+        $sku = $baseSku;
+        $counter = 1;
+
+        while ($this->variantSkuExists($sku, $entityManager)) {
+            $sku = $baseSku . '-' . $counter;
+            $counter++;
+        }
+
+        return $sku;
+    }
+
+    private function variantSkuExists(string $sku, EntityManagerInterface $entityManager): bool
+    {
+        $repository = $entityManager->getRepository(ProductVariant::class);
+        
+        $count = $repository->createQueryBuilder('v')
+            ->select('COUNT(v.id)')
+            ->where('v.sku = :sku')
+            ->andWhere('v.deletedAt IS NULL')
+            ->setParameter('sku', $sku)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $count > 0;
+    }
+
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        if ($entityInstance instanceof Product) {
+            // Auto-generate SKU if empty or if category/brand changed
+            if (empty($entityInstance->getSku())) {
+                $sku = $this->skuGeneratorService->generateProductSku($entityInstance);
+                $entityInstance->setSku($sku);
+            }
+        }
+        
+        parent::updateEntity($entityManager, $entityInstance);
     }
 }

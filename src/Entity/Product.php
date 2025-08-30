@@ -92,6 +92,7 @@ class Product
     private ?Genre $genre = null;
 
     #[ORM\ManyToMany(targetEntity: Color::class, inversedBy: 'products')]
+    #[Assert\Count(max: 1, maxMessage: 'Please select only one color for a product.')]
     private Collection $colors;
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ProductModelImage::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -403,6 +404,22 @@ class Product
     {
         $this->colors->removeElement($color);
 
+        return $this;
+    }
+
+    // Virtual single-color accessor for admin forms
+    public function getPrimaryColor(): ?Color
+    {
+        return $this->colors->first() ?: null;
+    }
+
+    public function setPrimaryColor(?Color $color): static
+    {
+        // Reset collection and keep only the provided color
+        $this->colors->clear();
+        if ($color !== null) {
+            $this->colors->add($color);
+        }
         return $this;
     }
 

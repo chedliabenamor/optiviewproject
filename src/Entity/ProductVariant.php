@@ -8,14 +8,16 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 use App\Entity\Style;
 use App\Entity\Genre;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\Serializer\Annotation\Groups;
+use App\Validator\UniqueSku;
 
 #[ORM\Entity(repositoryClass: ProductVariantRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-#[UniqueEntity(fields: ['sku'], message: 'This SKU already exists.')]
+#[UniqueEntity(fields: ['sku'], message: 'The SKU "{{ value }}" is already in use. Please choose a different SKU.', ignoreNull: true)]
 #[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
 class ProductVariant
 {
@@ -55,17 +57,18 @@ class ProductVariant
 
     #[ORM\Column(length: 255, unique: true, nullable: true)]
     #[Groups(['product_quick_view'])]
+    #[UniqueSku]
     private ?string $sku = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
     #[Groups(['product_quick_view'])]
     private ?string $price = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $currency = 'EUR';
 
     #[ORM\Column]
     #[Groups(['product_quick_view'])]
+    #[Assert\NotBlank(message: 'Stock quantity is required')]
+    #[Assert\GreaterThanOrEqual(value: 0, message: 'Stock must be 0 or greater')]
     private ?int $stock = 0;
 
     #[ORM\Column]
@@ -191,26 +194,15 @@ class ProductVariant
         return $this;
     }
 
-    public function getCurrency(): ?string
-    {
-        return $this->currency;
-    }
-
-    public function setCurrency(?string $currency): static
-    {
-        $this->currency = $currency;
-
-        return $this;
-    }
 
     public function getStock(): ?int
     {
         return $this->stock;
     }
 
-   public function setStock(int $stock): static
+   public function setStock(?int $stock): static
 {
-    $this->stock = $stock;
+    $this->stock = $stock ?? 0; // Default to 0 if null
     $this->updateStockStatus(); // Update status when stock changes
     return $this;
 }
@@ -285,6 +277,17 @@ class ProductVariant
     public function preUpdate(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getStockStatus(): ?string
+    {
+        return $this->stockStatus;
+    }
+
+    public function setStockStatus(?string $stockStatus): static
+    {
+        $this->stockStatus = $stockStatus;
+        return $this;
     }
 
     /**

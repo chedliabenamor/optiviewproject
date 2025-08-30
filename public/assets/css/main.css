@@ -3127,6 +3127,8 @@ textarea#user_profile_type_form_address::placeholder {
   -o-transition: transform 0.9s ease;
   -moz-transition: transform 0.9s ease;
   transition: transform 0.9s ease;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hov-img0:hover img {

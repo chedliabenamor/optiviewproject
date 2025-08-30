@@ -178,7 +178,7 @@
                                                         {% endif %}
                                                         <span class="badge text-white bg-{{ status_badge }}">{{ order.status|replace({'_': ' '})|capitalize }}</span>
                                                     </td>
-                                                    <td class="text-end">${{ order.totalAmount|number_format(2) }}</td>
+                                                    <td class="text-end">${{ order.totalAmount|number_format(2, '.', '') }}</td>
                                                     <td class="text-center">
                                                         {% set order_detail_url = ea_url()
                                                             .setController('App\\Controller\\Admin\\OrderCrudController')
@@ -219,7 +219,7 @@
                                                     <div class="card-body">
                                                         <h6 class="card-title">{{ product.name|default('N/A') }}</h6>
                                                         {% if product.price is defined and product.price is not null %}
-                                                            <p class="card-text fw-bold">{{ product.price|number_format(2, '.', ',') }} €</p>
+                                                            <p class="card-text fw-bold">{{ product.price|number_format(2, '.', '') }} €</p>
                                                         {% else %}
                                                             <p class="card-text text-muted">Price not available</p>
                                                         {% endif %}

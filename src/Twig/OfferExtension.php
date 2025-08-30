@@ -49,6 +49,12 @@ class OfferExtension extends AbstractExtension
         
         // For fixed discounts, calculate percentage or show fixed amount
         $originalPrice = (float) $product->getPrice();
+        
+        // Debug: Check if price is stored as cents and needs conversion
+        if ($originalPrice > 1000) {
+            $originalPrice = $originalPrice / 100;
+        }
+        
         $discountAmount = $this->calculateDiscountAmount($offer, $originalPrice);
         $discountPercentage = $originalPrice > 0 ? ($discountAmount / $originalPrice) * 100 : 0;
         

@@ -105,7 +105,7 @@
                     </td>
                     <td class="text-center">{{ variant.sku }}</td>
                     <td class="text-center">{{ variant.color ?: 'N/A' }}</td>
-                    <td class="text-center">{{ variant.price is not null ? (variant.price|number_format(2, '.', ',') ~ ' ' ~ (variant.currency == 'EUR' ? '€' : variant.currency)) : 'N/A' }}</td>
+                    <td class="text-center">{{ variant.price is not null ? (variant.price|number_format(2, '.', ',') ~ ' €') : 'N/A' }}</td>
                     <td class="text-center">{{ variant.stock }}</td>
                     <td class="text-center">
                         {% set stock = variant.stock %}

@@ -105,7 +105,8 @@ class OfferService
             }
         }
 
-        return array_unique($offers, SORT_REGULAR);
+        // Use array_unique with SORT_STRING to avoid deep object comparison
+        return array_unique($offers, SORT_STRING);
     }
 
     /**
@@ -150,7 +151,8 @@ class OfferService
             }
         }
 
-        return array_unique($offers, SORT_REGULAR);
+        // Use array_unique with SORT_STRING to avoid deep object comparison
+        return array_unique($offers, SORT_STRING);
     }
 
     /**
@@ -159,6 +161,12 @@ class OfferService
     public function calculateDiscountedPrice(Product $product): array
     {
         $originalPrice = (float) $product->getPrice();
+        
+        // Debug: Check if price is stored as cents and needs conversion
+        if ($originalPrice > 1000) {
+            $originalPrice = $originalPrice / 100;
+        }
+        
         $bestOffer = $this->getBestOfferForProduct($product);
 
         if (!$bestOffer) {
@@ -194,6 +202,12 @@ class OfferService
     public function calculateDiscountedPriceForVariant(ProductVariant $variant): array
     {
         $originalPrice = (float) $variant->getPrice();
+        
+        // Debug: Check if price is stored as cents and needs conversion
+        if ($originalPrice > 1000) {
+            $originalPrice = $originalPrice / 100;
+        }
+        
         $bestOffer = $this->getBestOfferForVariant($variant);
 
         if (!$bestOffer) {
@@ -294,4 +308,5 @@ class OfferService
 
         return $offer->getEndDate() <= $threshold && $offer->getEndDate() > $now;
     }
+
 }

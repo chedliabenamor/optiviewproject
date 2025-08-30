@@ -18,18 +18,23 @@ class Review
     #[ORM\Column]
     private ?int $id = null;
 
+    // Optional: keep variant reference for legacy/backward compatibility
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?ProductVariant $productVariant = null;
+
+    // New relation: reviews belong to a Product (product-level reviews)
     #[ORM\ManyToOne(inversedBy: 'reviews')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull]
-    private ?ProductVariant $productVariant = null;
+    private ?Product $product = null;
 
     #[ORM\ManyToOne] // Assuming User entity exists and is related
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull]
     private ?User $user = null;
 
-    #[ORM\Column(type: Types::SMALLINT)]
-    #[Assert\NotBlank]
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     #[Assert\Range(min: 1, max: 5)]
     private ?int $rating = null;
 
@@ -72,6 +77,17 @@ class Review
     public function setProductVariant(?ProductVariant $productVariant): static
     {
         $this->productVariant = $productVariant;
+        return $this;
+    }
+
+    public function getProduct(): ?Product
+    {
+        return $this->product;
+    }
+
+    public function setProduct(?Product $product): static
+    {
+        $this->product = $product;
         return $this;
     }
 

@@ -34,7 +34,7 @@
                     {{ product.name }}
                 </a>
                 <span class="stext-105 cl3">
-                    {{ product.price|number_format(2) }} {{ product.currency|default('EUR') }}
+                    {{ product.price|number_format(2, '.', '') }} {{ product.currency|default('EUR') }}
                 </span>
             </div>
             <div class="block2-txt-child2 flex-r p-t-3">
@@ -42,7 +42,7 @@
     data-product-id="{{ product.id }}"
     data-product-name="{{ product.name|e('js') }}"
     data-product-image="{{ product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png') }}"
-    data-product-price="{{ product.price|number_format(2) }} {{ product.currency|default('EUR') }}">
+    data-product-price="{{ product.price|number_format(2, '.', '') }} {{ product.currency|default('EUR') }}">
     <img class="icon-heart1 dis-block trans-04" src="{{ asset('assets/images/icons/icon-heart-01.png') }}" alt="ICON">
     <img class="icon-heart2 dis-block trans-04 ab-t-l" src="{{ asset('assets/images/icons/icon-heart-02.png') }}" alt="ICON">
 </a>

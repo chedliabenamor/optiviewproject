@@ -26,18 +26,32 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use App\Controller\Admin\ProductVariantImageCrudController;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use App\Service\SkuGeneratorService;
+use EasyCorp\Bundle\EasyAdminBundle\Exception\ForbiddenActionException;
+use EasyCorp\Bundle\EasyAdminBundle\Exception\InsufficientEntityPermissionException;
 
 class ProductVariantCrudController extends AbstractCrudController
 {
     private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
     private EntityManagerInterface $entityManager;
+    private ValidatorInterface $validator;
+    private SkuGeneratorService $skuGeneratorService;
 
-    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager)
-    {
+    public function __construct(
+        RequestStack $requestStack,
+        AdminUrlGenerator $adminUrlGenerator,
+        EntityManagerInterface $entityManager,
+        ValidatorInterface $validator,
+        SkuGeneratorService $skuGeneratorService
+    ) {
         $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
         $this->entityManager = $entityManager;
+        $this->validator = $validator;
+        $this->skuGeneratorService = $skuGeneratorService;
     }
 
     public static function getEntityFqcn(): string
@@ -59,19 +73,19 @@ class ProductVariantCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->hideOnForm();
 
+        // Only show product field when editing existing variants or creating standalone variants
+        if ($pageName === Crud::PAGE_EDIT || ($pageName === Crud::PAGE_NEW && $this->isStandaloneForm())) {
+            yield AssociationField::new('product')->autocomplete()->setColumns('col-md-12');
+        }
+        
         yield AssociationField::new('color')->setColumns('col-md-4');
         yield AssociationField::new('style')->autocomplete()->setColumns('col-md-4');
         yield AssociationField::new('genre')->autocomplete()->setColumns('col-md-4');
 
-        yield TextField::new('sku')->setColumns('col-md-4');
-        yield MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-4');
-        yield ChoiceField::new('currency')
-            ->setChoices([
-                'Dollar' => 'USD',
-                'Euro' => 'EUR',
-            ])->setColumns('col-md-4');
+        yield TextField::new('sku')->setColumns('col-md-4')->setHelp('SKU will be auto-generated if left empty');
+        yield MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-6');
 
-        yield NumberField::new('stock')->setColumns('col-md-6');
+        yield NumberField::new('stock')->setColumns('col-md-6')->setRequired(true);
         yield BooleanField::new('isActive')->setColumns('col-md-6');
 
         yield CollectionField::new('productVariantImages')
@@ -205,5 +219,165 @@ class ProductVariantCrudController extends AbstractCrudController
         }
 
         return parent::getRedirectResponseAfterSave($context, $action);
+    }
+
+    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        try {
+            if ($entityInstance instanceof ProductVariant) {
+                // Auto-generate SKU if not provided
+                if (empty($entityInstance->getSku())) {
+                    // Check if product is set
+                    if (!$entityInstance->getProduct()) {
+                        $this->addFlash('error', 'Product must be selected before generating SKU.');
+                        throw new \RuntimeException('Product required for SKU generation');
+                    }
+                    
+                    // We need to persist first to get the ID, then generate SKU
+                    $entityManager->persist($entityInstance);
+                    $entityManager->flush();
+                    
+                    $sku = $this->skuGeneratorService->generateProductVariantSku($entityInstance);
+                    $entityInstance->setSku($sku);
+                    $entityManager->flush();
+                    
+                    $this->addFlash('success', 'Product variant saved successfully with auto-generated SKU: ' . $sku);
+                    return;
+                }
+            }
+            
+            // Validate the entity before persisting
+            $violations = $this->validator->validate($entityInstance);
+            
+            if (count($violations) > 0) {
+                foreach ($violations as $violation) {
+                    $this->addFlash('error', $violation->getMessage());
+                }
+                // Don't proceed with persistence if there are validation errors
+                throw new \RuntimeException('Validation failed');
+            }
+
+            parent::persistEntity($entityManager, $entityInstance);
+            $this->addFlash('success', 'Product variant saved successfully!');
+            
+        } catch (UniqueConstraintViolationException $e) {
+            // Fallback for database-level constraint violations
+            if (strpos($e->getMessage(), 'UNIQ_') !== false && strpos($e->getMessage(), 'sku') !== false) {
+                $this->addFlash('error', 'The SKU "' . $entityInstance->getSku() . '" is already in use. Please choose a different SKU.');
+            } else {
+                $this->addFlash('error', 'A database constraint error occurred. Please check your data and try again.');
+            }
+            // Don't re-throw the exception to prevent the error page
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'Validation failed') {
+                // Don't add additional error message, validation errors already added
+                return;
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'An error occurred while saving the product variant. Please try again.');
+        }
+    }
+
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        try {
+            if ($entityInstance instanceof ProductVariant) {
+                // Auto-generate SKU if empty
+                if (empty($entityInstance->getSku())) {
+                    // Check if product is set
+                    if (!$entityInstance->getProduct()) {
+                        $this->addFlash('error', 'Product must be selected before generating SKU.');
+                        throw new \RuntimeException('Product required for SKU generation');
+                    }
+                    
+                    $sku = $this->skuGeneratorService->generateProductVariantSku($entityInstance);
+                    $entityInstance->setSku($sku);
+                    $this->addFlash('info', 'SKU auto-generated: ' . $sku);
+                }
+            }
+            
+            // Validate the entity before updating
+            $violations = $this->validator->validate($entityInstance);
+            
+            if (count($violations) > 0) {
+                foreach ($violations as $violation) {
+                    $this->addFlash('error', $violation->getMessage());
+                }
+                // Don't proceed with update if there are validation errors
+                throw new \RuntimeException('Validation failed');
+            }
+
+            parent::updateEntity($entityManager, $entityInstance);
+            $this->addFlash('success', 'Product variant updated successfully!');
+            
+        } catch (UniqueConstraintViolationException $e) {
+            // Fallback for database-level constraint violations
+            if (strpos($e->getMessage(), 'UNIQ_') !== false && strpos($e->getMessage(), 'sku') !== false) {
+                $this->addFlash('error', 'The SKU "' . $entityInstance->getSku() . '" is already in use. Please choose a different SKU.');
+            } else {
+                $this->addFlash('error', 'A database constraint error occurred. Please check your data and try again.');
+            }
+            // Don't re-throw the exception to prevent the error page
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'Validation failed') {
+                // Don't add additional error message, validation errors already added
+                return;
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'An error occurred while updating the product variant. Please try again.');
+        }
+    }
+
+    public function new(AdminContext $context): Response
+    {
+        $response = parent::new($context);
+        
+        // Check if there are validation errors in the form
+        if ($context->getRequest()->isMethod('POST')) {
+            $form = $context->getEntity()->getInstance();
+            if ($form instanceof ProductVariant) {
+                $violations = $this->validator->validate($form);
+                if (count($violations) > 0) {
+                    foreach ($violations as $violation) {
+                        $this->addFlash('error', $violation->getMessage());
+                    }
+                }
+            }
+        }
+        
+        return $response;
+    }
+
+    public function edit(AdminContext $context): Response
+    {
+        $response = parent::edit($context);
+        
+        // Check if there are validation errors in the form
+        if ($context->getRequest()->isMethod('POST')) {
+            $form = $context->getEntity()->getInstance();
+            if ($form instanceof ProductVariant) {
+                $violations = $this->validator->validate($form);
+                if (count($violations) > 0) {
+                    foreach ($violations as $violation) {
+                        $this->addFlash('error', $violation->getMessage());
+                    }
+                }
+            }
+        }
+        
+        return $response;
+    }
+
+    /**
+     * Check if we're creating a standalone variant (not within a product form)
+     */
+    private function isStandaloneForm(): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        
+        // Check if we're accessing the variant controller directly (not via collection)
+        return $request && str_contains($request->getPathInfo(), '/admin/product-variant/new');
     }
 }
