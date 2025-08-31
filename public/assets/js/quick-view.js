@@ -5,9 +5,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let productData = {};
 
     // --- UTILITY FUNCTIONS ---
-    const formatPrice = (price, currency = 'EUR') => {
-        const symbol = currency === 'EUR' ? '€' : currency;
-        return `${symbol}${parseFloat(price).toFixed(2)}`;
+    const formatPrice = (price) => {
+        return `€${parseFloat(price).toFixed(2)}`;
     };
 
     // --- OFFER COUNTDOWN TIMER ---
@@ -67,11 +66,11 @@ document.addEventListener('DOMContentLoaded', function () {
             offerBadge.style.display = 'block';
 
             // Update prices
-            priceEl.textContent = formatPrice(offerData.discounted_price, productData.currency);
+            priceEl.textContent = formatPrice(offerData.discounted_price);
             priceEl.style.color = '#e74c3c';
             priceEl.style.fontWeight = 'bold';
             
-            originalPriceEl.textContent = formatPrice(offerData.original_price, productData.currency);
+            originalPriceEl.textContent = formatPrice(offerData.original_price);
             originalPriceEl.style.display = 'inline';
 
             // Show countdown if offer has end date
@@ -105,7 +104,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const updateStockStatus = (quantity) => {
         const stockStatusEl = quickViewModal.querySelector('.js-stock-status');
         const addToCartBtn = quickViewModal.querySelector('.js-addcart-detail');
+        const stockInfo = quickViewModal.querySelector('.js-stock-info');
+        const stockQtyEl = quickViewModal.querySelector('.js-stock-quantity');
         if (!stockStatusEl || !addToCartBtn) return;
+
+        if (typeof quantity !== 'number') {
+            quantity = parseInt(quantity || 0, 10);
+        }
 
         if (quantity > 10) {
             stockStatusEl.textContent = 'Available';
@@ -120,12 +125,26 @@ document.addEventListener('DOMContentLoaded', function () {
             stockStatusEl.style.color = '#dc3545';
             addToCartBtn.disabled = true;
         }
+
+        if (stockInfo && stockQtyEl) {
+            stockQtyEl.textContent = String(quantity);
+            stockInfo.style.display = 'block';
+        }
     };
 
     // --- SLICK CAROUSEL HANDLING ---
     const $gallery = $('.js-modal1 .slick3');
     const $dots = $('.js-modal1 .wrap-slick3-dots');
     const $arrows = $('.js-modal1 .wrap-slick3-arrows');
+
+    // Helper to get a safe dropdown parent inside the modal for Select2
+    function getSelect2ParentFor(el) {
+        // Prefer the sibling .dropDownSelect2 container; fallback to the modal
+        const $el = $(el);
+        const $sib = $el.next('.dropDownSelect2');
+        if ($sib && $sib.length) return $sib;
+        return $(quickViewModal);
+    }
 
     function initSlick(images) {
         if ($gallery.hasClass('slick-initialized')) {
@@ -169,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateOfferDisplay(variant.offer);
         } else {
             // Fallback to regular price display
-            quickViewModal.querySelector('.js-product-price').textContent = formatPrice(variant.price, variant.currency);
+            quickViewModal.querySelector('.js-product-price').textContent = formatPrice(variant.price);
             updateOfferDisplay({ has_offer: false });
         }
         
@@ -199,145 +218,165 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function setupVariantSelectors(variants) {
-        const container = quickViewModal.querySelector('.js-variant-selectors-container');
-        container.innerHTML = '';
+        const colorContainer = quickViewModal.querySelector('.js-color-selector');
+        const colorSelect = colorContainer.querySelector('.js-select-color');
         
-        console.log('Setting up variant selectors for:', variants);
+        // Tear down any previous Select2 & handlers to avoid stale state between products
+        if (typeof window.jQuery !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+            const $select = $(colorSelect);
+            $select.off('change', handleVariantSelectionChange);
+            if ($select.hasClass('select2-hidden-accessible')) {
+                try { $select.select2('destroy'); } catch (e) { /* ignore */ }
+            }
+        } else {
+            colorSelect.removeEventListener('change', handleVariantSelectionChange);
+        }
+
+        // Clear existing options
+        colorSelect.innerHTML = '';
         
         if (!variants || variants.length === 0) {
-            console.log('No variants found, showing debug selector');
-            // Show a test selector for debugging
-            const testWrapper = document.createElement('div');
-            testWrapper.className = 'flex-w flex-r-m p-b-10';
-            testWrapper.innerHTML = `
-                <div class="size-203 flex-c-m respon6">
-                    Test Selector
-                </div>
-                <div class="size-204 respon6-next">
-                    <div class="rs1-select2 bor8 bg0">
-                        <select class="js-select2" name="test">
-                            <option value="">No variants available</option>
-                        </select>
-                        <div class="dropDownSelect2"></div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(testWrapper);
+            colorContainer.style.display = 'none';
             return;
         }
 
-        // Collect all unique attributes from variants
-        const attributes = { 
-            color: new Set(), 
-            style: new Set(), 
-            genre: new Set(),
-            size: new Set(),
-            material: new Set()
-        };
-        
+        // Add default 'Main Product' option (selected by default)
+        const mainOption = document.createElement('option');
+        mainOption.value = 'main';
+        const mainLabel = (productData.productColor && productData.productColor.name) ? productData.productColor.name : 'Main Product';
+        mainOption.textContent = mainLabel;
+        // Use overview image or first product model image as thumbnail
+        let mainThumb = productData.overviewImage;
+        if (!mainThumb && productData.productModelImages && productData.productModelImages.length > 0) {
+            mainThumb = productData.productModelImages[0].imageUrl;
+        }
+        if (mainThumb) {
+            mainOption.setAttribute('data-img', mainThumb);
+        }
+        colorSelect.appendChild(mainOption);
+
+        // Collect unique colors from variants
+        const colors = new Set();
         variants.forEach(variant => {
-            console.log('Processing variant:', variant);
+            if (variant.color && variant.color.name) {
+                colors.add(JSON.stringify({
+                    id: variant.color.id,
+                    name: variant.color.name,
+                    variantId: variant.id
+                }));
+            }
+        });
+
+        // Populate color selector with color options
+        Array.from(colors).forEach(colorStr => {
+            const color = JSON.parse(colorStr);
+            const option = document.createElement('option');
+            option.value = color.id;
+            option.textContent = color.name;
+            option.setAttribute('data-variant-id', color.variantId);
             
-            // Check various possible attribute names
-            if (variant.color) {
-                const colorObj = {
-                    id: variant.color.id || variant.color, 
-                    name: variant.color.name || variant.color
-                };
-                attributes.color.add(JSON.stringify(colorObj));
-                console.log('Added color:', colorObj);
-            }
-            if (variant.style) {
-                const styleObj = {
-                    id: variant.style.id || variant.style, 
-                    name: variant.style.name || variant.style
-                };
-                attributes.style.add(JSON.stringify(styleObj));
-                console.log('Added style:', styleObj);
-            }
-            if (variant.genre) {
-                const genreObj = {
-                    id: variant.genre.id || variant.genre, 
-                    name: variant.genre.name || variant.genre
-                };
-                attributes.genre.add(JSON.stringify(genreObj));
-                console.log('Added genre:', genreObj);
-            }
-            if (variant.size) {
-                const sizeObj = {
-                    id: variant.size.id || variant.size, 
-                    name: variant.size.name || variant.size
-                };
-                attributes.size.add(JSON.stringify(sizeObj));
-                console.log('Added size:', sizeObj);
-            }
-            if (variant.material) {
-                const materialObj = {
-                    id: variant.material.id || variant.material, 
-                    name: variant.material.name || variant.material
-                };
-                attributes.material.add(JSON.stringify(materialObj));
-                console.log('Added material:', materialObj);
+            // Find variant for this color to get thumbnail
+            const variant = variants.find(v => v.color && v.color.id === color.id);
+            if (variant && variant.productVariantImages && variant.productVariantImages.length > 0) {
+                option.setAttribute('data-img', variant.productVariantImages[0].imageUrl);
             }
             
-            // Also check direct properties
-            if (variant.colorName) {
-                attributes.color.add(JSON.stringify({id: variant.id, name: variant.colorName}));
-                console.log('Added colorName:', variant.colorName);
-            }
-            if (variant.styleName) {
-                attributes.style.add(JSON.stringify({id: variant.id, name: variant.styleName}));
-                console.log('Added styleName:', variant.styleName);
-            }
-            if (variant.sizeName) {
-                attributes.size.add(JSON.stringify({id: variant.id, name: variant.sizeName}));
-                console.log('Added sizeName:', variant.sizeName);
-            }
+            colorSelect.appendChild(option);
         });
 
-        console.log('Final attributes:', attributes);
+        colorContainer.style.display = 'block';
 
-        // Create selectors for attributes that have values
-        Object.keys(attributes).forEach(attr => {
-            if (attributes[attr].size > 0) {
-                console.log(`Creating selector for ${attr} with ${attributes[attr].size} options`);
-                const options = Array.from(attributes[attr]).map(item => JSON.parse(item));
-                
-                const wrapper = document.createElement('div');
-                wrapper.className = 'flex-w flex-r-m p-b-10';
-                
-                wrapper.innerHTML = `
-                    <div class="size-203 flex-c-m respon6">
-                        ${attr.charAt(0).toUpperCase() + attr.slice(1)}
-                    </div>
-                    <div class="size-204 respon6-next">
-                        <div class="rs1-select2 bor8 bg0">
-                            <select class="js-select2 js-variant-selector" name="${attr}" data-attribute="${attr}">
-                                <option value="">Choose a ${attr}</option>
-                                ${options.map(opt => `<option value="${opt.id}" data-name="${opt.name}">${opt.name}</option>`).join('')}
-                            </select>
-                            <div class="dropDownSelect2"></div>
-                        </div>
-                    </div>
-                `;
-                
-                container.appendChild(wrapper);
-                console.log(`Added selector for ${attr}`);
+        // Initialize Select2 for color
+        if (typeof window.jQuery !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+            const $select = $(colorSelect);
+            $select.select2({
+                templateResult: formatVariantOption,
+                templateSelection: formatVariantOption,
+                minimumResultsForSearch: -1,
+                dropdownParent: getSelect2ParentFor(colorSelect),
+                width: '100%'
+            });
+        }
+
+        // Add change event listener
+        if (typeof window.jQuery !== 'undefined') {
+            $(colorSelect).on('change', handleVariantSelectionChange);
+        } else {
+            colorSelect.addEventListener('change', handleVariantSelectionChange);
+        }
+
+        // Select 'Main Product' by default and keep current main product info
+        colorSelect.value = 'main';
+        $(colorSelect).trigger('change');
+    }
+
+    function formatVariantOption(opt) {
+        if (!opt.id) return opt.text;
+        const $opt = $(opt.element);
+        const img = $opt.data('img');
+        const text = opt.text;
+        
+        if (img) {
+            return $('<span class="d-flex align-items-center"><img src="'+img+'" style="width:28px;height:28px;object-fit:cover;border-radius:4px;margin-right:8px;" />'+text+'</span>');
+        }
+        return text;
+    }
+
+    function handleVariantSelectionChange() {
+        const colorSelect = quickViewModal.querySelector('.js-select-color');
+        const selectedColor = colorSelect ? colorSelect.value : null;
+        
+        // Find matching variant based on selected color
+        let selectedVariant = null;
+        
+        if (selectedColor && selectedColor !== 'Choose an option' && selectedColor !== 'main') {
+            selectedVariant = productData.productVariants.find(v => 
+                v.color && v.color.id == selectedColor
+            );
+        }
+        
+        if (selectedVariant) {
+            // Use centralized updater for variant
+            updateVariantDetails(selectedVariant);
+
+            // Update meta information (style/genre) to reflect variant specifics if available
+            const updateMetaField = (metaName, value) => {
+                const container = quickViewModal.querySelector(`.js-meta-${metaName}`);
+                if (!container) return;
+
+                if (value && value !== '-' && value !== '') {
+                    container.querySelector(`.js-product-${metaName}`).textContent = value;
+                    container.style.display = 'flex';
+                } else {
+                    container.style.display = 'none';
+                }
+            };
+            
+            updateMetaField('style', selectedVariant.style?.name || productData.originalStyle);
+            updateMetaField('genre', selectedVariant.genre?.name || productData.originalGenre);
+        } else {
+            // Reset to original product data
+            if (productData.offer) {
+                updateOfferDisplay(productData.offer);
+            } else {
+                updateOfferDisplay({ has_offer: false });
+                quickViewModal.querySelector('.js-product-price').textContent = formatPrice(productData.price);
             }
-        });
-
-        // Initialize select2 for new selectors
-        container.querySelectorAll('.js-select2').forEach(select => {
-            if (typeof $.fn.select2 !== 'undefined') {
-                $(select).select2({
-                    minimumResultsForSearch: 20,
-                    dropdownParent: $(select).next('.dropDownSelect2')
-                });
-            }
-        });
-
-        container.addEventListener('change', handleVariantSelection);
-        console.log('Variant selectors setup complete');
+            updateStockStatus(productData.quantityInStock || 0);
+            
+            // Reset images to product images
+            const allImages = [];
+            if (productData.overviewImage) allImages.push({ imageUrl: productData.overviewImage, altText: 'Product Overview' });
+            if (productData.productModelImages) allImages.push(...productData.productModelImages);
+            initSlick(allImages);
+            
+            // Reset add to cart button
+            const addToCartBtn = quickViewModal.querySelector('.js-addcart-detail');
+            addToCartBtn.dataset.variantId = '';
+            
+            // Reset wishlist status
+            checkWishlistStatus(productData.id, null);
+        }
     }
 
     // --- MODAL POPULATION ---
@@ -410,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateOfferDisplay(data.offer);
         } else {
             updateOfferDisplay({ has_offer: false });
-            quickViewModal.querySelector('.js-product-price').textContent = formatPrice(data.price, data.currency);
+            quickViewModal.querySelector('.js-product-price').textContent = formatPrice(data.price);
         }
 
         // Debug: Log variant data
@@ -453,6 +492,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (countdownInterval) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
+            }
+
+            // Destroy Select2 on close to prevent stale state on next open
+            const colorSelect = quickViewModal.querySelector('.js-select-color');
+            if (colorSelect && typeof window.jQuery !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+                const $select = $(colorSelect);
+                $select.off('change', handleVariantSelectionChange);
+                if ($select.hasClass('select2-hidden-accessible')) {
+                    try { $select.select2('destroy'); } catch (e) { /* ignore */ }
+                }
             }
         }
     });

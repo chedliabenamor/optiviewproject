@@ -77,8 +77,7 @@
 						<h4 class="mtext-105 cl2 js-name-detail p-b-14">{{ product.name }}</h4>
 
 						<span class="mtext-106 cl2" id="js-price">
-							{% set currencySymbol = product.currency == 'EUR' ? '€' : (product.currency == 'USD' ? '$' : (product.currency == 'GBP' ? '£' : product.currency)) %}
-							{{ currencySymbol }}{{ product.price|number_format(2, '.', ',') }}
+							€{{ product.price|number_format(2, '.', ',') }}
 						</span>
 
 						<p class="stext-102 cl3 p-t-23">{{ product.description|striptags }}</p>
@@ -511,29 +510,19 @@
         var defaultStyle = (document.getElementById('js-style')||{}).textContent || '{{ product.style ? product.style.name : '-' }}';
         var defaultStock = (document.getElementById('js-stock')||{}).textContent || '{{ product.getStockStatus() }} ({{ product.getTotalStock() }})';
 
-        function handleVariantChange() {
-            var opt = selectEl.options[selectEl.selectedIndex];
-            if (!opt) return;
-            var price = opt.getAttribute('data-price');
-            var priceEl = document.getElementById('js-price');
-            if (price && priceEl) {
-                // Map currency code to symbol for display
-                function currencySymbol(code){
-                    switch(code){
-                        case 'EUR': return '€';
-                        case 'USD': return '$';
-                        case 'GBP': return '£';
-                        default: return code || '';
-                    }
-                }
-                var currency = '{{ product.currency|e('js') }}';
-                var symbol = currencySymbol(currency);
-                try {
-                    var n = parseFloat(price);
-                    if (!isNaN(n)) priceEl.textContent = symbol + n.toFixed(2);
-                    else priceEl.textContent = symbol + price;
-                } catch(e) { priceEl.textContent = symbol + price; }
-            }
+        		function handleVariantChange() {
+			var opt = selectEl.options[selectEl.selectedIndex];
+			if (!opt) return;
+			var price = opt.getAttribute('data-price');
+			var priceEl = document.getElementById('js-price');
+			if (price && priceEl) {
+				var symbol = '€';
+				try {
+					var n = parseFloat(price);
+					if (!isNaN(n)) priceEl.textContent = symbol + n.toFixed(2);
+					else priceEl.textContent = symbol + price;
+				} catch(e) { priceEl.textContent = symbol + price; }
+			}
             // Update info panel: SKU, Genre, Style, Stock
             var sku = opt.getAttribute('data-sku');
             var genreName = opt.getAttribute('data-genre');

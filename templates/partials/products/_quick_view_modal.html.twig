@@ -91,39 +91,18 @@
                             </span>
                         </div>
 
-                        <!-- Product Variants -->
-                        <div class="js-product-variants" style="display: none;">
-                            <!-- Variant selector will be loaded here if variants exist -->
-                        </div>
+                        {# Size selector removed #}
 
-                        <!-- Size Selector (if no variants or sizes in variants) -->
-                        <div class="js-size-selector" style="display: none;">
-                            <div class="flex-w flex-r-m p-b-10">
-                                <div class="size-203 flex-c-m respon6">
-                                    {{ 'Size'|trans }}
-                                </div>
-                                <div class="size-204 respon6-next">
-                                    <div class="rs1-select2 bor8 bg0">
-                                        <select class="js-select2 js-select-size" name="size">
-                                            <option value="">{{ 'Choose a size'|trans }}</option>
-                                            <!-- Sizes will be loaded here -->
-                                        </select>
-                                        <div class="dropDownSelect2"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Color Selector (if no variants or colors in variants) -->
+                        <!-- Color Selector -->
                         <div class="js-color-selector" style="display: none;">
                             <div class="flex-w flex-r-m p-b-10">
                                 <div class="size-203 flex-c-m respon6">
-                                    {{ 'Color'|trans }}
+                                    Color
                                 </div>
                                 <div class="size-204 respon6-next">
                                     <div class="rs1-select2 bor8 bg0">
                                         <select class="js-select2 js-select-color" name="color">
-                                            <option value="">{{ 'Choose a color'|trans }}</option>
+                                            <option>Choose an option</option>
                                             <!-- Colors will be loaded here -->
                                         </select>
                                         <div class="dropDownSelect2"></div>

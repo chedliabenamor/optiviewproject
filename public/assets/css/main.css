@@ -1473,7 +1473,7 @@ h2#access-title, h2#privacy-title, h2.contact {
   top: calc(50% - 20px);
 }
 
-.arrow-slick3 {
+.arrow-slick3 , .wrap-slick3-arrows .slick-prev , .wrap-slick3-arrows .slick-next{
   font-size: 25px;
   color: #fff;
   
@@ -1489,12 +1489,12 @@ h2#access-title, h2#privacy-title, h2.contact {
   transition: all 0.4s;
 }
 
-.arrow-slick3:hover {
+.arrow-slick3:hover , .wrap-slick3-arrows .slick-prev:hover , .wrap-slick3-arrows .slick-next:hover {
   background-color: rgba(0,0,0,0.9);
 }
 
-.prev-slick3 {left: 0px;}
-.next-slick3 {right: 0px;}
+.prev-slick3,.wrap-slick3-arrows .slick-prev {left: 0px;}
+.next-slick3,.wrap-slick3-arrows .slick-next {right: 0px;}
 
 /*---------------------------------------------*/
 .wrap-slick3-dots {
@@ -3138,7 +3138,9 @@ textarea#user_profile_type_form_address::placeholder {
   -o-transform: scale(1.1);
   transform: scale(1.1);
 }
-
+ul.slick3-dots + ul.slick3-dots {
+  display: none;
+}
 /*---------------------------------------------*/
 .hov-btn1:hover {
   border-color: #222;

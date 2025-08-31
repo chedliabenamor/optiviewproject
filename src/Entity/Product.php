@@ -58,9 +58,6 @@ class Product
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null; // Main product image (Consider if this is still needed or can be removed)
 
-    #[ORM\Column(length: 255)]
-    #[Groups(['product_quick_view'])]
-    private ?string $currency = 'EUR';
 
     // Vich Uploadable Field for the overview image file
     #[Vich\UploadableField(mapping: 'product_overview_images', fileNameProperty: 'overviewImage')]
@@ -267,17 +264,6 @@ class Product
         return $this;
     }
 
-    public function getCurrency(): ?string
-    {
-        return $this->currency;
-    }
-
-    public function setCurrency(?string $currency): static
-    {
-        $this->currency = $currency;
-
-        return $this;
-    }
 
 
     // Virtual field for EasyAdmin Stock Status

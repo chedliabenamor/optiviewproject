@@ -24,6 +24,7 @@ class Color
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['product_quick_view'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, unique: true)]
