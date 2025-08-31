@@ -76,9 +76,31 @@
 					<div class="p-r-50 p-t-5 p-lr-0-lg">
 						<h4 class="mtext-105 cl2 js-name-detail p-b-14">{{ product.name }}</h4>
 
-						<span class="mtext-106 cl2" id="js-price">
-							€{{ product.price|number_format(2, '.', ',') }}
-						</span>
+						<div class="m-b-15">
+                            <!-- Offer Badge -->
+                            <div class="js-offer-badge" style="display: none; margin-bottom: 10px;">
+                                <span class="offer-badge" style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: bold;"></span>
+                            </div>
+
+                            <!-- Price Container -->
+                            <div class="price-container">
+                                <span class="mtext-106 cl2 js-product-price" id="js-price">€{{ product.price|number_format(2, '.', ',') }}</span>
+                                <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: none;"></span>
+                                <span class="js-product-currency"></span>
+                            </div>
+
+                            <!-- Countdown Timer -->
+                            <div class="js-offer-countdown" style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                                <div style="font-size: 14px; font-weight: 600; color: #e74c3c; margin-bottom: 5px;">⏰ Limited Time Offer</div>
+                                <div class="countdown-timer" style="font-size: 16px; font-weight: bold; color: #333;">
+                                    <span class="js-countdown-days">00</span>d 
+                                    <span class="js-countdown-hours">00</span>h 
+                                    <span class="js-countdown-minutes">00</span>m 
+                                    <span class="js-countdown-seconds">00</span>s
+                                </div>
+                                <div class="js-countdown-expired" style="display: none; color: #999; font-style: italic;">Offer expired</div>
+                            </div>
+                        </div>
 
 						<p class="stext-102 cl3 p-t-23">{{ product.description|striptags }}</p>
 						
@@ -421,6 +443,105 @@
             defaultImages.push({ url: img.getAttribute('src'), alt: img.getAttribute('alt') || '{{ product.name|e('js') }}' });
         });
 
+        // --- Offer/Price helpers (mirrors quick-view.js) ---
+        var offerState = { productOffer: null, variantOffers: {} };
+        var countdownTimerId = null;
+
+        function clearCountdown() {
+            if (countdownTimerId) { clearInterval(countdownTimerId); countdownTimerId = null; }
+        }
+
+        function startCountdown(endIso) {
+            clearCountdown();
+            var container = document.querySelector('.js-offer-countdown');
+            var daysEl = document.querySelector('.js-countdown-days');
+            var hoursEl = document.querySelector('.js-countdown-hours');
+            var minutesEl = document.querySelector('.js-countdown-minutes');
+            var secondsEl = document.querySelector('.js-countdown-seconds');
+            var expiredEl = document.querySelector('.js-countdown-expired');
+            if (!container || !endIso) return;
+            function tick() {
+                var now = new Date();
+                var end = new Date(endIso);
+                var diff = end - now;
+                if (diff <= 0) {
+                    if (expiredEl) expiredEl.style.display = 'block';
+                    daysEl.textContent = hoursEl.textContent = minutesEl.textContent = secondsEl.textContent = '00';
+                    clearCountdown();
+                    return;
+                }
+                var totalSeconds = Math.floor(diff/1000);
+                var days = Math.floor(totalSeconds / 86400);
+                var hours = Math.floor((totalSeconds % 86400) / 3600);
+                var minutes = Math.floor((totalSeconds % 3600) / 60);
+                var seconds = totalSeconds % 60;
+                daysEl.textContent = String(days).padStart(2, '0');
+                hoursEl.textContent = String(hours).padStart(2, '0');
+                minutesEl.textContent = String(minutes).padStart(2, '0');
+                secondsEl.textContent = String(seconds).padStart(2, '0');
+            }
+            container.style.display = 'block';
+            if (expiredEl) expiredEl.style.display = 'none';
+            tick();
+            countdownTimerId = setInterval(tick, 1000);
+        }
+
+        function updateOfferUI(offer, basePrice) {
+            var priceEl = document.querySelector('.js-product-price');
+            var originalPriceEl = document.querySelector('.js-original-price');
+            var offerBadge = document.querySelector('.js-offer-badge .offer-badge');
+            var offerBadgeWrap = document.querySelector('.js-offer-badge');
+            var countdown = document.querySelector('.js-offer-countdown');
+            var symbol = '€';
+            function format(num) { try { var n = parseFloat(num); return isNaN(n) ? num : n.toFixed(2);} catch(e){ return num; } }
+
+            clearCountdown();
+            if (offer && offer.has_offer) {
+                if (priceEl) {
+                    priceEl.textContent = symbol + format(offer.discounted_price);
+                    priceEl.style.color = '#e74c3c';
+                    priceEl.style.fontWeight = '700';
+                }
+                if (originalPriceEl) {
+                    originalPriceEl.textContent = symbol + format(offer.original_price || basePrice || '');
+                    originalPriceEl.style.display = 'inline';
+                }
+                if (offerBadge && offerBadgeWrap) {
+                    var pct = offer.discount_percentage ? Math.round(offer.discount_percentage) : null;
+                    offerBadge.textContent = pct !== null ? ('-' + pct + '%') : 'On sale';
+                    offerBadgeWrap.style.display = 'block';
+                }
+                if (countdown && offer.offer_end_date) {
+                    countdown.style.display = 'block';
+                    startCountdown(offer.offer_end_date);
+                }
+            } else {
+                if (priceEl) {
+                    var bp = basePrice !== undefined && basePrice !== null ? basePrice : {{ product.price }};
+                    priceEl.textContent = symbol + format(bp);
+                    priceEl.style.color = '';
+                    priceEl.style.fontWeight = '';
+                }
+                if (originalPriceEl) originalPriceEl.style.display = 'none';
+                if (offerBadgeWrap) offerBadgeWrap.style.display = 'none';
+                if (countdown) countdown.style.display = 'none';
+            }
+        }
+
+        // Fetch offer data from the same quick-view API to keep logic in one place
+        fetch('{{ path('api_product_quick_view', { id: product.id }) }}')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                try {
+                    offerState.productOffer = d.offer || null;
+                    if (Array.isArray(d.productVariants)) {
+                        d.productVariants.forEach(function(v){ offerState.variantOffers[v.id] = v.offer || null; });
+                    }
+                    // Apply product-level offer initially
+                    updateOfferUI(offerState.productOffer, d.price);
+                } catch(e) { /* noop */ }
+            }).catch(function(){ /* noop */ });
+
         function buildSlideHtml(entry) {
             var url = entry.url, alt = entry.alt || '';
             return '<div class="item-slick3" data-thumb="'+url+'">\
@@ -546,6 +667,14 @@
             var vid = opt.value;
             var imgs = (vid === 'product') ? defaultImages : ((variantsData[vid] && variantsData[vid].length) ? variantsData[vid] : defaultImages);
             updateGallery(imgs);
+            // Update offer/price UI based on selection
+            if (vid === 'product') {
+                updateOfferUI(offerState.productOffer, {{ product.price }});
+            } else {
+                var ov = offerState.variantOffers[vid] || null;
+                var base = price; // data-price attribute already read above
+                updateOfferUI(ov, base);
+            }
         }
 
         // Bind both native change and Select2 select event
