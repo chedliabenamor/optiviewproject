@@ -115,7 +115,16 @@ Input, textarea : 14px/1.6 '', Arial, sans-serif;
 
 
 
-
+.service {
+  padding-block: 25px;
+  border-bottom: 9px solid #717fe0;
+  background: #f1f3ff;
+}
+.service-list { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 40px; }
+.service-item { max-width: 235px; width: 100%; display: flex; justify-content: flex-start; align-items: center; gap: 20px; }
+.service-item-icon { width: 45px; }
+    .service-item-icon img { margin-inline: auto; }
+.service-item-title { color: #222; font-size: 1.125rem; font-weight: 600; }
 
 /*//////////////////////////////////////////////////////////////////
 [ LOADDING ]*/
