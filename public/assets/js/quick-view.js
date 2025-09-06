@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- UTILITY FUNCTIONS ---
     const formatPrice = (price) => {
+        try {
+            if (window.Currency && typeof window.Currency.format === 'function') {
+                return window.Currency.format(price);
+            }
+        } catch(e){}
         return `€${parseFloat(price).toFixed(2)}`;
     };
 

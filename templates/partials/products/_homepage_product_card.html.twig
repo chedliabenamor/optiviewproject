@@ -23,7 +23,7 @@
    data-product-price="{{ offerData.has_offer ? offerData.discounted_price|number_format(2, '.', '') : product.price|number_format(2, '.', '') }}"
    data-product-original-price="{{ offerData.has_offer ? offerData.original_price|number_format(2, '.', '') : '' }}"
    data-product-has-offer="{{ offerData.has_offer ? '1' : '0' }}"
-   data-product-currency="€">
+   data-product-currency="EUR">
     Quick View
 </a>
     </div>
@@ -34,14 +34,14 @@
             </a>
             <div class="price-container">
                 {% if offerData.has_offer %}
-                    <span class="stext-105 cl3" style="font-weight: bold; color: #e74c3c;">
+                    <span class="stext-105 cl3 js-card-price" style="font-weight: bold; color: #e74c3c;" data-price-eur="{{ offerData.discounted_price|number_format(2, '.', '') }}">
                         €{{ offerData.discounted_price|number_format(2, '.', '') }}
                     </span>
-                    <span class="stext-105 cl6" style="text-decoration: line-through; margin-left: 8px; font-size: 0.9em;">
+                    <span class="stext-105 cl6 js-card-original" data-original-eur="{{ offerData.original_price|number_format(2, '.', '') }}" style="text-decoration: line-through; margin-left: 8px; font-size: 0.9em;">
                         €{{ offerData.original_price|number_format(2, '.', '') }}
                     </span>
                 {% else %}
-                    <span class="stext-105 cl3">
+                    <span class="stext-105 cl3 js-card-price" data-price-eur="{{ product.price|number_format(2, '.', '') }}">
                         €{{ product.price|number_format(2, '.', '') }}
                     </span>
                 {% endif %}

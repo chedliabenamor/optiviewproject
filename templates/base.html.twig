@@ -70,6 +70,7 @@
     <script src="{{ asset('assets/js/slick-custom.js') }}"></script>
     <script src="{{ asset('assets/js/main.js') }}"></script>
     <script src="{{ asset('assets/js/wishlist-cart-panel.js') }}"></script>
+    <script src="{{ asset('assets/js/currency.js') }}"></script>
     <script src="{{ asset('assets/js/quick-view.js') }}"></script>
     
     <!-- Quick View Modal -->
@@ -136,9 +137,58 @@
         });
     </script>
 
+    <!-- Global currency formatting for product cards -->
+    <script>
+    (function(){
+        function formatCardPrices(){
+            if (!window.Currency) return;
+            document.querySelectorAll('.js-card-price').forEach(function(el){
+                var eur = parseFloat(el.getAttribute('data-price-eur') || '');
+                if (!isNaN(eur)) {
+                    el.textContent = window.Currency.format(eur);
+                }
+            });
+            document.querySelectorAll('.js-card-original').forEach(function(el){
+                var eur = parseFloat(el.getAttribute('data-original-eur') || '');
+                if (!isNaN(eur)) {
+                    el.textContent = window.Currency.format(eur);
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', formatCardPrices);
+        document.addEventListener('currencyChanged', formatCardPrices);
+    })();
+    </script>
+
     <!-- Merge guest wishlist into user account on login -->
     <script>
     document.addEventListener('DOMContentLoaded', function(){
+        // Highlight active currency in header
+        try {
+            var cur = (window.Currency && window.Currency.current) || 'EUR';
+            document.querySelectorAll('.js-currency-option').forEach(function(el){
+                if (String(el.getAttribute('data-currency')) === cur) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+            // Click handlers
+            document.querySelectorAll('.js-currency-option').forEach(function(el){
+                el.addEventListener('click', function(e){
+                    e.preventDefault();
+                    var sel = el.getAttribute('data-currency');
+                    if (window.Currency && (sel === 'EUR' || sel === 'USD')) {
+                        window.Currency.set(sel);
+                        document.querySelectorAll('.js-currency-option').forEach(function(o){
+                            if (o.getAttribute('data-currency') === sel) { o.classList.add('active'); }
+                            else { o.classList.remove('active'); }
+                        });
+                    }
+                });
+            });
+        } catch(e){}
+
         var isAuth = (typeof window.isAuthenticated !== 'undefined') && (window.isAuthenticated === true || window.isAuthenticated === 'true');
         if (!isAuth) return;
         try {

@@ -193,12 +193,19 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    // Re-render prices on currency change
+    document.addEventListener('currencyChanged', function(){
+        if (_lastWishlistItems && _lastWishlistItems.length) {
+            renderWishlistItems(_lastWishlistItems);
+        }
+    });
 
     function renderWishlistEmpty() {
         var list = document.getElementById('wishlist-items-list');
         list.innerHTML = '<li class="header-cart-item flex-w flex-t m-b-12"><span class="stext-110 cl2">Your wishlist is empty.</span></li>';
     }
 
+    var _lastWishlistItems = null;
     function renderWishlistItems(items) {
         var list = document.getElementById('wishlist-items-list');
         list.innerHTML = '';
@@ -206,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
             list.innerHTML = '<li class="header-cart-item flex-w flex-t m-b-12"><span class="stext-110 cl2">Your wishlist is empty.</span></li>';
             return;
         }
+        _lastWishlistItems = items.slice();
         function decodeUnicodeEscapes(str){
             if (typeof str !== 'string') return str;
             try { return str.replace(/\\u([0-9a-fA-F]{4})/g, function(m, g1){ return String.fromCharCode(parseInt(g1,16)); }); }
@@ -214,20 +222,25 @@ document.addEventListener('DOMContentLoaded', function () {
         items.forEach(function(item) {
             var name = decodeUnicodeEscapes(item.name || '');
             var img = item.image ? `<img src="${item.image}" alt="${name}" class="header-cart-item-img">` : '';
-            var currency = item.currency || '€';
             var hasOffer = !!item.hasOffer || (item.hasOffer === '1');
-            // Back-compat for older storage where price may be a string with currency
-            var numOrStr = item.price;
-            var priceNum = (typeof numOrStr === 'number') ? numOrStr : (function(){
-                try { return parseFloat(String(numOrStr).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; }
-            })();
-            function fmt(n){ try { var v = parseFloat(n); return isNaN(v)? String(n): v.toFixed(2);} catch(e){ return String(n);} }
-            var priceFormatted = item.priceFormatted || (priceNum !== null && !isNaN(priceNum) ? (currency + fmt(priceNum)) : (String(numOrStr) || ''));
+            var priceNum = (typeof item.price === 'number') ? item.price : (function(){ try { return parseFloat(String(item.price).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; } })();
             var originalNum = (typeof item.originalPrice === 'number') ? item.originalPrice : (item.originalPrice ? parseFloat(String(item.originalPrice)) : null);
-            var originalFormatted = item.originalPriceFormatted || (originalNum !== null && !isNaN(originalNum) ? (currency + fmt(originalNum)) : '');
-            var priceHtml = hasOffer && originalFormatted
-                ? `<span style="color:#e74c3c;font-weight:700">${priceFormatted}</span><span style="margin-left:8px;color:#777;text-decoration:line-through">${originalFormatted}</span>`
-                : `<span>${priceFormatted}</span>`;
+            var priceHtml;
+            if (window.Currency) {
+                if (hasOffer && originalNum != null) {
+                    priceHtml = window.Currency.formatPair(priceNum, originalNum);
+                } else {
+                    priceHtml = '<span>' + window.Currency.format(priceNum) + '</span>';
+                }
+            } else {
+                function fmt(n){ try { var v = parseFloat(n); return isNaN(v)? String(n): v.toFixed(2);} catch(e){ return String(n);} }
+                var currency = item.currency || '€';
+                var priceFormatted = (priceNum !== null && !isNaN(priceNum)) ? (currency + fmt(priceNum)) : (String(item.price) || '');
+                var originalFormatted = (originalNum !== null && !isNaN(originalNum)) ? (currency + fmt(originalNum)) : '';
+                priceHtml = hasOffer && originalFormatted
+                    ? `<span style="color:#e74c3c;font-weight:700">${priceFormatted}</span><span style="margin-left:8px;color:#777;text-decoration:line-through">${originalFormatted}</span>`
+                    : `<span>${priceFormatted}</span>`;
+            }
             var removeBtn = `
                 <button class="wishlist-remove-btn" data-product-id="${item.id}" data-variant-id="${item.variantId || ''}" title="Remove from wishlist">
                     <i class="zmdi zmdi-close"></i>

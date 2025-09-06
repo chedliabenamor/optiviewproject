@@ -455,6 +455,68 @@
             if (countdownTimerId) { clearInterval(countdownTimerId); countdownTimerId = null; }
         }
 
+        // Reformat product price on currency change (re-uses Quick View API data)
+        document.addEventListener('currencyChanged', function(){
+            if (!window.Currency) return;
+            fetch('{{ path('api_product_quick_view', { id: product.id }) }}')
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    var sel = document.querySelector('.js-variant-select');
+                    var vid = sel && sel.value ? sel.value : null;
+                    var priceEl = document.querySelector('.js-product-price');
+                    var originalPriceEl = document.querySelector('.js-original-price');
+                    function fmtPair(discounted, original){
+                        if (original != null) {
+                            if (priceEl) { priceEl.style.color = '#e74c3c'; priceEl.style.fontWeight = '700'; priceEl.textContent = Currency.format(discounted); }
+                            if (originalPriceEl) { originalPriceEl.style.display = 'inline'; originalPriceEl.textContent = Currency.format(original); }
+                        } else {
+                            if (priceEl) { priceEl.style.color = ''; priceEl.style.fontWeight = ''; priceEl.textContent = Currency.format(discounted); }
+                            if (originalPriceEl) { originalPriceEl.style.display = 'none'; }
+                        }
+                    }
+                    if (vid) {
+                        var v = (d.productVariants || []).find(function(vv){ return String(vv.id) === String(vid); });
+                        if (v) {
+                            if (v.offer && v.offer.has_offer) {
+                                fmtPair(v.offer.discounted_price, v.offer.original_price);
+                            } else {
+                                fmtPair(v.price, null);
+                            }
+                        }
+                    } else {
+                        if (d.offer && d.offer.has_offer) {
+                            fmtPair(d.offer.discounted_price, d.offer.original_price);
+                        } else {
+                            fmtPair(d.price, null);
+                        }
+                    }
+                })
+                .catch(function(){
+                    // Fallback: reformat whatever text is currently shown
+                    try {
+                        var priceEl = document.querySelector('.js-product-price');
+                        var originalEl = document.querySelector('.js-original-price');
+                        if (!priceEl || !window.Currency) return;
+                        function toNum(txt){ try { return parseFloat(String(txt).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; } }
+                        var p = toNum(priceEl.textContent || '');
+                        var o = originalEl && originalEl.style.display !== 'none' ? toNum(originalEl.textContent || '') : null;
+                        if (p != null) {
+                            if (o != null) {
+                                priceEl.style.color = '#e74c3c';
+                                priceEl.style.fontWeight = '700';
+                                priceEl.textContent = Currency.format(p);
+                                if (originalEl) { originalEl.style.display = 'inline'; originalEl.textContent = Currency.format(o); }
+                            } else {
+                                priceEl.style.color = '';
+                                priceEl.style.fontWeight = '';
+                                priceEl.textContent = Currency.format(p);
+                                if (originalEl) originalEl.style.display = 'none';
+                            }
+                        }
+                    } catch(e){}
+                });
+        });
+
         function startCountdown(endIso) {
             clearCountdown();
             var container = document.querySelector('.js-offer-countdown');
@@ -496,18 +558,27 @@
             var offerBadge = document.querySelector('.js-offer-badge .offer-badge');
             var offerBadgeWrap = document.querySelector('.js-offer-badge');
             var countdown = document.querySelector('.js-offer-countdown');
-            var symbol = '€';
+            var symbol = (window.Currency && window.Currency.symbol) ? window.Currency.symbol : '€';
             function format(num) { try { var n = parseFloat(num); return isNaN(n) ? num : n.toFixed(2);} catch(e){ return num; } }
 
             clearCountdown();
             if (offer && offer.has_offer) {
                 if (priceEl) {
-                    priceEl.textContent = symbol + format(offer.discounted_price);
+                    if (window.Currency && typeof window.Currency.format === 'function') {
+                        priceEl.textContent = window.Currency.format(offer.discounted_price);
+                    } else {
+                        priceEl.textContent = symbol + format(offer.discounted_price);
+                    }
                     priceEl.style.color = '#e74c3c';
                     priceEl.style.fontWeight = '700';
                 }
                 if (originalPriceEl) {
-                    originalPriceEl.textContent = symbol + format(offer.original_price || basePrice || '');
+                    var orig = (offer.original_price != null) ? offer.original_price : (basePrice != null ? basePrice : '');
+                    if (window.Currency && typeof window.Currency.format === 'function') {
+                        originalPriceEl.textContent = window.Currency.format(orig);
+                    } else {
+                        originalPriceEl.textContent = symbol + format(orig);
+                    }
                     originalPriceEl.style.display = 'inline';
                 }
                 if (offerBadge && offerBadgeWrap) {
@@ -522,7 +593,11 @@
             } else {
                 if (priceEl) {
                     var bp = basePrice !== undefined && basePrice !== null ? basePrice : {{ product.price }};
-                    priceEl.textContent = symbol + format(bp);
+                    if (window.Currency && typeof window.Currency.format === 'function') {
+                        priceEl.textContent = window.Currency.format(bp);
+                    } else {
+                        priceEl.textContent = symbol + format(bp);
+                    }
                     priceEl.style.color = '';
                     priceEl.style.fontWeight = '';
                 }
@@ -737,13 +812,19 @@
                 var stockText = (stockStatus ? stockStatus : '') + (stockQty ? ' ('+stockQty+')' : '');
                 stockEl.textContent = stockText.trim() || defaultStock;
             }
-            // Update gallery with selected variant images; if none, keep default
+            // Update main gallery when variant changes
             var vid = opt.value;
             var imgs = (vid === 'product') ? defaultImages : ((variantsData[vid] && variantsData[vid].length) ? variantsData[vid] : defaultImages);
             updateGallery(imgs);
             // Update offer/price UI based on selection
             if (vid === 'product') {
-                updateOfferUI(offerState.productOffer, {{ product.price }});
+                fetch('{{ path('api_product_quick_view', { id: product.id }) }}')
+                    .then(function(r){ return r.json(); })
+                    .then(function(d){
+                        try {
+                            updateOfferUI(offerState.productOffer, d.price);
+                        } catch(e) { /* noop */ }
+                    }).catch(function(){ /* noop */ });
             } else {
                 var ov = offerState.variantOffers[vid] || null;
                 var base = price; // data-price attribute already read above
@@ -859,6 +940,8 @@
 
         // Init
         checkStatus();
+        // Apply currency formatting on initial load as well (slight delay to ensure Currency is ready)
+        try { setTimeout(function(){ if (window.Currency) { document.dispatchEvent(new CustomEvent('currencyChanged')); } }, 150); } catch(e){}
         // Bind click
         wishBtn.addEventListener('click', function(e){ e.preventDefault(); toggleWishlist(); });
         // Re-check when variant changes
