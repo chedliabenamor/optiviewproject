@@ -1,0 +1,183 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Wishlist{% endblock %}
+
+{% block body %}
+<section class="bg0 p-t-80 p-b-60">
+  <div class="container">
+    <div class="row">
+      <!-- Profile Sidebar -->
+      <div class="col-md-3 m-b-30">
+        <div class="list-group">
+          <a href="{{ path('app_user_profile_index') }}" class="list-group-item list-group-item-action">Profile Information</a>
+          <a href="{{ path('app_user_profile_edit') }}" class="list-group-item list-group-item-action">Edit Profile</a>
+          <a href="{{ path('app_user_profile_orders') }}" class="list-group-item list-group-item-action">Order History</a>
+          <a href="{{ path('profile_wishlist') }}" class="list-group-item list-group-item-action active" aria-current="true">Wishlist</a>
+          <a href="{{ path('app_logout') }}" class="list-group-item list-group-item-action">Logout</a>
+        </div>
+      </div>
+
+      <!-- Wishlist Content -->
+      <div class="col-md-9">
+        <div class="p-b-24">
+          <h2 class="mtext-104 cl2">My Wishlist</h2>
+          <p class="stext-110 cl6">Products you saved for later.</p>
+        </div>
+
+        {% if items is empty %}
+          <div class="p-t-40 p-b-40 text-center">
+            <div class="mtext-101 cl2 m-b-12">Your wishlist is empty.</div>
+            <a href="/" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Continue Shopping</a>
+          </div>
+        {% else %}
+          <div class="row" id="account-wishlist-list">
+            {% for it in items %}
+              <div class="col-sm-6 col-md-6 col-lg-4 p-b-35 js-wishlist-card" data-product-id="{{ it.productId }}" data-variant-id="{{ it.variantId }}">
+                <div class="block2">
+                  <div class="block2-pic hov-img0">
+                    <a href="{{ it.url }}">
+                      <img src="{{ it.image ?: asset('assets/images/placeholder-600x600.png') }}" alt="{{ it.name|e }}">
+                    </a>
+                    <button class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-remove-wishlist-item"
+                            data-product-id="{{ it.productId }}" data-variant-id="{{ it.variantId }}">
+                      Remove
+                    </button>
+                  </div>
+
+                  <div class="block2-txt flex-w flex-t p-t-14">
+                    <div class="block2-txt-child1 flex-col-l ">
+                      <a href="{{ it.url }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">{{ it.name }}</a>
+                      {% if it.variantLabel %}
+                        <div class="stext-110 cl6">color: {{ it.variantLabel }}</div>
+                      {% endif %}
+                      <span class="stext-105 cl3 js-price" style="color:;font-weight:;">
+                        €{{ it.price|number_format(2, '.', ',') }}
+                      </span>
+                      <span class="stext-110 cl6 js-original-price" style="display:none;text-decoration:line-through;margin-left:8px;"></span>
+                    </div>
+                    <div class="block2-txt-child2 flex-r p-t-3">
+                      
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Handle remove buttons (AJAX to existing /wishlist/remove endpoint)
+(function(){
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.js-remove-wishlist-item');
+    if (!btn) return;
+    e.preventDefault();
+    var pid = btn.getAttribute('data-product-id');
+    if (!pid) return;
+    fetch('/wishlist/remove', {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'id=' + encodeURIComponent(pid)
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      // Remove card from DOM
+      var card = btn.closest('.js-wishlist-card');
+      if (card) card.parentNode.removeChild(card);
+      // Update header count and broadcast
+      try {
+        var count = Array.isArray(list) ? list.length : 0;
+        document.querySelectorAll('.icon-header-noti').forEach(function(icon){
+          if (icon.querySelector('.zmdi-favorite-outline') || icon.querySelector('.zmdi-favorite')) {
+            icon.setAttribute('data-notify', count);
+          }
+        });
+        document.dispatchEvent(new CustomEvent('wishlistUpdated'));
+      } catch(e){}
+      // Empty state
+      var grid = document.getElementById('account-wishlist-list');
+      if (grid && grid.children.length === 0) {
+        grid.outerHTML = '<div class="p-t-40 p-b-40 text-center">\
+          <div class="mtext-101 cl2 m-b-12">Your wishlist is empty.</div>\
+          <a href="/" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Continue Shopping</a>\
+        </div>';
+      }
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon: 'info', title: 'Removed', text: 'Item removed from wishlist.', showConfirmButton: false, timer: 1000 });
+      } else if (typeof swal !== 'undefined') {
+        swal('Wishlist', 'Item removed from wishlist!', 'info');
+      }
+    })
+    .catch(function(){ /* ignore */ });
+  });
+})();
+
+// Enrich wishlist cards with variant image and discount pricing using Quick View API
+(function(){
+  function toNum(txt){ try { return parseFloat(String(txt).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; } }
+  document.addEventListener('DOMContentLoaded', function(){
+    var cards = document.querySelectorAll('#account-wishlist-list .js-wishlist-card');
+    if (!cards || cards.length === 0) return;
+    cards.forEach(function(card){
+      var pid = card.getAttribute('data-product-id');
+      var vid = card.getAttribute('data-variant-id');
+      if (!pid) return;
+      fetch('/api/products/' + pid + '/quick-view')
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(data){
+          if (!data) return;
+          var imgEl = card.querySelector('.block2-pic img');
+          var priceEl = card.querySelector('.js-price');
+          var origEl = card.querySelector('.js-original-price');
+          var currency = '€';
+          var showDiscount = function(discounted, original){
+            if (!priceEl) return;
+            priceEl.textContent = currency + (typeof discounted === 'number' ? discounted.toFixed(2) : discounted);
+            priceEl.style.color = '#e74c3c';
+            priceEl.style.fontWeight = '700';
+            if (origEl && original != null) {
+              origEl.textContent = currency + (typeof original === 'number' ? original.toFixed(2) : original);
+              origEl.style.display = 'inline';
+            }
+          };
+          var showRegular = function(p){
+            if (!priceEl) return;
+            priceEl.textContent = currency + (typeof p === 'number' ? p.toFixed(2) : p);
+            priceEl.style.color = '';
+            priceEl.style.fontWeight = '';
+            if (origEl) origEl.style.display = 'none';
+          };
+
+          if (vid) {
+            var v = (data.productVariants || []).find(function(vv){ return String(vv.id) === String(vid); });
+            if (v) {
+              if (v.productVariantImages && v.productVariantImages.length > 0 && imgEl) {
+                imgEl.setAttribute('src', v.productVariantImages[0].imageUrl);
+              }
+              if (v.offer && v.offer.has_offer) {
+                showDiscount(v.offer.discounted_price, v.offer.original_price);
+              } else {
+                showRegular(v.price);
+              }
+            }
+          } else {
+            if (data.overviewImage && imgEl) {
+              imgEl.setAttribute('src', data.overviewImage);
+            }
+            if (data.offer && data.offer.has_offer) {
+              showDiscount(data.offer.discounted_price, data.offer.original_price);
+            } else {
+              showRegular(data.price);
+            }
+          }
+        })
+        .catch(function(){});
+    });
+  });
+})();
+</script>
+{% endblock %}

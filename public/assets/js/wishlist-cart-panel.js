@@ -48,16 +48,51 @@ document.addEventListener('DOMContentLoaded', function () {
                     renderWishlistEmpty();
                 }
             } else {
-                // For authenticated users, fetch from server
-                fetch('/wishlist', {
-                    headers: {'X-Requested-With': 'XMLHttpRequest'}
-                })
-                .then(function(response) {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
+                // For authenticated users, fetch from server and enrich with offers/images
+                fetch('/wishlist', { headers: {'X-Requested-With': 'XMLHttpRequest'} })
+                .then(function(response) { if (!response.ok) throw new Error('Network response was not ok'); return response.json(); })
                 .then(function(items) {
-                    renderWishlistItems(items);
+                    if (!Array.isArray(items) || items.length === 0) { renderWishlistEmpty(); return; }
+                    // Enrich each item with active offer and variant image if available
+                    return Promise.all(items.map(function(it){
+                        return fetch('/api/products/' + it.id + '/quick-view')
+                            .then(function(r){ return r.ok ? r.json() : null; })
+                            .then(function(data){
+                                if (!data) return it;
+                                // choose image: variant-specific if variantId present
+                                if (it.variantId) {
+                                    var v = (data.productVariants || []).find(function(vv){ return String(vv.id) === String(it.variantId); });
+                                    if (v && v.productVariantImages && v.productVariantImages.length > 0) {
+                                        it.image = v.productVariantImages[0].imageUrl || it.image;
+                                    }
+                                    // price/offer
+                                    if (v && v.offer && v.offer.has_offer) {
+                                        it.hasOffer = true;
+                                        it.price = v.offer.discounted_price;
+                                        it.originalPrice = v.offer.original_price;
+                                        it.currency = '€';
+                                    } else {
+                                        it.hasOffer = false;
+                                        it.price = v ? v.price : it.price;
+                                    }
+                                } else {
+                                    // base product
+                                    if (data.offer && data.offer.has_offer) {
+                                        it.hasOffer = true;
+                                        it.price = data.offer.discounted_price;
+                                        it.originalPrice = data.offer.original_price;
+                                        it.currency = '€';
+                                    } else {
+                                        it.hasOffer = false;
+                                        it.price = data.price;
+                                    }
+                                    // prefer overview image from API
+                                    if (data.overviewImage) it.image = data.overviewImage;
+                                }
+                                return it;
+                            })
+                            .catch(function(){ return it; });
+                    })).then(function(enriched){ renderWishlistItems(enriched); });
                 })
                 .catch(function(error) {
                     console.error('Error fetching wishlist:', error);
@@ -78,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var btn = target.classList.contains('wishlist-remove-btn') ? 
                          target : target.closest('.wishlist-remove-btn');
                 var productId = btn.getAttribute('data-product-id');
+                var variantId = btn.getAttribute('data-variant-id');
                 if (!productId) return;
                 
                 var removePromise;
@@ -86,8 +122,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Handle guest removal
                     try {
                         var wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-                        wishlist = wishlist.filter(function(item) { 
-                            return item.id != productId; 
+                        wishlist = wishlist.filter(function(item) {
+                            var sameProduct = String(item.id) == String(productId);
+                            var sameVariant = String(item.variantId || '') == String(variantId || '');
+                            // keep item if it's not the exact pair we are removing
+                            return !(sameProduct && sameVariant);
                         });
                         localStorage.setItem('wishlist', JSON.stringify(wishlist));
                         removePromise = Promise.resolve(wishlist);
@@ -130,6 +169,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (count === 0) {
                             renderWishlistEmpty();
                         }
+
+                        // Update product card wishlist icons if helper is available
+                        try {
+                            if (typeof updateWishlistUI === 'function' && Array.isArray(updatedWishlist)) {
+                                updateWishlistUI(updatedWishlist);
+                            }
+                            // Notify other parts of the app (e.g., product detail heart)
+                            document.dispatchEvent(new CustomEvent('wishlistUpdated', {
+                                detail: { items: Array.isArray(updatedWishlist) ? updatedWishlist : null }
+                            }));
+                        } catch(e) { /* noop */ }
                     })
                     .catch(function(error) {
                         console.error('Error removing item:', error);
@@ -156,17 +206,37 @@ document.addEventListener('DOMContentLoaded', function () {
             list.innerHTML = '<li class="header-cart-item flex-w flex-t m-b-12"><span class="stext-110 cl2">Your wishlist is empty.</span></li>';
             return;
         }
+        function decodeUnicodeEscapes(str){
+            if (typeof str !== 'string') return str;
+            try { return str.replace(/\\u([0-9a-fA-F]{4})/g, function(m, g1){ return String.fromCharCode(parseInt(g1,16)); }); }
+            catch(e){ return str; }
+        }
         items.forEach(function(item) {
-            var img = item.image ? `<img src="${item.image}" alt="${item.name}" class="header-cart-item-img">` : '';
+            var name = decodeUnicodeEscapes(item.name || '');
+            var img = item.image ? `<img src="${item.image}" alt="${name}" class="header-cart-item-img">` : '';
+            var currency = item.currency || '€';
+            var hasOffer = !!item.hasOffer || (item.hasOffer === '1');
+            // Back-compat for older storage where price may be a string with currency
+            var numOrStr = item.price;
+            var priceNum = (typeof numOrStr === 'number') ? numOrStr : (function(){
+                try { return parseFloat(String(numOrStr).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; }
+            })();
+            function fmt(n){ try { var v = parseFloat(n); return isNaN(v)? String(n): v.toFixed(2);} catch(e){ return String(n);} }
+            var priceFormatted = item.priceFormatted || (priceNum !== null && !isNaN(priceNum) ? (currency + fmt(priceNum)) : (String(numOrStr) || ''));
+            var originalNum = (typeof item.originalPrice === 'number') ? item.originalPrice : (item.originalPrice ? parseFloat(String(item.originalPrice)) : null);
+            var originalFormatted = item.originalPriceFormatted || (originalNum !== null && !isNaN(originalNum) ? (currency + fmt(originalNum)) : '');
+            var priceHtml = hasOffer && originalFormatted
+                ? `<span style="color:#e74c3c;font-weight:700">${priceFormatted}</span><span style="margin-left:8px;color:#777;text-decoration:line-through">${originalFormatted}</span>`
+                : `<span>${priceFormatted}</span>`;
             var removeBtn = `
-                <button class="wishlist-remove-btn" data-product-id="${item.id}" title="Remove from wishlist">
+                <button class="wishlist-remove-btn" data-product-id="${item.id}" data-variant-id="${item.variantId || ''}" title="Remove from wishlist">
                     <i class="zmdi zmdi-close"></i>
                 </button>`;
             var addToCartBtn = `
                 <button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail add-to-cart-btn" 
                         data-product-id="${item.id}" 
-                        data-product-name="${item.name}" 
-                        data-product-price="${item.price}"
+                        data-product-name="${name}" 
+                        data-product-price="${priceNum !== null && !isNaN(priceNum) ? priceNum : ''}"
                         data-product-image="${item.image || ''}">
                     Add to Cart
                 </button>`;
@@ -175,8 +245,8 @@ document.addEventListener('DOMContentLoaded', function () {
             <li class="header-cart-item flex-w flex-t m-b-12">
                 <div class="header-cart-item-img">${img}${removeBtn}</div>
                 <div class="header-cart-item-txt p-t-8">
-                    <a href="/product/${item.id}" class="header-cart-item-name m-b-8 hov-cl1 trans-04">${item.name}</a>
-                    <span class="header-cart-item-info m-b-8">${item.price}</span>
+                    <a href="/product/${item.id}" class="header-cart-item-name m-b-8 hov-cl1 trans-04">${name}</a>
+                    <span class="header-cart-item-info m-b-8">${priceHtml}</span>
                     <div class="w-full">${addToCartBtn}</div>
                 </div>
             </li>`;

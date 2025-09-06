@@ -120,19 +120,8 @@
             //     });
             // }
             
-            // Wishlist
-            $('.js-addwish-b2, .js-addwish-detail').on('click', function(e){
-                e.preventDefault();
-                var nameProduct = $(this).closest('.product-item').find('.js-name-b2, .js-name-detail').html();
-                swal(nameProduct, "is added to wishlist !", "success");
-                $(this).addClass('js-addedwish-b2 js-addedwish-detail').off('click');
-            });
-            
-            // Add to cart
-            $('.js-addcart-detail').on('click', function(){
-                var nameProduct = $(this).closest('.product-detail').find('.js-name-detail').html();
-                swal(nameProduct, "is added to cart !", "success");
-            });
+            // Note: Legacy demo SweetAlert v1 click handlers removed.
+            // Custom wishlist/cart handlers in assets/js/*.js now manage notifications safely.
             
             // Perfect Scrollbar
             $('.js-pscroll').each(function(){
@@ -145,6 +134,42 @@
                 $(window).on('resize', function(){ ps.update(); });
             });
         });
+    </script>
+
+    <!-- Merge guest wishlist into user account on login -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+        var isAuth = (typeof window.isAuthenticated !== 'undefined') && (window.isAuthenticated === true || window.isAuthenticated === 'true');
+        if (!isAuth) return;
+        try {
+            var local = localStorage.getItem('wishlist');
+            var items = local ? JSON.parse(local) : [];
+            if (!Array.isArray(items) || items.length === 0) return;
+            // Build minimal payload {id, variantId}
+            var payload = { items: items.map(function(it){ return { id: it.id, variantId: (it.variantId || null) }; }) };
+            fetch('/api/wishlist/merge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (d && d.success) {
+                    try { localStorage.removeItem('wishlist'); } catch(e){}
+                    // Update header count and broadcast refresh
+                    try {
+                        var cnt = Array.isArray(d.items) ? d.items.length : 0;
+                        document.querySelectorAll('.icon-header-noti').forEach(function(icon){
+                            if (icon.querySelector('.zmdi-favorite-outline') || icon.querySelector('.zmdi-favorite')) {
+                                icon.setAttribute('data-notify', cnt);
+                            }
+                        });
+                        document.dispatchEvent(new CustomEvent('wishlistUpdated'));
+                    } catch(e){}
+                }
+            }).catch(function(){});
+        } catch(e){}
+    });
     </script>
     
     {% block javascripts %}

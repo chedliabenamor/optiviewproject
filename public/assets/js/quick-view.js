@@ -4,6 +4,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let productData = {};
 
+    // Auth helpers
+    function isGuest() {
+        return !(typeof window.isAuthenticated !== 'undefined' && 
+               (window.isAuthenticated === true || window.isAuthenticated === 'true'));
+    }
+
     // --- UTILITY FUNCTIONS ---
     const formatPrice = (price) => {
         return `€${parseFloat(price).toFixed(2)}`;
@@ -508,16 +514,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- WISHLIST FUNCTIONS ---
     function checkWishlistStatus(productId, variantId = null) {
+        if (isGuest()) {
+            try {
+                const items = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                const found = items.some(it => String(it.id) === String(productId) && String(it.variantId || '') === String(variantId || ''));
+                updateWishlistButton(found);
+            } catch (e) {
+                updateWishlistButton(false);
+            }
+            return;
+        }
         const url = `/api/wishlist/check/${productId}${variantId ? `?variantId=${variantId}` : ''}`;
-        
         fetch(url)
             .then(response => response.json())
-            .then(data => {
-                updateWishlistButton(data.inWishlist);
-            })
-            .catch(error => {
-                console.error('Failed to check wishlist status:', error);
-            });
+            .then(data => { updateWishlistButton(data.inWishlist); })
+            .catch(() => { updateWishlistButton(false); });
     }
 
     function updateWishlistButton(isInWishlist) {
@@ -536,56 +547,129 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function toggleWishlist(productId, variantId = null) {
+        // Helper to gather display price info from modal
+        function readPriceInfo() {
+            const priceEl = quickViewModal.querySelector('.js-product-price');
+            const originalEl = quickViewModal.querySelector('.js-original-price');
+            const priceText = priceEl ? priceEl.textContent.trim() : '';
+            const originalText = (originalEl && originalEl.style.display !== 'none') ? originalEl.textContent.trim() : '';
+            const currency = priceText.replace(/[0-9.,\s-]/g, '') || '€';
+            function toNumber(txt){ try { return parseFloat(String(txt).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; } }
+            return {
+                currency: currency,
+                price: toNumber(priceText),
+                originalPrice: originalText ? toNumber(originalText) : null,
+                hasOffer: !!originalText
+            };
+        }
+
+        if (isGuest()) {
+            let items = [];
+            try { items = JSON.parse(localStorage.getItem('wishlist') || '[]'); } catch(e) {}
+            const idx = items.findIndex(it => String(it.id) === String(productId) && String(it.variantId || '') === String(variantId || ''));
+            let action = 'added';
+            if (idx >= 0) {
+                items.splice(idx, 1);
+                action = 'removed';
+            } else {
+                const info = readPriceInfo();
+                // Compose a name including color (if selected) to differentiate visually
+                let name = productData.name || 'Product';
+                // Try to append selected color if visible
+                const colorSel = quickViewModal.querySelector('.js-select-color');
+                if (colorSel && colorSel.value && colorSel.value !== 'main' && colorSel.options[colorSel.selectedIndex]) {
+                    const colorName = colorSel.options[colorSel.selectedIndex].textContent.trim();
+                    if (colorName && colorName.toLowerCase() !== 'choose an option') {
+                        name = name + ' - ' + colorName;
+                    }
+                }
+                const imgEl = quickViewModal.querySelector('.slick3 .item-slick3 img');
+                const image = imgEl ? imgEl.getAttribute('src') : (productData.overviewImage || '');
+                items.push({
+                    id: productId,
+                    variantId: variantId || '',
+                    name: name,
+                    image: image,
+                    price: info.price,
+                    originalPrice: info.originalPrice,
+                    hasOffer: info.hasOffer,
+                    currency: info.currency,
+                    priceFormatted: info.currency + (info.price != null ? info.price.toFixed(2) : ''),
+                    originalPriceFormatted: info.originalPrice != null ? (info.currency + info.originalPrice.toFixed(2)) : ''
+                });
+            }
+            localStorage.setItem('wishlist', JSON.stringify(items));
+            // Update header wishlist count for guests
+            try {
+                var count = items.length;
+                document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
+                    if (icon.querySelector('.zmdi-favorite-outline') || icon.querySelector('.zmdi-favorite')) {
+                        icon.setAttribute('data-notify', count);
+                    }
+                });
+            } catch(e){}
+            // Notify other parts of the app (home/listing) to refresh heart icons
+            try {
+                document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: items } }));
+            } catch(e){}
+            const inWishlist = action === 'added';
+            updateWishlistButton(inWishlist);
+            const productName = (items.find(it => it.id == productId && String(it.variantId||'') === String(variantId||'')) || {}).name || (productData.name || 'Product');
+            const info = readPriceInfo();
+            if (typeof Swal !== 'undefined') {
+                if (action === 'added') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Added to Wishlist',
+                        html: '<div style="font-weight:600">' + (productName || 'Product') + '</div>' +
+                              '<div style="margin-top:6px">' + (info.hasOffer && info.originalPrice != null ? 
+                                ('<span style="color:#e74c3c;font-weight:700">' + info.currency + (info.price != null ? info.price.toFixed(2) : '') + '</span>' +
+                                 '<span style="margin-left:8px;color:#777;text-decoration:line-through">' + info.currency + (info.originalPrice != null ? info.originalPrice.toFixed(2) : '') + '</span>') :
+                                ('<span>' + info.currency + (info.price != null ? info.price.toFixed(2) : '') + '</span>')) +
+                              '</div>' +
+                              '<div style="margin-top:8px;color:#333">is added to wishlist!</div>',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({ icon: 'info', title: 'Removed from Wishlist', text: (productName || 'Product') + ' has been removed from your wishlist.', showConfirmButton: false, timer: 1200 });
+                }
+            } else if (typeof swal !== 'undefined') {
+                if (action === 'added') {
+                    swal(productName || 'Product', 'is added to wishlist!', 'success');
+                } else {
+                    swal(productName || 'Product', 'is removed from wishlist!', 'info');
+                }
+            }
+            return;
+        }
+
+        // Authenticated users -> use API
         fetch(`/api/wishlist/toggle/${productId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ variantId })
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variantId })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                updateWishlistButton(data.inWishlist);
-                
-                // Show user feedback - same style as homepage cards
-                const productName = productData.name || 'Product';
-                
-                if (typeof Swal !== 'undefined') {
-                    if (data.action === 'added') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Added to Wishlist',
-                            text: productName + ' has been added to your wishlist.',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Removed from Wishlist',
-                            text: productName + ' has been removed from your wishlist.',
-                            showConfirmButton: false,
-                            timer: 1200
-                        });
-                    }
-                } else if (typeof swal !== 'undefined') {
-                    if (data.action === 'added') {
-                        swal(productName, "is added to wishlist!", "success");
-                    } else {
-                        swal(productName, "is removed from wishlist!", "info");
-                    }
+            if (!data.success) return;
+            updateWishlistButton(data.inWishlist);
+            // Broadcast update so product cards/home can refresh wishlist icons
+            try { document.dispatchEvent(new CustomEvent('wishlistUpdated')); } catch(e){}
+            const productName = productData.name || 'Product';
+            if (typeof Swal !== 'undefined') {
+                if (data.action === 'added') {
+                    Swal.fire({ icon: 'success', title: 'Added to Wishlist', text: productName + ' has been added to your wishlist.', showConfirmButton: false, timer: 1500 });
                 } else {
-                    const message = data.action === 'added' ? 
-                        productName + ' has been added to your wishlist.' : 
-                        productName + ' has been removed from your wishlist.';
-                    alert(message);
+                    Swal.fire({ icon: 'info', title: 'Removed from Wishlist', text: productName + ' has been removed from your wishlist.', showConfirmButton: false, timer: 1200 });
                 }
-            } else {
-                console.error('Failed to update wishlist:', data.message);
+            } else if (typeof swal !== 'undefined') {
+                if (data.action === 'added') {
+                    swal(productName || 'Product', 'is added to wishlist!', 'success');
+                } else {
+                    swal(productName || 'Product', 'is removed from wishlist!', 'info');
+                }
             }
         })
-        .catch(error => {
-            console.error('Failed to toggle wishlist:', error);
-        });
+        .catch(() => {});
     }
 
     // Quantity increment/decrement functionality

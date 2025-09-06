@@ -202,30 +202,33 @@
 
 									<button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail">
 										Add to cart
-									</button>
-								</div>
-							</div>
-						</div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-						<!--  -->
-						<div class="flex-w flex-m p-l-100 p-t-40 respon7">
-							<div class="flex-m bor9 p-r-10 m-r-11">
-								<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100" data-tooltip="Add to Wishlist">
-									<i class="zmdi zmdi-favorite"></i>
-								</a>
-							</div>
+                        <!-- Wishlist + Socials -->
+                        <div class="flex-w flex-m p-l-100 p-t-40 respon7">
+                            <div class="flex-m bor9 p-r-10 m-r-11">
+                                <a href="#"
+                                   class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100"
+                                   data-tooltip="Add to Wishlist"
+                                   data-product-id="{{ product.id }}">
+                                    <i class="zmdi zmdi-favorite-outline"></i>
+                                </a>
+                            </div>
 
-							<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
-								<i class="fa fa-facebook"></i>
-							</a>
+                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
+                                <i class="fa fa-facebook"></i>
+                            </a>
 
-							<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
-								<i class="fa fa-twitter"></i>
-							</a>
+                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
+                                <i class="fa fa-twitter"></i>
+                            </a>
 
-							<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Google Plus">
-								<i class="fa fa-google-plus"></i>
-							</a>
+                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Google Plus">
+                                <i class="fa fa-google-plus"></i>
+                            </a>
 						</div>
 					</div>
 				</div>
@@ -413,18 +416,19 @@
 					</div>
 				</div>
 			</div>
-		</div>
+                        </div>
 
-		<div class="bg6 flex-c-m flex-w size-302 m-t-73 p-tb-15">
-			<span class="stext-107 cl6 p-lr-25">SKU: <span id="js-sku-footer">{{ product.sku ?? '-' }}</span></span>
-			<span class="stext-107 cl6 p-lr-25">Category: {{ product.category ? product.category.name : '-' }}</span>
-		</div>
-	</section>
+        <div class="bg6 flex-c-m flex-w size-302 m-t-73 p-tb-15">
+            <span class="stext-107 cl6 p-lr-25">SKU: <span id="js-sku-footer">{{ product.sku ?? '-' }}</span></span>
+            <span class="stext-107 cl6 p-lr-25">Category: {{ product.category ? product.category.name : '-' }}</span>
+        </div>
+        </section>
 
     {# JS to render variant thumbnails in Select2 and update price/image/gallery on selection #}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         $('header').addClass('header-v4');
+
         // Build variantsData from server-side
         var variantsData = {};
         {% for v in product.productVariants %}
@@ -525,6 +529,76 @@
                 if (originalPriceEl) originalPriceEl.style.display = 'none';
                 if (offerBadgeWrap) offerBadgeWrap.style.display = 'none';
                 if (countdown) countdown.style.display = 'none';
+            }
+        }
+
+        // Helpers to keep header wishlist badge accurate for authenticated users
+        function setHeaderWishlistCount(count) {
+            try {
+                document.querySelectorAll('.icon-header-noti').forEach(function(icon){
+                    if (icon.querySelector('.zmdi-favorite-outline') || icon.querySelector('.zmdi-favorite')) {
+                        icon.setAttribute('data-notify', String(count));
+                    }
+                });
+            } catch(e){}
+        }
+        function getHeaderWishlistCount() {
+            try {
+                var icon = Array.prototype.find.call(document.querySelectorAll('.icon-header-noti'), function(ic){
+                    return ic.querySelector('.zmdi-favorite-outline') || ic.querySelector('.zmdi-favorite');
+                });
+                if (!icon) return 0;
+                var v = icon.getAttribute('data-notify');
+                var n = parseInt(v, 10);
+                return isNaN(n) ? 0 : n;
+            } catch(e) { return 0; }
+        }
+        function adjustHeaderWishlistCount(delta) {
+            var current = getHeaderWishlistCount();
+            var next = current + delta;
+            if (next < 0) next = 0;
+            setHeaderWishlistCount(next);
+        }
+        function refreshHeaderWishlistCountAuth() {
+            fetch('/wishlist', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r){ return r.json(); })
+                .then(function(list){
+                    var cnt = Array.isArray(list) ? list.length : 0;
+                    setHeaderWishlistCount(cnt);
+                    // let rest of UI know the list has changed
+                    document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: list } }));
+                })
+                .catch(function(){});
+        }
+
+        // Unified SweetAlert helpers (support SweetAlert2, SweetAlert v1, then alert)
+        function showWishlistAdded(name, info) {
+            var title = name || '{{ product.name|e('js') }}' || 'Product';
+            if (window.Swal && typeof Swal.fire === 'function') {
+                var currency = (info && info.currency) || '€';
+                var html = '<div style="font-weight:600">' + title + '</div>' +
+                           '<div style="margin-top:6px">' +
+                           ((info && info.hasOffer && info.originalPrice != null)
+                             ? ('<span style="color:#e74c3c;font-weight:700">' + currency + (info.price!=null?Number(info.price).toFixed(2):'') + '</span>' +
+                                '<span style="margin-left:8px;color:#777;text-decoration:line-through">' + currency + Number(info.originalPrice).toFixed(2) + '</span>')
+                             : ('<span>' + currency + (info && info.price!=null?Number(info.price).toFixed(2):'') + '</span>')) +
+                           '</div>' +
+                           '<div style="margin-top:8px;color:#333">is added to wishlist!</div>';
+                Swal.fire({ icon:'success', title:'Added to Wishlist', html: html, showConfirmButton:false, timer:1500 });
+            } else if (window.swal) {
+                window.swal(title, 'is added to wishlist!', 'success');
+            } else {
+                alert(title + ' has been added to your wishlist.');
+            }
+        }
+        function showWishlistRemoved(name) {
+            var title = name || '{{ product.name|e('js') }}' || 'Product';
+            if (window.Swal && typeof Swal.fire === 'function') {
+                Swal.fire({ icon:'info', title:'Removed from Wishlist', text: title + ' has been removed from your wishlist.', showConfirmButton:false, timer:1200 });
+            } else if (window.swal) {
+                window.swal(title, 'is removed from wishlist!', 'info');
+            } else {
+                alert(title + ' has been removed from your wishlist.');
             }
         }
 
@@ -684,6 +758,121 @@
         }
         // Initial trigger if an option is preselected (or user navigates back)
         if (selectEl.value) { handleVariantChange(); }
+    });
+    </script>
+    <script>
+    // Wishlist handling on the product detail page (guest + auth, variant-aware)
+    document.addEventListener('DOMContentLoaded', function() {
+        var wishBtn = document.querySelector('.js-addwish-detail');
+        if (!wishBtn) return;
+
+        function isGuest() {
+            return !(typeof window.isAuthenticated !== 'undefined' && (window.isAuthenticated === true || window.isAuthenticated === 'true'));
+        }
+
+        function getSelectedVariantId() {
+            var sel = document.querySelector('.js-variant-select');
+            if (!sel) return null;
+            var val = sel.value;
+            return (val && val !== 'product') ? val : null;
+        }
+
+        function updateHeart(filled) {
+            var icon = wishBtn.querySelector('i');
+            if (!icon) return;
+            if (filled) {
+                icon.classList.remove('zmdi-favorite-outline');
+                icon.classList.add('zmdi-favorite');
+                wishBtn.setAttribute('data-tooltip', 'Remove from Wishlist');
+            } else {
+                icon.classList.remove('zmdi-favorite');
+                icon.classList.add('zmdi-favorite-outline');
+                wishBtn.setAttribute('data-tooltip', 'Add to Wishlist');
+            }
+        }
+
+        function checkStatus() {
+            var productId = wishBtn.getAttribute('data-product-id');
+            var variantId = getSelectedVariantId();
+            if (isGuest()) {
+                try {
+                    var items = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                    var found = items.some(function(it){ return String(it.id) === String(productId) && String(it.variantId||'') === String(variantId||''); });
+                    updateHeart(found);
+                } catch(e) { updateHeart(false); }
+            } else {
+                var url = '/api/wishlist/check/' + productId + (variantId ? ('?variantId=' + encodeURIComponent(variantId)) : '');
+                fetch(url).then(function(r){return r.json();}).then(function(d){ updateHeart(!!d.inWishlist); }).catch(function(){ updateHeart(false); });
+            }
+        }
+
+        function readPriceInfo() {
+            var priceEl = document.querySelector('.js-product-price');
+            var originalEl = document.querySelector('.js-original-price');
+            var priceText = priceEl ? priceEl.textContent.trim() : '';
+            var originalText = (originalEl && originalEl.style.display !== 'none') ? originalEl.textContent.trim() : '';
+            var currency = priceText.replace(/[0-9.,\s-]/g, '') || '€';
+            function toNumber(txt){ try { return parseFloat(String(txt).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; } }
+            return { currency: currency, price: toNumber(priceText), originalPrice: originalText ? toNumber(originalText) : null, hasOffer: !!originalText };
+        }
+
+        function toggleWishlist() {
+            var productId = wishBtn.getAttribute('data-product-id');
+            var variantId = getSelectedVariantId();
+            if (isGuest()) {
+                var items = [];
+                try { items = JSON.parse(localStorage.getItem('wishlist') || '[]'); } catch(e){}
+                var idx = items.findIndex(function(it){ return String(it.id) === String(productId) && String(it.variantId||'') === String(variantId||''); });
+                var action = 'added';
+                if (idx >= 0) { items.splice(idx,1); action = 'removed'; }
+                else {
+                    var info = readPriceInfo();
+                    // Append selected color name to title if available
+                    var name = '{{ product.name|e('js') }}';
+                    var sel = document.querySelector('.js-variant-select');
+                    if (sel && sel.value && sel.value !== 'product') {
+                        var txt = sel.options[sel.selectedIndex].textContent.trim();
+                        if (txt) name = name + ' - ' + txt;
+                    }
+                    // Try to pick first gallery image
+                    var galImg = document.querySelector('.slick3.gallery-lb .item-slick3 img');
+                    var image = galImg ? galImg.getAttribute('src') : '';
+                    items.push({ id: productId, variantId: variantId || '', name: name, image: image, price: info.price, originalPrice: info.originalPrice, hasOffer: info.hasOffer, currency: info.currency, priceFormatted: info.currency + (info.price!=null?info.price.toFixed(2):''), originalPriceFormatted: info.originalPrice!=null ? (info.currency + info.originalPrice.toFixed(2)) : '' });
+                }
+                localStorage.setItem('wishlist', JSON.stringify(items));
+                // Update header count
+                try { var count = items.length; setHeaderWishlistCount(count); } catch(e){}
+                updateHeart(action === 'added');
+                // Feedback
+                var info2 = readPriceInfo();
+                var addedName = (items.find(function(it){return String(it.id)===String(productId)&&String(it.variantId||'')===String(variantId||'');})?.name || '{{ product.name|e('js') }}');
+                if (action === 'added') { showWishlistAdded(addedName, info2); } else { showWishlistRemoved(addedName); }
+                document.dispatchEvent(new CustomEvent('wishlistUpdated'));
+                return;
+            }
+            // Authenticated users -> API
+            fetch('/api/wishlist/toggle/'+productId, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ variantId: variantId }) })
+                .then(function(r){return r.json();})
+                .then(function(d){ if (!d || !d.success) return; updateHeart(d.inWishlist); if (d.action==='added') { adjustHeaderWishlistCount(1); } else { adjustHeaderWishlistCount(-1); } refreshHeaderWishlistCountAuth(); var baseName='{{ product.name|e('js') }}'; if (d.action==='added') { showWishlistAdded(baseName); } else { showWishlistRemoved(baseName); } document.dispatchEvent(new CustomEvent('wishlistUpdated')); })
+                .catch(function(){});
+        }
+
+        // Init
+        checkStatus();
+        // Bind click
+        wishBtn.addEventListener('click', function(e){ e.preventDefault(); toggleWishlist(); });
+        // Re-check when variant changes
+        var sel = document.querySelector('.js-variant-select');
+        if (sel) {
+            sel.addEventListener('change', checkStatus);
+            if (window.jQuery && window.jQuery(sel).data('select2')) {
+                window.jQuery(sel).on('select2:select', checkStatus);
+            }
+        }
+        // Re-check when wishlist is updated elsewhere (e.g., sidebar removal)
+        document.addEventListener('wishlistUpdated', function(){
+            try { checkStatus(); } catch(e){}
+        });
     });
     </script>
     <script>

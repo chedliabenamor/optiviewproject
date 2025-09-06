@@ -334,12 +334,19 @@
         // Update all product cards
         $('.js-addwish-b2').each(function() {
             var $btn = $(this);
-            var pid = $btn.data('product-id');
-            if (wishlist.find(item => item.id == pid)) {
-                $btn.addClass('js-addedwish-b2');
-            } else {
-                $btn.removeClass('js-addedwish-b2');
+            var pid = String($btn.data('product-id'));
+            var vid = $btn.data('variant-id'); // optional; most cards won't have this
+            var match = false;
+            if (Array.isArray(wishlist)) {
+                if (vid !== undefined && vid !== null && String(vid) !== '') {
+                    // Variant-specific button: require exact product + variant match
+                    match = wishlist.some(function(it){ return String(it.id) === pid && String(it.variantId || '') === String(vid); });
+                } else {
+                    // Base product card (no variant): highlight ONLY if the base product (no variant) is in wishlist
+                    match = wishlist.some(function(it){ return String(it.id) === pid && String(it.variantId || '') === ''; });
+                }
             }
+            if (match) { $btn.addClass('js-addedwish-b2'); } else { $btn.removeClass('js-addedwish-b2'); }
         });
         // Update header count
         var count = wishlist.length;
@@ -354,6 +361,18 @@
     // On page load, initialize wishlist
     getWishlist().then(function(wishlist) {
         updateWishlistUI(wishlist);
+    });
+
+    // Listen for global wishlist updates (e.g., sidebar removes) and refresh icons
+    document.addEventListener('wishlistUpdated', function(e){
+        try {
+            var items = e && e.detail && Array.isArray(e.detail.items) ? e.detail.items : null;
+            if (items) {
+                updateWishlistUI(items);
+            } else {
+                getWishlist().then(function(wishlist){ updateWishlistUI(wishlist); });
+            }
+        } catch(err) { /* noop */ }
     });
 
     // Re-sync wishlist icons after Slick carousel renders or tab is switched
@@ -380,11 +399,27 @@
     $(document).on('click', '.js-addwish-b2', function(e) {
         e.preventDefault();
         var $this = $(this);
+        // Read attributes (set by Twig) without JS-escaped sequences
+        var currency = $this.data('product-currency') || '€';
+        var hasOffer = String($this.data('product-has-offer')) === '1';
+        var price = parseFloat($this.data('product-price')); // discounted or normal
+        var original = $this.data('product-original-price');
+        var originalNum = original !== undefined && original !== '' ? parseFloat(original) : null;
+
+        function fmt(n){
+            try { var v = parseFloat(n); return isNaN(v) ? String(n) : v.toFixed(2); } catch(e){ return String(n); }
+        }
+
         var product = {
             id: $this.data('product-id'),
             name: $this.data('product-name'),
             image: $this.data('product-image'),
-            price: $this.data('product-price')
+            price: price, // numeric for operations
+            originalPrice: originalNum,
+            hasOffer: hasOffer,
+            currency: currency,
+            priceFormatted: currency + fmt(price),
+            originalPriceFormatted: originalNum !== null ? (currency + fmt(originalNum)) : ''
         };
         var isAuthenticated = (typeof window.isAuthenticated !== 'undefined' && window.isAuthenticated === true) || 
                             (typeof window.isAuthenticated === 'string' && window.isAuthenticated === 'true');
@@ -403,7 +438,7 @@
                         timer: 1200
                     });
                 } else if (typeof swal !== 'undefined') {
-                    swal(product.name, "is removed from wishlist!", "info");
+                    swal(product.name || 'Product', "is removed from wishlist!", "info");
                 } else {
                     alert(product.name + ' has been removed from your wishlist.');
                 }
@@ -417,14 +452,21 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'Added to Wishlist',
-                        text: product.name + ' has been added to your wishlist.',
+                        html: '<div style="font-weight:600">' + (product.name || 'Product') + '</div>' +
+                              '<div style="margin-top:6px">' + (product.hasOffer && product.originalPrice ? 
+                                    ('<span style="color:#e74c3c;font-weight:700">' + product.priceFormatted + '</span>' +
+                                     '<span style="margin-left:8px;color:#777;text-decoration:line-through">' + product.originalPriceFormatted + '</span>') :
+                                    ('<span>' + product.priceFormatted + '</span>')) +
+                              '</div>' +
+                              '<div style="margin-top:8px;color:#333">is added to wishlist!</div>',
                         showConfirmButton: false,
                         timer: 1500
                     });
                 } else if (typeof swal !== 'undefined') {
-                    swal(product.name, "is added to wishlist!", "success");
+                    var safeName = product.name || 'Product';
+                    swal(safeName + ' ' + (product.hasOffer && product.originalPrice ? ('- ' + product.priceFormatted + ' (was ' + product.originalPriceFormatted + ')') : ('- ' + product.priceFormatted)), "is added to wishlist!", "success");
                 } else {
-                    alert(product.name + ' has been added to your wishlist.');
+                    alert((product.name || 'Product') + ' has been added to your wishlist.');
                 }
             });
         }
