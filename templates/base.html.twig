@@ -160,6 +160,23 @@
     })();
     </script>
 
+    <!-- Format free shipping threshold text -->
+    <script>
+    (function(){
+        function formatFreeShipping(){
+            if (!window.Currency) return;
+            document.querySelectorAll('.js-free-ship-amt').forEach(function(el){
+                var eur = parseFloat(el.getAttribute('data-amount-eur') || '');
+                if (!isNaN(eur)) {
+                    el.textContent = window.Currency.format(eur);
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function(){ setTimeout(formatFreeShipping, 100); });
+        document.addEventListener('currencyChanged', formatFreeShipping);
+    })();
+    </script>
+
     <!-- Merge guest wishlist into user account on login -->
     <script>
     document.addEventListener('DOMContentLoaded', function(){
