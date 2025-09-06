@@ -179,6 +179,42 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>`;
                 $gallery.append(item);
             });
+
+    // Reformat visible price when currency changes (if modal is open)
+    document.addEventListener('currencyChanged', function(){
+        try {
+            if (!quickViewModal.classList.contains('show-modal1')) return;
+            var priceEl = quickViewModal.querySelector('.js-product-price');
+            var originalEl = quickViewModal.querySelector('.js-original-price');
+            if (!priceEl) return;
+            // Determine current context: variant selected or main
+            var variantId = quickViewModal.querySelector('.js-addcart-detail')?.dataset?.variantId || '';
+            function applyPair(discounted, original){
+                if (original != null && original !== '') {
+                    priceEl.textContent = formatPrice(discounted);
+                    priceEl.style.color = '#e74c3c';
+                    priceEl.style.fontWeight = 'bold';
+                    if (originalEl) { originalEl.style.display = 'inline'; originalEl.textContent = formatPrice(original); }
+                } else {
+                    priceEl.textContent = formatPrice(discounted);
+                    priceEl.style.color = '';
+                    priceEl.style.fontWeight = '';
+                    if (originalEl) originalEl.style.display = 'none';
+                }
+            }
+            if (variantId) {
+                var v = (productData.productVariants || []).find(function(vv){ return String(vv.id) === String(variantId); });
+                if (v) {
+                    if (v.offer && v.offer.has_offer) applyPair(v.offer.discounted_price, v.offer.original_price);
+                    else applyPair(v.price, null);
+                    return;
+                }
+            }
+            // Fallback to main product
+            if (productData.offer) applyPair(productData.offer.discounted_price, productData.offer.original_price);
+            else applyPair(productData.price, null);
+        } catch(e){}
+    });
         }
 
         $gallery.slick({

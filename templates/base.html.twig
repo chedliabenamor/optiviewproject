@@ -163,27 +163,31 @@
     <!-- Merge guest wishlist into user account on login -->
     <script>
     document.addEventListener('DOMContentLoaded', function(){
-        // Highlight active currency in header
+        // Highlight active currency in header / set selects
         try {
             var cur = (window.Currency && window.Currency.current) || 'EUR';
-            document.querySelectorAll('.js-currency-option').forEach(function(el){
-                if (String(el.getAttribute('data-currency')) === cur) {
-                    el.classList.add('active');
-                } else {
-                    el.classList.remove('active');
-                }
-            });
-            // Click handlers
-            document.querySelectorAll('.js-currency-option').forEach(function(el){
-                el.addEventListener('click', function(e){
-                    e.preventDefault();
-                    var sel = el.getAttribute('data-currency');
-                    if (window.Currency && (sel === 'EUR' || sel === 'USD')) {
-                        window.Currency.set(sel);
-                        document.querySelectorAll('.js-currency-option').forEach(function(o){
-                            if (o.getAttribute('data-currency') === sel) { o.classList.add('active'); }
-                            else { o.classList.remove('active'); }
-                        });
+            // Legacy button support (if any remain)
+            var legacyBtns = document.querySelectorAll('.js-currency-option');
+            if (legacyBtns.length) {
+                legacyBtns.forEach(function(el){
+                    if (String(el.getAttribute('data-currency')) === cur) { el.classList.add('active'); } else { el.classList.remove('active'); }
+                    el.addEventListener('click', function(e){
+                        e.preventDefault();
+                        var sel = el.getAttribute('data-currency');
+                        if (window.Currency && (sel === 'EUR' || sel === 'USD')) {
+                            window.Currency.set(sel);
+                            legacyBtns.forEach(function(o){ if (o.getAttribute('data-currency') === sel) { o.classList.add('active'); } else { o.classList.remove('active'); } });
+                        }
+                    });
+                });
+            }
+            // New <select> controls
+            document.querySelectorAll('.js-currency-select').forEach(function(sel){
+                try { sel.value = cur; } catch(e){}
+                sel.addEventListener('change', function(){
+                    var val = sel.value;
+                    if (window.Currency && (val === 'EUR' || val === 'USD')) {
+                        window.Currency.set(val);
                     }
                 });
             });

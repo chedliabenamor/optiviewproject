@@ -458,6 +458,20 @@
         // Reformat product price on currency change (re-uses Quick View API data)
         document.addEventListener('currencyChanged', function(){
             if (!window.Currency) return;
+            // Instant local reformat using current state
+            try {
+                var selNow = document.querySelector('.js-variant-select');
+                var vidNow = selNow && selNow.value ? selNow.value : null;
+                var ovNow = vidNow && offerState && offerState.variantOffers ? (offerState.variantOffers[vidNow] || null) : (offerState ? offerState.productOffer : null);
+                var baseNow = null;
+                if (selNow && selNow.options && selNow.selectedIndex >= 0) {
+                    var optNow = selNow.options[selNow.selectedIndex];
+                    var dp = optNow ? (optNow.getAttribute('data-price') || optNow.dataset.price) : null;
+                    if (dp != null && dp !== '') { var n = parseFloat(dp); if (!isNaN(n)) baseNow = n; }
+                }
+                updateOfferUI(ovNow, baseNow);
+            } catch(e){}
+            // Then refresh from API for authoritative data
             fetch('{{ path('api_product_quick_view', { id: product.id }) }}')
                 .then(function(r){ return r.json(); })
                 .then(function(d){

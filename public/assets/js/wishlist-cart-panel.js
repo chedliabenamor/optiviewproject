@@ -193,11 +193,37 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    // Helpers to determine auth and reload wishlist
+    function isAuth(){ return (typeof window.isAuthenticated !== 'undefined') && (window.isAuthenticated === true || window.isAuthenticated === 'true'); }
+    function reloadWishlistFromSource(){
+        return new Promise(function(resolve){
+            if (!isAuth()) {
+                // Guest -> localStorage
+                try {
+                    var items = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                    resolve(Array.isArray(items) ? items : []);
+                } catch(e){ resolve([]); }
+                return;
+            }
+            // Authenticated -> fetch from server (expects JSON array like header count fetch)
+            fetch('/wishlist', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r){ return r.json(); })
+                .then(function(arr){ resolve(Array.isArray(arr) ? arr : []); })
+                .catch(function(){ resolve([]); });
+        });
+    }
+
     // Re-render prices on currency change
     document.addEventListener('currencyChanged', function(){
         if (_lastWishlistItems && _lastWishlistItems.length) {
             renderWishlistItems(_lastWishlistItems);
+            return;
         }
+        // If we don't have a cached list yet, reload from source so we can format values
+        reloadWishlistFromSource().then(function(items){
+            _lastWishlistItems = items;
+            renderWishlistItems(items);
+        });
     });
 
     function renderWishlistEmpty() {
