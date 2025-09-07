@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Search: {{ query ?: '' }}{% endblock %}
+
+{% block body %}
+{# Breadcrumbs #}
+<div class="container p-t-30">
+  <div class="flex-w flex-sb-m">
+    <div class="flex-w p-t-10 p-b-10">
+      <a href="{{ path('app_home') }}" class="stext-109 cl8 hov-cl1 trans-04">
+        Home
+        <i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
+      </a>
+      <span class="stext-109 cl4">Search</span>
+      {% if query %}
+        <i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
+        <span class="stext-109 cl4">{{ query }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<section class="bg0 p-t-23 p-b-140">
+  <div class="container">
+    <div class="p-b-20">
+      <h3 class="ltext-103 cl5">Search</h3>
+      {% if query %}
+        <p class="stext-109 cl6">Results for "<strong>{{ query }}</strong>"</p>
+      {% else %}
+        <p class="stext-109 cl6">Type a keyword to search.</p>
+      {% endif %}
+    </div>
+
+    {# Products #}
+    <div class="p-b-30">
+      <h4 class="mtext-105 cl2 p-b-20">Products ({{ products|length }})</h4>
+      {% if products|length > 0 %}
+        <div class="row isotope-grid" id="search-grid-products">
+          {% for product in products %}
+            <div class="product-item-wrapper">
+              {% include 'partials/products/_product_card.html.twig' with { product: product } %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="stext-109 cl6">No matching products.</p>
+      {% endif %}
+    </div>
+
+    {# Brands #}
+    <div class="p-b-30">
+      <h4 class="mtext-105 cl2 p-b-12">Brands ({{ brands|length }})</h4>
+      {% if brands|length > 0 %}
+        <ul class="stext-109 cl6" style="columns: 2; -webkit-columns: 2; -moz-columns: 2;">
+          {% for brand in brands %}
+            <li style="margin-bottom: 6px;">{{ brand.name }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="stext-109 cl6">No matching brands.</p>
+      {% endif %}
+    </div>
+
+    {# Categories #}
+    <div class="p-b-30">
+      <h4 class="mtext-105 cl2 p-b-12">Categories ({{ categories|length }})</h4>
+      {% if categories|length > 0 %}
+        <ul class="stext-109 cl6" style="columns: 2; -webkit-columns: 2; -moz-columns: 2;">
+          {% for category in categories %}
+            <li style="margin-bottom: 6px;">{{ category.name }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="stext-109 cl6">No matching categories.</p>
+      {% endif %}
+    </div>
+
+    {# Posts #}
+    <div class="p-b-10">
+      <h4 class="mtext-105 cl2 p-b-12">Posts ({{ posts|length }})</h4>
+      {% if posts|length > 0 %}
+        <ul class="stext-109 cl6">
+          {% for post in posts %}
+            <li style="margin-bottom: 6px;">
+              <div class="stext-109 cl5" style="font-weight:600;">
+                <a href="{{ path('blog_post_show', { slug: post.slug }) }}" class="hov-cl1 trans-04">{{ post.title }}</a>
+              </div>
+              {% if post.excerpt is defined and post.excerpt %}
+                <div class="stext-109 cl6" style="font-size: 0.95em; color:#777;">{{ post.excerpt }}</div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="stext-109 cl6">No matching posts.</p>
+      {% endif %}
+    </div>
+  </div>
+  
+</section>
+<script>
+     document.addEventListener('DOMContentLoaded', function() {
+        $('header').addClass('header-v4');
+    });
+</script>
+{% endblock %}
