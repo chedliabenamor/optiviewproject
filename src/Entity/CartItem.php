@@ -25,6 +25,10 @@ class CartItem
     #[Assert\NotNull]
     private ?Product $product = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?ProductVariant $productVariant = null;
+
     #[ORM\Column(type: Types::INTEGER)]
     #[Assert\NotBlank]
     #[Assert\Positive]
@@ -62,6 +66,21 @@ class CartItem
         // When setting product, also set the unitPrice from product's current price
         if ($product) {
             $this->setUnitPrice($product->getPrice());
+        }
+        return $this;
+    }
+
+    public function getProductVariant(): ?ProductVariant
+    {
+        return $this->productVariant;
+    }
+
+    public function setProductVariant(?ProductVariant $variant): static
+    {
+        $this->productVariant = $variant;
+        if ($variant && method_exists($variant, 'getPrice')) {
+            // If a variant is selected, the unit price should reflect the variant's current price
+            $this->setUnitPrice($variant->getPrice());
         }
         return $this;
     }

@@ -713,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(() => {});
     }
 
-    // Quantity increment/decrement functionality
+    // Quantity increment/decrement functionality and actions inside modal
     quickViewModal.addEventListener('click', function (e) {
         // Handle quantity decrease
         if (e.target.closest('.btn-num-product-down')) {
@@ -734,6 +734,74 @@ document.addEventListener('DOMContentLoaded', function () {
             const input = btn.previousElementSibling;
             const currentValue = parseInt(input.value) || 1;
             input.value = currentValue + 1;
+            return;
+        }
+
+        // Handle Add to Cart
+        const addToCartBtn = e.target.closest('.js-addcart-detail');
+        if (addToCartBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            try {
+                // Block if out of stock (button disabled by updateStockStatus)
+                if (addToCartBtn.disabled) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: 'Out of Stock', text: 'This product is currently unavailable.', timer: 1200, showConfirmButton: false });
+                    }
+                    return;
+                }
+                const productId = addToCartBtn.dataset.productId;
+                const variantId = addToCartBtn.dataset.variantId || '';
+                const qtyInput = quickViewModal.querySelector('.num-product');
+                const quantity = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+                // Read displayed name
+                const nameEl = quickViewModal.querySelector('.js-product-name');
+                const productName = nameEl ? nameEl.textContent.trim() : '';
+
+                // Read displayed price (already formatted in UI)
+                const priceEl = quickViewModal.querySelector('.js-product-price');
+                let priceNum = 0;
+                if (priceEl) {
+                    try { priceNum = parseFloat(String(priceEl.textContent).replace(/[^0-9.\-]/g, '')) || 0; } catch(_) { priceNum = 0; }
+                }
+
+                // Use the first/main image visible in the slider
+                let productImage = '';
+                const currentImg = quickViewModal.querySelector('.slick3 .item-slick3.slick-current img') || quickViewModal.querySelector('.slick3 .item-slick3 img');
+                if (currentImg) { productImage = currentImg.getAttribute('src') || ''; }
+                if (!productImage && productData && productData.overviewImage) { productImage = productData.overviewImage; }
+
+                // Derive variant display name (e.g., selected color) if available
+                let variantName = '';
+                const colorSel = quickViewModal.querySelector('.js-select-color');
+                if (colorSel && colorSel.value && colorSel.value !== 'main' && colorSel.options[colorSel.selectedIndex]) {
+                    variantName = colorSel.options[colorSel.selectedIndex].textContent.trim();
+                }
+
+                // Dispatch global addToCart so the cart panel logic handles storage and UI
+                const addToCartEvent = new CustomEvent('addToCart', {
+                    detail: {
+                        productId: productId,
+                        productName: productName,
+                        productPrice: priceNum,
+                        productImage: productImage,
+                        quantity: quantity,
+                        variantId: variantId,
+                        variantName: variantName
+                    },
+                    bubbles: true
+                });
+                document.dispatchEvent(addToCartEvent);
+
+                // Optional: immediate feedback
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ position: 'top-end', icon: 'success', title: 'Added to cart!', showConfirmButton: false, timer: 1000 });
+                }
+            } catch (err) {
+                console.error('Failed to add to cart from quick-view:', err);
+            }
             return;
         }
         

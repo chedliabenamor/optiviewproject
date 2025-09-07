@@ -87,6 +87,7 @@
                                 <span class="mtext-106 cl2 js-product-price" id="js-price">€{{ product.price|number_format(2, '.', ',') }}</span>
                                 <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: none;"></span>
                                 <span class="js-product-currency"></span>
+                                <div class="js-inline-stock-status stext-110 m-t-6"></div>
                             </div>
 
                             <!-- Countdown Timer -->
@@ -200,8 +201,12 @@
 										</div>
 									</div>
 
-									<button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail">
-										Add to cart
+									<button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail"
+                                            data-product-id="{{ product.id }}"
+                                            data-variant-id=""
+                                            data-variant-name=""
+                                            {{ product.getTotalStock() <= 0 ? 'disabled' : '' }}>
+                                        Add to cart
                                     </button>
                                 </div>
                             </div>
@@ -970,6 +975,122 @@
         document.addEventListener('wishlistUpdated', function(){
             try { checkStatus(); } catch(e){}
         });
+
+        // =====================
+        // Add to Cart (Detail) 
+        // =====================
+        (function initDetailAddToCart(){
+            var addBtn = document.querySelector('.js-addcart-detail');
+            if (!addBtn) return;
+            // Ensure product id present
+            addBtn.dataset.productId = addBtn.dataset.productId || '{{ product.id }}';
+
+            // Helper: parse number from price text
+            function parsePriceText(txt){ try { return parseFloat(String(txt).replace(/[^0-9.\-]/g,'')) || 0; } catch(e){ return 0; } }
+
+            // Track variant selection and stock
+            var variantSelect = document.querySelector('.js-variant-select');
+            var stockInlineEl = document.querySelector('.js-inline-stock-status');
+            function setInlineStockStatus(stock){
+                if (!stockInlineEl) return;
+                var n = parseInt(stock, 10);
+                if (isNaN(n) || n <= 0) {
+                    stockInlineEl.textContent = 'Out of stock';
+                    stockInlineEl.style.color = '#dc3545';
+                } else {
+                    stockInlineEl.textContent = 'Available';
+                    stockInlineEl.style.color = '#28a745';
+                }
+            }
+            function applyStockStateFromOption(opt){
+                var stockAttr = opt ? opt.getAttribute('data-stock') : '{{ product.getTotalStock() }}';
+                var stock = stockAttr != null && stockAttr !== '' ? parseInt(stockAttr, 10) : 0;
+                if (isNaN(stock)) stock = 0;
+                // Disable/enable button
+                addBtn.disabled = stock <= 0;
+                // Update inline status under price
+                setInlineStockStatus(stock);
+            }
+            function onVariantChange(){
+                if (!variantSelect) return;
+                var selOpt = variantSelect.options[variantSelect.selectedIndex];
+                if (!selOpt) return;
+                var val = variantSelect.value;
+                if (val && val !== 'product') {
+                    addBtn.dataset.variantId = String(val);
+                    addBtn.dataset.variantName = selOpt.getAttribute('data-color-name') || '';
+                } else {
+                    addBtn.dataset.variantId = '';
+                    addBtn.dataset.variantName = selOpt.getAttribute('data-color-name') || '';
+                }
+                applyStockStateFromOption(selOpt);
+            }
+            if (variantSelect) {
+                // Initialize from current selection
+                onVariantChange();
+                // Bind change handler
+                if (typeof window.jQuery !== 'undefined') {
+                    jQuery(variantSelect).on('change', onVariantChange);
+                } else {
+                    variantSelect.addEventListener('change', onVariantChange);
+                }
+            } else {
+                // No variants: apply product-level stock and set inline status
+                applyStockStateFromOption(null);
+            }
+
+            // Click handler to dispatch global addToCart event
+            document.addEventListener('click', function(e){
+                var btn = e.target.closest('.js-addcart-detail');
+                if (!btn) return;
+                // Ensure we are on product detail page button
+                if (!btn.isSameNode(addBtn)) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Block if disabled (out of stock)
+                if (btn.disabled) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: 'Out of Stock', text: 'This product is currently unavailable.', timer: 1200, showConfirmButton: false });
+                    }
+                    return;
+                }
+
+                try {
+                    var productId = btn.dataset.productId;
+                    var variantId = btn.dataset.variantId || '';
+                    var variantName = btn.dataset.variantName || '';
+                    var qtyInput = document.querySelector('.num-product');
+                    var quantity = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+                    var nameEl = document.querySelector('.js-name-detail') || document.querySelector('.js-product-name');
+                    var productName = nameEl ? nameEl.textContent.trim() : '';
+
+                    var priceEl = document.querySelector('.js-product-price');
+                    var priceNum = priceEl ? parsePriceText(priceEl.textContent) : 0;
+
+                    var curImg = document.querySelector('.slick3 .item-slick3.slick-current img') || document.querySelector('.slick3 .item-slick3 img');
+                    var productImage = curImg ? (curImg.getAttribute('src') || '') : ('{{ product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : '' }}');
+
+                    var evt = new CustomEvent('addToCart', { detail: {
+                        productId: productId,
+                        productName: productName,
+                        productPrice: priceNum,
+                        productImage: productImage,
+                        quantity: quantity,
+                        variantId: variantId,
+                        variantName: variantName
+                    }, bubbles: true });
+                    document.dispatchEvent(evt);
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ position: 'top-end', icon: 'success', title: 'Added to cart!', showConfirmButton: false, timer: 1000 });
+                    }
+                } catch(err) {
+                    console.error('Failed to add to cart from product detail:', err);
+                }
+            });
+        })();
     });
     </script>
     <script>

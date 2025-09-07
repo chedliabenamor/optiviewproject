@@ -1415,7 +1415,10 @@ h2#access-title, h2#privacy-title, h2.contact {
   }
 }
 
-
+button.flex-c-m.stext-101.cl0.size-101.bg1.bor1.hov-btn1.p-lr-15.trans-04.js-addcart-detail:disabled {
+  opacity: 0.7;
+  background: #8a7979;
+}
 /*//////////////////////////////////////////////////////////////////
 [ Slick2 ]*/
 

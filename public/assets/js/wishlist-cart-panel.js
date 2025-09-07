@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function (e) {
             e.preventDefault();
             cartPanel.classList.add('show-header-cart');
+            try { renderCartFromSource(); } catch(e) { /* noop */ }
         });
     });
     cartHideBtns.forEach(function (btn) {
@@ -276,7 +277,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         data-product-id="${item.id}" 
                         data-product-name="${name}" 
                         data-product-price="${priceNum !== null && !isNaN(priceNum) ? priceNum : ''}"
-                        data-product-image="${item.image || ''}">
+                        data-product-image="${item.image || ''}"
+                        data-variant-id="${item.variantId || ''}"
+                        data-variant-name="${item.variantName || ''}">
                     Add to Cart
                 </button>`;
                 
@@ -309,6 +312,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const productName = addToCartBtn.getAttribute('data-product-name');
             const productPrice = addToCartBtn.getAttribute('data-product-price');
             const productImage = addToCartBtn.getAttribute('data-product-image');
+            const variantId = addToCartBtn.getAttribute('data-variant-id') || '';
+            const variantName = addToCartBtn.getAttribute('data-variant-name') || '';
             
             // Create an event that the main cart handler will catch
             const addToCartEvent = new CustomEvent('addToCart', {
@@ -317,7 +322,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     productName: productName,
                     productPrice: productPrice,
                     productImage: productImage,
-                    quantity: 1
+                    quantity: 1,
+                    variantId: variantId,
+                    variantName: variantName
                 },
                 bubbles: true
             });
@@ -337,4 +344,301 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // ====================
+    // Cart Functions (Guest + Auth)
+    // ====================
+    function isAuth(){ return (typeof window.isAuthenticated !== 'undefined') && (window.isAuthenticated === true || window.isAuthenticated === 'true'); }
+
+    function getCart() {
+        if (isAuth()) { return []; /* unused for auth; use getCartFromServer */ }
+        try {
+            var raw = localStorage.getItem('cart') || '[]';
+            var arr = JSON.parse(raw);
+            return Array.isArray(arr) ? arr : [];
+        } catch(e) { return []; }
+    }
+
+    function saveCart(items) {
+        try { localStorage.setItem('cart', JSON.stringify(items || [])); } catch(e) { /* noop */ }
+    }
+
+    function addItemToCart(item) {
+        if (isAuth()) { return null; }
+        var cart = getCart();
+        var existing = cart.find(function(ci){ return String(ci.id) === String(item.id) && String(ci.variantId || '') === String(item.variantId || ''); });
+        if (existing) {
+            existing.quantity = (parseInt(existing.quantity || 1, 10) + parseInt(item.quantity || 1, 10));
+        } else {
+            cart.push({
+                id: item.id,
+                variantId: item.variantId || '',
+                name: item.name,
+                variantName: item.variantName || '',
+                price: parseFloat(item.price || 0) || 0,
+                image: item.image || '',
+                quantity: parseInt(item.quantity || 1, 10)
+            });
+        }
+        saveCart(cart);
+        return cart;
+    }
+
+    function removeItemFromCart(productId, variantId) {
+        if (isAuth()) { return null; }
+        var cart = getCart().filter(function(ci){ return !(String(ci.id) === String(productId) && String(ci.variantId || '') === String(variantId || '')); });
+        saveCart(cart);
+        return cart;
+    }
+
+    function updateCartBadge(count) {
+        try {
+            document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
+                if (icon.querySelector('.zmdi-shopping-cart')) {
+                    icon.setAttribute('data-notify', String(count));
+                }
+            });
+        } catch(e) { /* noop */ }
+    }
+
+    function formatCurrency(num) {
+        var n = parseFloat(num);
+        if (window.Currency && typeof window.Currency.format === 'function') {
+            return window.Currency.format(n);
+        }
+        if (isNaN(n)) return '€0.00';
+        return '€' + n.toFixed(2);
+    }
+
+    var _lastCartItems = null;
+    function normalizeServerCart(cart){
+        try {
+            var items = (cart && Array.isArray(cart.items)) ? cart.items : [];
+            return items.map(function(it){ return {
+                id: it.productId,
+                variantId: it.variantId || '',
+                name: it.name,
+                variantName: it.variantName || '',
+                image: it.image || '',
+                price: typeof it.unitPrice === 'number' ? it.unitPrice : parseFloat(it.unitPrice || 0) || 0,
+                quantity: typeof it.quantity === 'number' ? it.quantity : parseInt(it.quantity || 1, 10)
+            }; });
+        } catch(e){ return []; }
+    }
+    function renderCartItems(items) {
+        var list = document.getElementById('cart-items-list');
+        var totalEl = document.getElementById('cart-total');
+        if (!list || !totalEl) return;
+        list.innerHTML = '';
+        if (!items || items.length === 0) {
+            list.innerHTML = '<li class="header-cart-item flex-w flex-t m-b-12"><span class="stext-110 cl2">Your cart is empty.</span></li>';
+            totalEl.textContent = 'Total: ' + formatCurrency(0);
+            updateCartBadge(0);
+            _lastCartItems = [];
+            try { document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { items: [] } })); } catch(e) {}
+            return;
+        }
+        _lastCartItems = items.slice();
+        var total = 0;
+        items.forEach(function(ci){
+            var name = (ci.name || '').replace(/\u([0-9a-fA-F]{4})/g, function(m,g1){ return String.fromCharCode(parseInt(g1,16)); });
+            var variantName = (ci.variantName || '').replace(/\u([0-9a-fA-F]{4})/g, function(m,g1){ return String.fromCharCode(parseInt(g1,16)); });
+            var price = parseFloat(ci.price || 0) || 0;
+            var qty = parseInt(ci.quantity || 1, 10);
+            var imgHtml = ci.image ? '<img src="' + ci.image + '" alt="' + name + '">' : '';
+            var line = price * qty;
+            total += line;
+            var li = document.createElement('li');
+            li.className = 'header-cart-item flex-w flex-t m-b-12';
+            li.innerHTML = `
+                <div class="header-cart-item-img">${imgHtml}</div>
+                <div class="header-cart-item-txt p-t-8">
+                    <a href="/product/${ci.id}" class="header-cart-item-name m-b-18 hov-cl1 trans-04">${name}</a>
+                    ${variantName ? `<div class="stext-110 cl2 m-b-6 d-none">Variant: ${variantName}</div>` : ''}
+                    <div class="flex-w flex-m m-b-6">
+                        <button class="cart-qty-minus size-28 flex-c-m cl2 hov-cl1 trans-04" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}" title="Decrease">-</button>
+                        <span class="m-lr-10 stext-110 cart-qty-value" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}">${qty}</span>
+                        <button class="cart-qty-plus size-28 flex-c-m cl2 hov-cl1 trans-04" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}" title="Increase">+</button>
+                        <span class="m-l-12 header-cart-item-info">x ${formatCurrency(price)}</span>
+                    </div>
+                    <button class="cart-remove-btn stext-110 cl2 p-t-8" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}" title="Remove"><i class="zmdi zmdi-close"></i></button>
+                </div>`;
+            list.appendChild(li);
+        });
+        totalEl.textContent = 'Total: ' + formatCurrency(total);
+        updateCartBadge(items.reduce(function(sum, it){ return sum + (parseInt(it.quantity || 1, 10)); }, 0));
+        try { document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { items: _lastCartItems } })); } catch(e) {}
+    }
+
+    function renderCartFromSource() {
+        if (isAuth()) {
+            fetch('/api/cart')
+                .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                .then(function(cart){ var items = normalizeServerCart(cart); renderCartItems(items); })
+                .catch(function(){ renderCartItems([]); });
+            return;
+        }
+        // Guest
+        var items = getCart();
+        renderCartItems(items);
+    }
+
+    // Re-render cart when currency changes
+    document.addEventListener('currencyChanged', function(){
+        if (_lastCartItems && _lastCartItems.length) {
+            renderCartItems(_lastCartItems);
+        } else {
+            renderCartFromSource();
+        }
+    });
+
+    // Remove-from-cart (delegated)
+    var cartList = document.getElementById('cart-items-list');
+    if (cartList) {
+        cartList.addEventListener('click', function(e){
+            var target = e.target;
+            // Quantity decrement
+            var minus = target.closest ? target.closest('.cart-qty-minus') : (target.classList.contains('cart-qty-minus') ? target : null);
+            if (minus) {
+                var pid = minus.getAttribute('data-product-id');
+                var vid = minus.getAttribute('data-variant-id') || '';
+                if (isAuth()) {
+                    var qtyEl = cartList.querySelector('.cart-qty-value[data-product-id="' + pid + '"][data-variant-id="' + vid + '"]');
+                    var current = qtyEl ? parseInt(qtyEl.textContent) || 1 : 1;
+                    var next = current - 1;
+                    fetch('/api/cart/update', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ productId: pid, variantId: vid || null, quantity: next }) })
+                        .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                        .then(function(resp){ var items = normalizeServerCart(resp.cart || resp); renderCartItems(items); })
+                        .catch(function(){});
+                } else {
+                    var items = getCart();
+                    var idx = items.findIndex(function(ci){ return String(ci.id) === String(pid) && String(ci.variantId||'') === String(vid||''); });
+                    if (idx >= 0) {
+                        items[idx].quantity = Math.max(0, parseInt(items[idx].quantity||1,10) - 1);
+                        if (items[idx].quantity <= 0) { items.splice(idx,1); }
+                        saveCart(items);
+                        renderCartItems(items);
+                    }
+                }
+                return;
+            }
+            // Quantity increment
+            var plus = target.closest ? target.closest('.cart-qty-plus') : (target.classList.contains('cart-qty-plus') ? target : null);
+            if (plus) {
+                var pid2 = plus.getAttribute('data-product-id');
+                var vid2 = plus.getAttribute('data-variant-id') || '';
+                if (isAuth()) {
+                    var qtyEl2 = cartList.querySelector('.cart-qty-value[data-product-id="' + pid2 + '"][data-variant-id="' + vid2 + '"]');
+                    var current2 = qtyEl2 ? parseInt(qtyEl2.textContent) || 1 : 1;
+                    var next2 = current2 + 1;
+                    fetch('/api/cart/update', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ productId: pid2, variantId: vid2 || null, quantity: next2 }) })
+                        .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                        .then(function(resp){ var items2 = normalizeServerCart(resp.cart || resp); renderCartItems(items2); })
+                        .catch(function(){});
+                } else {
+                    var items2 = getCart();
+                    var idx2 = items2.findIndex(function(ci){ return String(ci.id) === String(pid2) && String(ci.variantId||'') === String(vid2||''); });
+                    if (idx2 >= 0) {
+                        items2[idx2].quantity = parseInt(items2[idx2].quantity||1,10) + 1;
+                        saveCart(items2);
+                        renderCartItems(items2);
+                    }
+                }
+                return;
+            }
+            var btn = target.classList.contains('cart-remove-btn') ? target : (target.closest ? target.closest('.cart-remove-btn') : null);
+            if (!btn) return;
+            var pid = btn.getAttribute('data-product-id');
+            var vid = btn.getAttribute('data-variant-id') || '';
+            if (isAuth()) {
+                fetch('/api/cart/remove', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: pid, variantId: vid }) })
+                    .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                    .then(function(resp){ var items = normalizeServerCart(resp.cart || resp); renderCartItems(items); })
+                    .catch(function(){ /* noop */ });
+                return;
+            }
+            var updated = removeItemFromCart(pid, vid);
+            renderCartItems(updated);
+        });
+    }
+
+    // Main add-to-cart handler (listens to events from wishlist or product pages)
+    document.addEventListener('addToCart', function(e){
+        try {
+            var d = e && e.detail ? e.detail : {};
+            if (isAuth()) {
+                fetch('/api/cart/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: d.productId, variantId: d.variantId || null, quantity: d.quantity || 1 }) })
+                    .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                    .then(function(resp){ var items = normalizeServerCart(resp.cart || resp); renderCartItems(items); })
+                    .catch(function(){ /* noop */ });
+            } else {
+                var product = {
+                    id: d.productId,
+                    variantId: d.variantId || '',
+                    name: d.productName,
+                    variantName: d.variantName || '',
+                    price: d.productPrice,
+                    image: d.productImage,
+                    quantity: d.quantity || 1
+                };
+                var updated = addItemToCart(product);
+                renderCartItems(updated);
+            }
+            // Remove from guest wishlist if present (use event detail IDs, works for both branches)
+            try {
+                var wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                var remPid = d && d.productId ? String(d.productId) : null;
+                var remVid = d && (d.variantId !== undefined && d.variantId !== null) ? String(d.variantId) : '';
+                if (remPid !== null) {
+                    wishlist = wishlist.filter(function(it){ return !(String(it.id) === remPid && String(it.variantId || '') === remVid); });
+                }
+                localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                // Update wishlist UI count
+                document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
+                    if (icon.querySelector('.zmdi-favorite-outline')) {
+                        icon.setAttribute('data-notify', String(wishlist.length));
+                    }
+                });
+                // If the wishlist panel is open, re-render its list
+                if (wishlistPanel && wishlistPanel.classList.contains('show-header-cart')) {
+                    renderWishlistItems(wishlist);
+                }
+                // Broadcast update for other components
+                document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: wishlist } }));
+            } catch(err) { /* noop */ }
+        } catch(err) { /* noop */ }
+    });
+
+    // Merge guest cart into server cart on login
+    function mergeGuestCartIfNeeded(){
+        try {
+            if (!isAuth()) return;
+            if (sessionStorage.getItem('cart_merged') === '1') return;
+            var items = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (!Array.isArray(items) || items.length === 0) return;
+            var payload = { items: items.map(function(it){ return { productId: it.id, variantId: it.variantId || null, quantity: parseInt(it.quantity || 1, 10) }; }) };
+            fetch('/api/cart/merge', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                .then(function(){ localStorage.removeItem('cart'); sessionStorage.setItem('cart_merged','1'); renderCartFromSource(); })
+                .catch(function(){});
+        } catch(e) { /* noop */ }
+    }
+
+    // Initialize badges/lists on load
+    (function initCartUI(){
+        try {
+            if (isAuth()) {
+                mergeGuestCartIfNeeded();
+                // Load from server to set badge
+                fetch('/api/cart')
+                    .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                    .then(function(cart){ var items = normalizeServerCart(cart); updateCartBadge(items.reduce(function(sum, it){ return sum + (parseInt(it.quantity || 1, 10)); }, 0)); })
+                    .catch(function(){ updateCartBadge(0); });
+            } else {
+                var items = getCart();
+                updateCartBadge(items.reduce(function(sum, it){ return sum + (parseInt(it.quantity || 1, 10)); }, 0));
+            }
+            // Do not render list immediately to avoid layout cost; it will render when opened
+        } catch(e) { /* noop */ }
+    })();
 });
