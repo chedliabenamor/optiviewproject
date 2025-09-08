@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20250826180851 extends AbstractMigration
+final class Version20250908090145 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -21,13 +21,16 @@ final class Version20250826180851 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE comment ADD author_id INT NOT NULL, DROP author_name
+            ALTER TABLE cart_item ADD product_variant_id INT DEFAULT NULL
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE comment ADD CONSTRAINT FK_9474526CF675F31B FOREIGN KEY (author_id) REFERENCES `user` (id)
+            ALTER TABLE cart_item ADD CONSTRAINT FK_F0FE2527A80EF684 FOREIGN KEY (product_variant_id) REFERENCES product_variant (id)
         SQL);
         $this->addSql(<<<'SQL'
-            CREATE INDEX IDX_9474526CF675F31B ON comment (author_id)
+            CREATE INDEX IDX_F0FE2527A80EF684 ON cart_item (product_variant_id)
+        SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE product DROP currency
         SQL);
     }
 
@@ -35,13 +38,16 @@ final class Version20250826180851 extends AbstractMigration
     {
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE comment DROP FOREIGN KEY FK_9474526CF675F31B
+            ALTER TABLE cart_item DROP FOREIGN KEY FK_F0FE2527A80EF684
         SQL);
         $this->addSql(<<<'SQL'
-            DROP INDEX IDX_9474526CF675F31B ON comment
+            DROP INDEX IDX_F0FE2527A80EF684 ON cart_item
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE comment ADD author_name VARCHAR(255) NOT NULL, DROP author_id
+            ALTER TABLE cart_item DROP product_variant_id
+        SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE product ADD currency VARCHAR(255) NOT NULL
         SQL);
     }
 }

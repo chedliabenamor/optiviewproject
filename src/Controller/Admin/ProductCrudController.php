@@ -311,7 +311,22 @@ class ProductCrudController extends AbstractCrudController
             $this->addFlash('success', sprintf('Product "%s" was archived.', $product->getName()));
         }
 
-        return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator
+        $referrer = $context->getReferrer();
+        if (
+            $referrer
+        ) {
+            return $this->redirect($referrer);
+        }
+        $category = $product->getCategory();
+        if ($category) {
+            $categoryDetailUrl = $this->adminUrlGenerator
+                ->setController(CategoryCrudController::class)
+                ->setAction(Action::DETAIL)
+                ->setEntityId($category->getId())
+                ->generateUrl();
+            return $this->redirect($categoryDetailUrl);
+        }
+        return $this->redirect($this->adminUrlGenerator
             ->setController(self::class)
             ->setAction(Action::INDEX)
             ->generateUrl());
@@ -327,7 +342,22 @@ class ProductCrudController extends AbstractCrudController
             $this->addFlash('success', sprintf('Product "%s" was restored.', $product->getName()));
         }
 
-        return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator
+        $referrer = $context->getReferrer();
+        if (
+            $referrer
+        ) {
+            return $this->redirect($referrer);
+        }
+        $category = $product->getCategory();
+        if ($category) {
+            $categoryDetailUrl = $this->adminUrlGenerator
+                ->setController(CategoryCrudController::class)
+                ->setAction(Action::DETAIL)
+                ->setEntityId($category->getId())
+                ->generateUrl();
+            return $this->redirect($categoryDetailUrl);
+        }
+        return $this->redirect($this->adminUrlGenerator
             ->setController(self::class)
             ->setAction(Action::INDEX)
             ->generateUrl());

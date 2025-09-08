@@ -28,4 +28,30 @@ class ProductRepository extends ServiceEntityRepository
             ->where('po.id = :offerId')
             ->setParameter('offerId', $offerId);
     }
+
+    /**
+     * @param \App\Entity\Category $category
+     * @return Product[]
+     */
+    public function findActiveByCategory(\App\Entity\Category $category): array
+    {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.category = :category')
+            ->andWhere('p.deletedAt IS NULL')
+            ->setParameter('category', $category)
+            ->getQuery()->getResult();
+    }
+
+    /**
+     * @param \App\Entity\Category $category
+     * @return Product[]
+     */
+    public function findArchivedByCategory(\App\Entity\Category $category): array
+    {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.category = :category')
+            ->andWhere('p.deletedAt IS NOT NULL')
+            ->setParameter('category', $category)
+            ->getQuery()->getResult();
+    }
 }

@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Form\CategoryType;
 use Symfony\Component\Routing\Annotation\Route;
 
+use App\Repository\ProductRepository;
+
 class CategoryCrudController extends AbstractCrudController
 {
     private ParameterBagInterface $params;
@@ -35,12 +37,15 @@ class CategoryCrudController extends AbstractCrudController
     private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
 
-    public function __construct(ParameterBagInterface $params, EntityManagerInterface $entityManager, RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator)
+    private ProductRepository $productRepository;
+
+    public function __construct(ParameterBagInterface $params, EntityManagerInterface $entityManager, RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, ProductRepository $productRepository)
     {
         $this->params = $params;
         $this->entityManager = $entityManager;
         $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
+        $this->productRepository = $productRepository;
     }
 
     public static function getEntityFqcn(): string
@@ -58,6 +63,19 @@ class CategoryCrudController extends AbstractCrudController
             AssociationField::new('products')->hideOnForm()
            
         ];
+    }
+
+    public function detail(AdminContext $context): Response
+    {
+        $category = $context->getEntity()->getInstance();
+        $activeProducts = $this->productRepository->findActiveByCategory($category);
+        $archivedProducts = $this->productRepository->findArchivedByCategory($category);
+
+        return $this->render('admin/category/category_detail.html.twig', [
+            'entity' => $context->getEntity(),
+            'active_products' => $activeProducts,
+            'archived_products' => $archivedProducts,
+        ]);
     }
 
     public function configureCrud(Crud $crud): Crud

@@ -24,22 +24,65 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
+use App\Repository\ProductRepository;
+
 class ColorCrudController extends AbstractCrudController
 {
     private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
     private EntityManagerInterface $entityManager;
 
-    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager)
+    private ProductRepository $productRepository;
+
+    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager, ProductRepository $productRepository)
     {
         $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
         $this->entityManager = $entityManager;
+        $this->productRepository = $productRepository;
     }
 
     public static function getEntityFqcn(): string
     {
         return Color::class;
+    }
+
+    public function detail(AdminContext $context): Response
+    {
+        $color = $context->getEntity()->getInstance();
+        $activeProducts = $this->productRepository->createQueryBuilder('p')
+            ->join('p.colors', 'c')
+            ->where('c = :color')
+            ->andWhere('p.deletedAt IS NULL')
+            ->setParameter('color', $color)
+            ->getQuery()->getResult();
+        $archivedProducts = $this->productRepository->createQueryBuilder('p')
+            ->join('p.colors', 'c')
+            ->where('c = :color')
+            ->andWhere('p.deletedAt IS NOT NULL')
+            ->setParameter('color', $color)
+            ->getQuery()->getResult();
+
+        // Fetch product variants by color
+        $productVariantRepo = $this->entityManager->getRepository(\App\Entity\ProductVariant::class);
+        $activeVariants = $productVariantRepo->createQueryBuilder('v')
+            ->where('v.color = :color')
+            ->andWhere('v.deletedAt IS NULL')
+            ->setParameter('color', $color)
+            ->getQuery()->getResult();
+        $archivedVariants = $productVariantRepo->createQueryBuilder('v')
+            ->where('v.color = :color')
+            ->andWhere('v.deletedAt IS NOT NULL')
+            ->setParameter('color', $color)
+            ->getQuery()->getResult();
+
+        return $this->render('admin/color/color_detail.html.twig', [
+            'entity' => $context->getEntity(),
+            'active_products' => $activeProducts,
+            'archived_products' => $archivedProducts,
+            'active_variants' => $activeVariants,
+            'archived_variants' => $archivedVariants,
+        ]);
     }
 
     public function configureCrud(Crud $crud): Crud

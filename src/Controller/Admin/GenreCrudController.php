@@ -21,22 +21,48 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
+use App\Repository\ProductRepository;
+
 class GenreCrudController extends AbstractCrudController
 {
     private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
     private EntityManagerInterface $entityManager;
 
-    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager)
+    private ProductRepository $productRepository;
+
+    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager, ProductRepository $productRepository)
     {
         $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
         $this->entityManager = $entityManager;
+        $this->productRepository = $productRepository;
     }
 
     public static function getEntityFqcn(): string
     {
         return Genre::class;
+    }
+
+    public function detail(AdminContext $context): Response
+    {
+        $genre = $context->getEntity()->getInstance();
+        $activeProducts = $this->productRepository->findBy([
+            'genre' => $genre,
+            'deletedAt' => null
+        ]);
+        $archivedProducts = $this->productRepository->findBy([
+            'genre' => $genre,
+        ]);
+        $archivedProducts = array_filter($archivedProducts, function($product) {
+            return $product->getDeletedAt() !== null;
+        });
+
+        return $this->render('admin/genre/genre_detail.html.twig', [
+            'entity' => $context->getEntity(),
+            'active_products' => $activeProducts,
+            'archived_products' => $archivedProducts,
+        ]);
     }
 
     public function configureFields(string $pageName): iterable

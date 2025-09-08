@@ -22,22 +22,48 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
+use App\Repository\ProductRepository;
+
 class BrandCrudController extends AbstractCrudController
 {
     private RequestStack $requestStack;
     private AdminUrlGenerator $adminUrlGenerator;
     private EntityManagerInterface $entityManager;
 
-    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager)
+    private ProductRepository $productRepository;
+
+    public function __construct(RequestStack $requestStack, AdminUrlGenerator $adminUrlGenerator, EntityManagerInterface $entityManager, ProductRepository $productRepository)
     {
         $this->requestStack = $requestStack;
         $this->adminUrlGenerator = $adminUrlGenerator;
         $this->entityManager = $entityManager;
+        $this->productRepository = $productRepository;
     }
 
     public static function getEntityFqcn(): string
     {
         return Brand::class;
+    }
+
+    public function detail(AdminContext $context): Response
+    {
+        $brand = $context->getEntity()->getInstance();
+        $activeProducts = $this->productRepository->findBy([
+            'brand' => $brand,
+            'deletedAt' => null
+        ]);
+        $archivedProducts = $this->productRepository->findBy([
+            'brand' => $brand,
+        ]);
+        $archivedProducts = array_filter($archivedProducts, function($product) {
+            return $product->getDeletedAt() !== null;
+        });
+
+        return $this->render('admin/brand/brand_detail.html.twig', [
+            'entity' => $context->getEntity(),
+            'active_products' => $activeProducts,
+            'archived_products' => $archivedProducts,
+        ]);
     }
 
     public function configureFields(string $pageName): iterable
