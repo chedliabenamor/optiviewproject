@@ -16,7 +16,7 @@ use Symfony\Component\Routing\Attribute\Route; // Ensuring Attribute is used for
 final class UserProfileController extends AbstractController
 {
     #[Route('/', name: 'app_user_profile_index', methods: ['GET'])]
-    public function index(): Response
+    public function index(OrderRepository $orderRepository, EntityManagerInterface $entityManager): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -24,7 +24,19 @@ final class UserProfileController extends AbstractController
         if (!$user) {
             return $this->redirectToRoute('app_login');
         }
-
+        // Sync loyalty points from shipped/delivered orders
+        $orders = $orderRepository->findBy(['user' => $user]);
+        $computed = 0;
+        foreach ($orders as $o) {
+            $status = strtolower((string)$o->getStatus());
+            if (in_array($status, ['shipped', 'delivered'], true)) {
+                $computed += (int)$o->getTotalPointsEarned();
+            }
+        }
+        if ((int)($user->getLoyaltyPoints() ?? 0) !== $computed) {
+            $user->setLoyaltyPoints($computed);
+            $entityManager->flush();
+        }
         return $this->render('user_profile/index.html.twig', [
             'user' => $user,
         ]);
@@ -68,7 +80,7 @@ final class UserProfileController extends AbstractController
     }
 
     #[Route('/orders', name: 'app_user_profile_orders', methods: ['GET'])]
-    public function orderHistory(OrderRepository $orderRepository): Response
+    public function orderHistory(OrderRepository $orderRepository, EntityManagerInterface $entityManager): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -77,6 +89,19 @@ final class UserProfileController extends AbstractController
         }
 
         $orders = $orderRepository->findBy(['user' => $user], ['createdAt' => 'DESC']);
+
+        // Ensure points are in sync here as well
+        $computed = 0;
+        foreach ($orders as $o) {
+            $status = strtolower((string)$o->getStatus());
+            if (in_array($status, ['shipped', 'delivered'], true)) {
+                $computed += (int)$o->getTotalPointsEarned();
+            }
+        }
+        if ((int)($user->getLoyaltyPoints() ?? 0) !== $computed) {
+            $user->setLoyaltyPoints($computed);
+            $entityManager->flush();
+        }
 
         return $this->render('user_profile/orders.html.twig', [
             'orders' => $orders,

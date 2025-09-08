@@ -44,6 +44,125 @@ Input, textarea : 14px/1.6 '', Arial, sans-serif;
   src: url('../fonts/Poppins/Poppins-Regular.ttf'); 
 }
 
+/*//////////////////////////////////////////////////////////////////
+[ Cart (Customer Page) ]
+Enhancements: cleaner table, nicer quantity controls, better remove button, responsive overflow */
+
+/* Container: allow horizontal scroll on small screens */
+.wrap-table-shopping-cart {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
+
+/* Table head */
+.table-shopping-cart .table_head th {
+  background: #f7f8fc;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 600;
+  color: #333;
+  padding: 18px 12px;
+  border: 0;
+}
+
+/* Rows */
+.table-shopping-cart .table_row td {
+  padding: 16px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eef0f6;
+}
+.table-shopping-cart .table_row:hover td {
+  background: #fafbff;
+}
+
+/* Product image */
+.table-shopping-cart .how-itemcart1 {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f2f3f8;
+}
+.table-shopping-cart .how-itemcart1 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Product name + remove */
+.table-shopping-cart .column-2 > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.table-shopping-cart .column-2 span {
+  font-weight: 600;
+  color: #2b2d3a;
+}
+
+/* Remove button: refine visuals */
+button.cartp-remove.stext-110.cl2 {
+  background: transparent;
+  border: 1px solid rgba(231, 76, 60, .25);
+  padding: 6px 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, background-color .15s ease, border-color .15s ease;
+}
+button.cartp-remove.stext-110.cl2 i.zmdi-delete { color: #e74c3c !important; }
+button.cartp-remove.stext-110.cl2:hover {
+  background: rgba(231, 76, 60, .08);
+  border-color: rgba(231, 76, 60, .45);
+  transform: translateY(-1px);
+}
+
+/* Quantity controls */
+.wrap-num-product {
+  background: #f5f6fb;
+  border-radius: 10px;
+  padding: 4px;
+}
+.wrap-num-product .btn-num-product-down,
+.wrap-num-product .btn-num-product-up {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.wrap-num-product .btn-num-product-down:hover,
+.wrap-num-product .btn-num-product-up:hover {
+  background: #eef1ff;
+  color: #5561e9;
+}
+.wrap-num-product input.num-product {
+  width: 56px;
+  border: none;
+  background: transparent;
+  font-weight: 600;
+}
+
+/* Price & totals columns */
+.table-shopping-cart .column-3,
+.table-shopping-cart .column-5 {
+  font-weight: 600;
+  color: #2b2d3a;
+}
+
+/* Mobile tweaks */
+@media (max-width: 576px) {
+  .table-shopping-cart .how-itemcart1 { width: 64px; height: 64px; }
+  .wrap-num-product { padding: 2px; }
+  .wrap-num-product .btn-num-product-down,
+  .wrap-num-product .btn-num-product-up { width: 30px; height: 30px; }
+  .wrap-num-product input.num-product { width: 48px; }
+}
+
 @font-face {
   font-family: Poppins-Light;
   src: url('../fonts/Poppins/Poppins-Light.ttf'); 
@@ -1414,10 +1533,48 @@ h2#access-title, h2#privacy-title, h2.contact {
     bottom: 25px;
   }
 }
-
+button.cart-remove-btn.stext-110.cl2.p-t-8 {
+  opacity: 0;
+  position: absolute;
+  left: 26px;
+  top: 10px;
+  color: #fff;
+}
+li.header-cart-item:hover button.cart-remove-btn.stext-110.cl2.p-t-8  {
+  opacity: 1;
+}
 button.flex-c-m.stext-101.cl0.size-101.bg1.bor1.hov-btn1.p-lr-15.trans-04.js-addcart-detail:disabled {
   opacity: 0.7;
   background: #8a7979;
+}
+.header-cart-item-img {
+  position: relative;
+}
+.header-cart-item-img:before {
+  content: "";
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  width: 100%;
+  height: 100%;
+  color: rgb(255, 255, 255);
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+.header-cart-item-img:hover:before {
+
+  opacity: 0.5;
+  background: rgba(0, 0, 0, 0.5);
+}
+button.cartp-remove.stext-110.cl2 {
+  background: #ffa197;
+  font-size: 23px;
+  padding: 6px 10px;
+  line-height: 0;
+  border-radius: 8px;
+  display: block;
 }
 /*//////////////////////////////////////////////////////////////////
 [ Slick2 ]*/

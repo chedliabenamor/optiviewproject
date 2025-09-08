@@ -65,6 +65,16 @@ class OrderCrudController extends AbstractCrudController
     {
         if ($entityInstance instanceof Order) {
             $this->updateOrderPointsAndTotals($entityInstance);
+            // If a new order is created already as shipped or delivered, award points immediately
+            if (in_array($entityInstance->getStatus(), [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED], true) && $entityInstance->getUser()) {
+                $user = $entityInstance->getUser();
+                $current = (int) ($user->getLoyaltyPoints() ?? 0);
+                $user->setLoyaltyPoints($current + (int)$entityInstance->getTotalPointsEarned());
+            }
+            // If created as shipped/delivered, decrement stock once
+            if (in_array($entityInstance->getStatus(), [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED], true)) {
+                $this->adjustStockForOrder($entityInstance, -1);
+            }
         }
         parent::persistEntity($entityManager, $entityInstance);
     }
@@ -86,8 +96,60 @@ class OrderCrudController extends AbstractCrudController
     {
         if ($entityInstance instanceof Order) {
             $this->updateOrderPointsAndTotals($entityInstance);
+            // Detect status transition to 'shipped' or 'delivered' to award loyalty points once
+            $uow = $entityManager->getUnitOfWork();
+            $original = $uow->getOriginalEntityData($entityInstance);
+            $prevStatus = $original['status'] ?? null;
+            $newStatus = $entityInstance->getStatus();
+            $reachedEligible = in_array($newStatus, [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED], true);
+            $wasEligible = in_array($prevStatus, [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED], true);
+            if (!$wasEligible && $reachedEligible && $entityInstance->getUser()) {
+                $user = $entityInstance->getUser();
+                $current = (int) ($user->getLoyaltyPoints() ?? 0);
+                $user->setLoyaltyPoints($current + (int)$entityInstance->getTotalPointsEarned());
+            }
+
+            // Stock adjustments
+            // Entering shipped/delivered from non-eligible => decrement stock once
+            if (!$wasEligible && $reachedEligible) {
+                $this->adjustStockForOrder($entityInstance, -1);
+            }
+            // Moving from shipped/delivered to cancelled (returns) => increment stock back
+            if ($wasEligible && $newStatus === Order::STATUS_CANCELLED) {
+                $this->adjustStockForOrder($entityInstance, +1);
+            }
         }
         parent::updateEntity($entityManager, $entityInstance);
+    }
+
+    /**
+     * Adjust stock for all order items.
+     * direction: -1 to reduce when shipping/delivery; +1 to add back on cancellation/return.
+     */
+    private function adjustStockForOrder(Order $order, int $direction): void
+    {
+        foreach ($order->getOrderItems() as $item) {
+            $qty = (int)($item->getQuantity() ?? 0);
+            if ($qty <= 0) { continue; }
+            $delta = $direction * $qty;
+
+            $variant = $item->getProductVariant();
+            if ($variant) {
+                $current = (int)($variant->getStock() ?? 0);
+                $next = $current + $delta;
+                if ($next < 0) { $next = 0; }
+                $variant->setStock($next);
+                continue;
+            }
+
+            $product = $item->getProduct();
+            if ($product) {
+                $current = (int)($product->getQuantityInStock() ?? 0);
+                $next = $current + $delta;
+                if ($next < 0) { $next = 0; }
+                $product->setQuantityInStock($next);
+            }
+        }
     }
 
     private function ensureOrderItemsHavePrices(Order $order): void
@@ -129,9 +191,31 @@ class OrderCrudController extends AbstractCrudController
         yield IdField::new('id')->hideOnForm();
         yield AssociationField::new('user', 'Customer')->onlyOnIndex();
         yield IntegerField::new('orderItems.count', 'Items')->onlyOnIndex();
-        yield MoneyField::new('totalAmount', 'Total')->setCurrency('EUR')->onlyOnIndex();
+        // Show final price (items + tax + shipping) with proper currency symbol
+        yield TextField::new('finalTotal', 'Final Total')
+            ->formatValue(function ($value, $entity) {
+                $currency = method_exists($entity, 'getCurrency') ? $entity->getCurrency() : 'EUR';
+                $sym = ($currency === 'USD') ? '$' : '€';
+                return $sym . number_format((float)$value, 2, '.', '');
+            })
+            ->onlyOnIndex();
         yield IntegerField::new('totalPointsEarned', 'Total Points')->onlyOnIndex();
-        yield ChoiceField::new('status')->onlyOnIndex();
+        yield TextField::new('status', 'Status')
+            ->formatValue(function ($value) {
+                $s = strtolower((string)$value);
+                $badge = match ($s) {
+                    'pending' => 'badge bg-secondary text-white',
+                    'processing' => 'badge bg-info',
+                    'shipped' => 'badge bg-primary text-white',
+                    'delivered' => 'badge bg-success text-white',
+                    'cancelled' => 'badge bg-warning text-dark',
+                    'refunded' => 'badge bg-danger text-white',
+                    default => 'badge bg-secondary text-white',
+                };
+                return sprintf('<span class="%s">%s</span>', $badge, ucfirst($s));
+            })
+            ->renderAsHtml()
+            ->onlyOnIndex();
         yield DateTimeField::new('createdAt', 'Created At')->onlyOnIndex();
 
         // Form Fields (New/Edit)

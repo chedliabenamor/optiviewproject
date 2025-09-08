@@ -49,11 +49,7 @@
                                 <h6 class="mb-0">{{ user.orders.count }}</h6>
                                 <small class="text-muted">Orders</small>
                             </div>
-                            <div class="text-center">
-                                {# Placeholder for Total Spent - Requires calculation in User entity #}
-                                <h6 class="mb-0">${{ user.totalSpent|default('0.00') }}</h6>
-                                <small class="text-muted">Spent</small>
-                            </div>
+                           
                         </div>
                     </div>
                     <ul class="list-group list-group-flush border-bottom-0">
@@ -106,16 +102,7 @@
                     {# Overview Tab Pane #}
                     <div class="tab-pane fade show active" id="overview-content" role="tabpanel" aria-labelledby="overview-tab">
                         <div class="row">
-                            <div class="col-md-6 mb-4">
-                                <div class="card shadow-sm h-100">
-                                    <div class="card-body">
-                                        <h5 class="card-title mb-3"><i class="fas fa-dollar-sign text-primary me-2"></i>Account Balance</h5>
-                                        {# Placeholder data #}
-                                        <p class="display-6 mb-1">$0.00</p> 
-                                        <small class="text-muted">Current credit left</small>
-                                    </div>
-                                </div>
-                            </div>
+                           
                             <div class="col-md-6 mb-4">
                                 <div class="card shadow-sm h-100">
                                     <div class="card-body">
@@ -126,14 +113,12 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-4">
+                             <div class="col-md-6 mb-4">
                                 <div class="card shadow-sm h-100">
                                     <div class="card-body">
                                         <h5 class="card-title mb-3"><i class="fas fa-star text-info me-2"></i>Wishlist</h5>
-                                        {% if user.wishlist and user.wishlist.products.count > 0 %}
-                                            <p class="display-6 mb-1">{{ user.wishlist.products.count }} <small>items</small></p>
+                                        {% if user.wishlist and user.wishlist.wishlistItems.count > 0 %}
+                                            <p class="display-6 mb-1">{{ user.wishlist.wishlistItems.count }} <small>items</small></p>
                                             <small class="text-muted">Items in wishlist</small>
                                         {% else %}
                                             <p class="text-muted mt-3">No items in wishlist.</p>
@@ -141,8 +126,8 @@
                                     </div>
                                 </div>
                             </div>
-
                         </div>
+                      
                     </div>
 
                     {# Orders Tab Pane #}
@@ -178,7 +163,8 @@
                                                         {% endif %}
                                                         <span class="badge text-white bg-{{ status_badge }}">{{ order.status|replace({'_': ' '})|capitalize }}</span>
                                                     </td>
-                                                    <td class="text-end">${{ order.totalAmount|number_format(2, '.', '') }}</td>
+                                                    {% set sym = (order.currency is defined and order.currency == 'USD') ? '$' : '€' %}
+                                                    <td class="text-end">{{ sym }}{{ order.finalTotal }}</td>
                                                     <td class="text-center">
                                                         {% set order_detail_url = ea_url()
                                                             .setController('App\\Controller\\Admin\\OrderCrudController')
@@ -209,12 +195,13 @@
                                 <h5 class="mb-0"><i class="fas fa-heart text-danger me-2"></i>Wishlist Products</h5>
                             </div>
                             <div class="card-body">
-                                {% if user.wishlist and user.wishlist.products.count > 0 %}
+                                {% if user.wishlist and user.wishlist.wishlistItems.count > 0 %}
                                     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                                        {% for product in user.wishlist.products %}
+                                        {% for item in user.wishlist.wishlistItems %}
+                                            {% set product = item.product %}
                                             <div class="col">
                                                 <div class="card h-100">
-                                                    {% set productImage = (product.images is defined and product.images is not empty and product.images.first and product.images.first.imageName is defined) ? asset('uploads/products/' ~ product.images.first.imageName) : 'https://via.placeholder.com/200x150?text=' ~ (product.name|default('Product')|url_encode) %}
+                                                    {% set productImage = (product is defined and product and product.images is defined and product.images is not empty and product.images.first and product.images.first.imageName is defined) ? asset('uploads/products/' ~ product.images.first.imageName) : 'https://via.placeholder.com/200x150?text=' ~ ((product and product.name is defined ? product.name : 'Product')|url_encode) %}
                                                     <img src="{{ productImage }}" class="card-img-top" alt="{{ product.name|default('Product Image') }}" style="height: 150px; object-fit: cover;">
                                                     <div class="card-body">
                                                         <h6 class="card-title">{{ product.name|default('N/A') }}</h6>

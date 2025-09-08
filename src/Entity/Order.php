@@ -345,6 +345,17 @@ class Order
         return number_format($fee, 2, '.', '');
     }
 
+    /**
+     * Final total (items total + tax + shipping)
+     */
+    public function getFinalTotal(): string
+    {
+        $total = (float)$this->getTotalAmount();
+        $tax = (float)$this->getTaxAmount();
+        $shipping = (float)$this->getShippingFee();
+        return number_format($total + $tax + $shipping, 2, '.', '');
+    }
+
     public function getCurrency(): ?string
     {
         return $this->currency;

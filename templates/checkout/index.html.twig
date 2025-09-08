@@ -1,0 +1,149 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Checkout - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="container p-t-60 p-b-80">
+    <div class="row">
+        <div class="col-md-8 m-lr-auto">
+            <h2 class="mtext-103 cl2 m-b-24">Checkout</h2>
+
+            {# Flash messages #}
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'danger' ? 'danger' : (label == 'warning' ? 'warning' : (label == 'success' ? 'success' : 'info')) }}" role="alert">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+
+            <form action="{{ path('app_checkout_confirm') }}" method="post" class="bor10 p-4">
+                <input type="hidden" name="_token" value="{{ csrf_token('checkout') }}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4 class="stext-301 cl2 m-b-16">Shipping Address</h4>
+                        <textarea class="form-control" name="shippingAddress" rows="4" placeholder="Full shipping address" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 class="stext-301 cl2 m-b-16">Billing Address</h4>
+                        <textarea class="form-control" name="billingAddress" rows="4" placeholder="Full billing address" required></textarea>
+                    </div>
+                </div>
+
+                <hr class="m-t-24 m-b-24" />
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="stext-110 cl2 m-b-8">Currency</label>
+                        <select name="currency" class="form-control" required>
+                            <option value="EUR" {{ defaults.currency == 'EUR' ? 'selected' : '' }}>EUR (€)</option>
+                            <option value="USD" {{ defaults.currency == 'USD' ? 'selected' : '' }}>USD ($)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="stext-110 cl2 m-b-8">Delivery Type</label>
+                        <select name="deliveryType" class="form-control" required>
+                            <option {{ defaults.deliveryType == 'Standard' ? 'selected' : '' }}>Standard</option>
+                            <option {{ defaults.deliveryType == 'Express' ? 'selected' : '' }}>Express</option>
+                            <option {{ defaults.deliveryType == 'Same-day' ? 'selected' : '' }}>Same-day</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="stext-110 cl2 m-b-8">Destination</label>
+                        <select name="destination" class="form-control" required>
+                            <option {{ defaults.destination == 'Domestic' ? 'selected' : '' }}>Domestic</option>
+                            <option {{ defaults.destination == 'International' ? 'selected' : '' }}>International</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row m-t-16">
+                    <div class="col-md-6">
+                        <label class="stext-110 cl2 m-b-8">Shipping Provider</label>
+                        <select name="shippingProvider" class="form-control" required>
+                            <option value="DHL" {{ defaults.shippingProvider == 'DHL' ? 'selected' : '' }}>DHL</option>
+                            <option value="UPS" {{ defaults.shippingProvider == 'UPS' ? 'selected' : '' }}>UPS</option>
+                            <option value="Poste" {{ defaults.shippingProvider == 'Poste' ? 'selected' : '' }}>Post</option>
+                            <option value="GLS" {{ defaults.shippingProvider == 'GLS' ? 'selected' : '' }}>GLS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="stext-110 cl2 m-b-8">Payment Method</label>
+                        <select name="paymentMethod" class="form-control" required>
+                            <option value="credit card" {{ defaults.paymentMethod == 'credit card' ? 'selected' : '' }}>Credit Card</option>
+                            <option value="paypal" {{ defaults.paymentMethod == 'paypal' ? 'selected' : '' }}>PayPal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row m-t-16">
+                    <div class="col-12">
+                        <label class="stext-110 cl2 m-b-8">Order Notes (optional)</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Any special instructions"></textarea>
+                    </div>
+                </div>
+
+                <div class="row m-t-24">
+                    <div class="col-md-7">
+                        <a href="{{ path('app_cart') }}" class="stext-101 cl2 p-tb-8 m-r-12">Back to cart</a>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="bor10 p-3">
+                            <h5 class="stext-301 cl2 m-b-12">Order Summary</h5>
+                            <div class="d-flex justify-content-between m-b-6"><span>Subtotal</span><strong id="sum-subtotal">€0.00</strong></div>
+                            <div class="d-flex justify-content-between m-b-6"><span>Tax (7%)</span><strong id="sum-tax">€0.00</strong></div>
+                            <div class="d-flex justify-content-between m-b-6"><span>Shipping fee</span><strong id="sum-shipping">€0.00</strong></div>
+                            <hr/>
+                            <div class="d-flex justify-content-between m-b-12"><span>Total</span><strong id="sum-total">€0.00</strong></div>
+                            <button type="submit" class="w-100 flex-c-m stext-101 cl0 size-116 bg3 bor14 hov-btn3 p-lr-15 trans-04">Place Order</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    function sel(name){ return document.querySelector('[name="'+name+'"]'); }
+    function fmt(n, cur){
+        var v = parseFloat(n||0); if (isNaN(v)) v = 0;
+        if (typeof window.Currency !== 'undefined' && window.Currency.format) return window.Currency.format(v);
+        return (cur === 'USD' ? '$' : '€') + v.toFixed(2);
+    }
+    function fetchCartSubtotal(){
+        return fetch('/api/cart').then(function(r){ return r.ok?r.json():Promise.reject(); })
+            .then(function(cart){
+                try { var items = Array.isArray(cart.items)?cart.items:[]; var sub = 0; items.forEach(function(it){ var price=parseFloat(it.unitPrice||0)||0; var qty=parseInt(it.quantity||1,10)||1; sub += price*qty; }); return sub; }
+                catch(e){ return 0; }
+            }).catch(function(){ return 0; });
+    }
+    function refreshSummary(){
+        var currency = sel('currency') ? sel('currency').value : 'EUR';
+        var deliveryType = sel('deliveryType') ? sel('deliveryType').value : 'Standard';
+        var destination = sel('destination') ? sel('destination').value : 'Domestic';
+        // Ask server for shipping fee (it also returns subtotal/tax/total from current cart)
+        var url = '/api/checkout/shipping-fee?currency=' + encodeURIComponent(currency) + '&deliveryType=' + encodeURIComponent(deliveryType) + '&destination=' + encodeURIComponent(destination);
+        fetch(url)
+            .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+            .then(function(resp){
+                var cur = resp.currency || currency;
+                document.getElementById('sum-subtotal').textContent = fmt(resp.subtotal, cur);
+                document.getElementById('sum-tax').textContent = fmt(resp.tax, cur);
+                document.getElementById('sum-shipping').textContent = fmt(resp.shippingFee, cur);
+                document.getElementById('sum-total').textContent = fmt(resp.total, cur);
+            })
+            .catch(function(){
+                // fallback: compute subtotal only
+                fetchCartSubtotal().then(function(sub){
+                    var tax = sub * 0.07; var ship = (deliveryType==='Standard' && (sub+tax)>=100)?0:(destination==='International'?30.90:20.90) + (deliveryType==='Express'?15:(deliveryType==='Same-day'?20:0));
+                    document.getElementById('sum-subtotal').textContent = fmt(sub, currency);
+                    document.getElementById('sum-tax').textContent = fmt(tax, currency);
+                    document.getElementById('sum-shipping').textContent = fmt(ship, currency);
+                    document.getElementById('sum-total').textContent = fmt(sub+tax+ship, currency);
+                });
+            });
+    }
+    ['currency','deliveryType','destination'].forEach(function(n){ var el = sel(n); if (el) { el.addEventListener('change', refreshSummary); }});
+    refreshSummary();
+});
+</script>
+{% endblock %}

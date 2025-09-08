@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Order Confirmation - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="container p-t-60 p-b-80">
+    <div class="row">
+        <div class="col-md-8 m-lr-auto">
+            <h2 class="mtext-103 cl2 m-b-16">Thank you for your order!</h2>
+            <p class="stext-110 cl2 m-b-24">Your order <strong>#{{ order.id }}</strong> has been placed and is currently <strong>{{ order.status|capitalize }}</strong>.</p>
+
+            <div class="bor10 p-4 m-b-24">
+                <h4 class="stext-301 cl2 m-b-16">Order Summary</h4>
+                <ul class="list-unstyled">
+                    <li class="m-b-6"><strong>Currency:</strong> {{ order.currency }}</li>
+                    <li class="m-b-6"><strong>Subtotal:</strong> {{ order.getSubtotal() }}</li>
+                    <li class="m-b-6"><strong>Tax ({{ constant('App\\Entity\\Order::TAX_PERCENT') }}%):</strong> {{ order.getTaxAmount() }}</li>
+                    <li class="m-b-6"><strong>Shipping fee:</strong> {{ order.getShippingFee() }}</li>
+                    <li class="m-b-6"><strong>Total:</strong> {{ order.totalAmount }}</li>
+                    <li class="m-b-6"><strong>Total points earned:</strong> {{ order.totalPointsEarned }}</li>
+                </ul>
+            </div>
+
+            <div class="bor10 p-4 m-b-24">
+                <h4 class="stext-301 cl2 m-b-16">Items</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-end">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.orderItems %}
+                            {% set productName = item.product ? item.product.name : '—' %}
+                            {% set colorName = (item.productVariant and attribute(item.productVariant, 'color')) ? attribute(item.productVariant, 'color').name : '' %}
+                            {% set mergedName = colorName ? productName ~ ' - ' ~ colorName : productName %}
+                            <tr>
+                                <td>{{ mergedName }}</td>
+                                <td class="text-end">{{ item.quantity }}</td>
+                                <td class="text-end">{{ item.unitPrice }}</td>
+                                <td class="text-end">{{ item.subtotal }}</td>
+                                <td class="text-end">{{ item.pointsEarned }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <a href="{{ path('app_home') }}" class="flex-c-m stext-101 cl0 size-116 bg3 bor14 hov-btn3 p-lr-15 trans-04">Continue Shopping</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

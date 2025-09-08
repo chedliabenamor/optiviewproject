@@ -461,7 +461,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         <button class="cart-qty-plus size-28 flex-c-m cl2 hov-cl1 trans-04" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}" title="Increase">+</button>
                         <span class="m-l-12 header-cart-item-info">x ${formatCurrency(price)}</span>
                     </div>
-                    <button class="cart-remove-btn stext-110 cl2 p-t-8" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}" title="Remove"><i class="zmdi zmdi-close"></i></button>
+                    <button class="cart-remove-btn stext-110 cl2 p-t-8" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}" title="Remove">
+                        <i class="zmdi zmdi-delete" style="color:#e74c3c"></i>
+                    </button>
                 </div>`;
             list.appendChild(li);
         });
@@ -478,10 +480,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 .catch(function(){ renderCartItems([]); });
             return;
         }
-        // Guest
+        // Guest: enrich prices from quick-view (to apply discounts) before rendering
         var items = getCart();
-        renderCartItems(items);
-    }
+        if (!items || !items.length) { renderCartItems(items); return; }
+        Promise.all(items.map(function(ci){
+            var url = '/api/products/' + encodeURIComponent(ci.id) + '/quick-view';
+            return fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(data){
+                if (!data) return ci;
+                if (ci.variantId) {
+                    var v = (data.productVariants || []).find(function(vv){ return String(vv.id) === String(ci.variantId); });
+                    if (v) {
+                        if (v.offer && v.offer.has_offer) { ci.price = v.offer.discounted_price; }
+                        else if (typeof v.price !== 'undefined') { ci.price = v.price; }
+                        if (!ci.image && v.productVariantImages && v.productVariantImages.length>0) { ci.image = v.productVariantImages[0].imageUrl; }
+                    }
+                } else {
+                    if (data.offer && data.offer.has_offer) { ci.price = data.offer.discounted_price; }
+                    else if (typeof data.price !== 'undefined') { ci.price = data.price; }
+                    if (!ci.image && data.overviewImage) { ci.image = data.overviewImage; }
+                }
+                return ci;
+            }).catch(function(){ return ci; });
+        })).then(function(enriched){ saveCart(enriched); renderCartItems(enriched); })
+          .catch(function(){ renderCartItems(items); });
+        }
 
     // Re-render cart when currency changes
     document.addEventListener('currencyChanged', function(){
@@ -571,41 +593,115 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
                     .then(function(resp){ var items = normalizeServerCart(resp.cart || resp); renderCartItems(items); })
                     .catch(function(){ /* noop */ });
-            } else {
-                var product = {
-                    id: d.productId,
-                    variantId: d.variantId || '',
-                    name: d.productName,
-                    variantName: d.variantName || '',
-                    price: d.productPrice,
-                    image: d.productImage,
-                    quantity: d.quantity || 1
-                };
-                var updated = addItemToCart(product);
-                renderCartItems(updated);
-            }
-            // Remove from guest wishlist if present (use event detail IDs, works for both branches)
-            try {
-                var wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-                var remPid = d && d.productId ? String(d.productId) : null;
-                var remVid = d && (d.variantId !== undefined && d.variantId !== null) ? String(d.variantId) : '';
-                if (remPid !== null) {
-                    wishlist = wishlist.filter(function(it){ return !(String(it.id) === remPid && String(it.variantId || '') === remVid); });
-                }
-                localStorage.setItem('wishlist', JSON.stringify(wishlist));
-                // Update wishlist UI count
-                document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
-                    if (icon.querySelector('.zmdi-favorite-outline')) {
-                        icon.setAttribute('data-notify', String(wishlist.length));
+                // Also remove the specific item from the server-side wishlist and refresh wishlist panel
+                try {
+                    var pid = d && d.productId ? String(d.productId) : null;
+                    var vid = (d && (d.variantId !== undefined && d.variantId !== null)) ? d.variantId : null;
+                    if (pid) {
+                        // Use API toggle to remove just this product/variant from wishlist
+                        fetch('/api/wishlist/toggle/' + encodeURIComponent(pid), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ variantId: vid })
+                        })
+                        .then(function(){
+                            // Refresh wishlist panel from server to avoid showing it empty incorrectly
+                            return fetch('/wishlist', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        })
+                        .then(function(r){ return r && r.ok ? r.json() : []; })
+                        .then(function(list){
+                            // Update wishlist count badge
+                            try {
+                                document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
+                                    if (icon.querySelector('.zmdi-favorite-outline')) {
+                                        icon.setAttribute('data-notify', String(Array.isArray(list) ? list.length : 0));
+                                    }
+                                });
+                            } catch(e) { /* noop */ }
+                            if (wishlistPanel && wishlistPanel.classList.contains('show-header-cart')) {
+                                renderWishlistItems(Array.isArray(list) ? list : []);
+                            }
+                            // Broadcast update
+                            try { document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: Array.isArray(list) ? list : [] } })); } catch(e) {}
+                        })
+                        .catch(function(){ /* noop */ });
                     }
+                } catch(err) { /* noop */ }
+            } else {
+                // Guest: resolve discounted price from quick-view API before adding
+                var pid = d.productId; var vid = d.variantId || '';
+                var url = '/api/products/' + encodeURIComponent(pid) + '/quick-view';
+                fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(data){
+                    var price = d.productPrice;
+                    var image = d.productImage;
+                    var variantName = d.variantName || '';
+                    if (data) {
+                        if (vid) {
+                            var v = (data.productVariants || []).find(function(vv){ return String(vv.id) === String(vid); });
+                            if (v) {
+                                if (v.offer && v.offer.has_offer) { price = v.offer.discounted_price; }
+                                else if (typeof v.price !== 'undefined') { price = v.price; }
+                                if (v.productVariantImages && v.productVariantImages.length > 0) {
+                                    image = v.productVariantImages[0].imageUrl || image;
+                                }
+                                if (v.color && v.color.name) { variantName = v.color.name; }
+                            }
+                        } else {
+                            if (data.offer && data.offer.has_offer) { price = data.offer.discounted_price; }
+                            else if (typeof data.price !== 'undefined') { price = data.price; }
+                            if (data.overviewImage) { image = data.overviewImage; }
+                        }
+                    }
+                    var product = {
+                        id: pid,
+                        variantId: vid,
+                        name: d.productName,
+                        variantName: variantName,
+                        price: price,
+                        image: image,
+                        quantity: d.quantity || 1
+                    };
+                    var updated = addItemToCart(product);
+                    renderCartItems(updated);
+                }).catch(function(){
+                    // Fallback to provided price if quick-view fails
+                    var product = {
+                        id: d.productId,
+                        variantId: d.variantId || '',
+                        name: d.productName,
+                        variantName: d.variantName || '',
+                        price: d.productPrice,
+                        image: d.productImage,
+                        quantity: d.quantity || 1
+                    };
+                    var updated = addItemToCart(product);
+                    renderCartItems(updated);
                 });
-                // If the wishlist panel is open, re-render its list
-                if (wishlistPanel && wishlistPanel.classList.contains('show-header-cart')) {
-                    renderWishlistItems(wishlist);
-                }
-                // Broadcast update for other components
-                document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: wishlist } }));
-            } catch(err) { /* noop */ }
+            }
+            // Remove from guest wishlist only if user is NOT authenticated
+            if (!isAuth()) {
+                try {
+                    var wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                    var remPid = d && d.productId ? String(d.productId) : null;
+                    var remVid = d && (d.variantId !== undefined && d.variantId !== null) ? String(d.variantId) : '';
+                    if (remPid !== null) {
+                        wishlist = wishlist.filter(function(it){ return !(String(it.id) === remPid && String(it.variantId || '') === remVid); });
+                    }
+                    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                    // Update wishlist UI count
+                    document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
+                        if (icon.querySelector('.zmdi-favorite-outline')) {
+                            icon.setAttribute('data-notify', String(wishlist.length));
+                        }
+                    });
+                    // If the wishlist panel is open, re-render its list
+                    if (wishlistPanel && wishlistPanel.classList.contains('show-header-cart')) {
+                        renderWishlistItems(wishlist);
+                    }
+                    // Broadcast update for other components
+                    document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: wishlist } }));
+                } catch(err) { /* noop */ }
+            }
         } catch(err) { /* noop */ }
     });
 

@@ -26,32 +26,38 @@
                             <th scope="col">Subtotal</th>
                             <th scope="col">Tax</th>
                             <th scope="col">Shipping</th>
-                            <th scope="col">Discount</th>
                             <th scope="col">Total</th>
-                            <th scope="col">Currency</th>
-                            <th scope="col">Shipping Method</th>
+                            <th scope="col">Points</th>
+                            <th scope="col">Shipping Provider</th>
                             <th scope="col">Tracking #</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Actions</th>
+                          
                         </tr>
                     </thead>
                     <tbody>
                         {% for order in orders %}
+                            {% set sym = order.currency == 'USD' ? '$' : '€' %}
                             <tr>
                                 <td>#{{ order.id }}</td>
                                 <td>{{ order.createdAt|date('Y-m-d H:i') }}</td>
-                                <td>{{ order.subtotal | number_format(2, '.', ',') }}</td>
-                                <td>{{ order.taxAmount | number_format(2, '.', ',') }}</td>
-                                <td>{{ order.shippingFee | number_format(2, '.', ',') }}</td>
-                                <td>-{{ order.discountAmount | number_format(2, '.', ',') }}</td>
-                                <td>{{ order.totalAmount | number_format(2, '.', ',') }}</td>
-                                <td>{{ order.currency|upper }}</td>
-                                <td>{{ order.shippingMethod|default('N/A') }}</td>
+                                <td>{{ sym }} {{ order.subtotal | number_format(2, '.', ',') }}</td>
+                                <td>{{ sym }} {{ order.taxAmount | number_format(2, '.', ',') }}</td>
+                                <td>{{ sym }} {{ order.shippingFee | number_format(2, '.', ',') }}</td>
+                                <td>{{ sym }} {{ order.totalAmount | number_format(2, '.', ',') }}</td>
+                                <td>{{ order.totalPointsEarned }}</td>
+                                <td>{{ order.shippingProvider|default('N/A') }}</td>
                                 <td>{{ order.trackingNumber|default('N/A') }}</td>
-                                <td>{{ order.status | default('Pending') }}</td>
-                                <td>
-                                    <a href="#" class="btn btn-sm btn-info">View Details</a> {# Placeholder for order detail view #}
-                                </td>
+                                {% set s = (order.status|default('pending'))|lower %}
+                                {% set badge =
+                                    s == 'pending' ? 'badge bg-secondary' :
+                                    (s == 'processing' ? 'badge bg-info' :
+                                    (s == 'shipped' ? 'badge bg-primary' :
+                                    (s == 'delivered' ? 'badge bg-success' :
+                                    (s == 'cancelled' ? 'badge bg-warning text-dark' :
+                                    (s == 'refunded' ? 'badge bg-danger' : 'badge bg-secondary')))))
+                                %}
+                                <td><span class="{{ badge }}">{{ s|capitalize }}</span></td>
+                               
                             </tr>
                         {% endfor %}
                     </tbody>

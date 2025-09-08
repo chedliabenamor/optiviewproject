@@ -8,6 +8,8 @@ use App\Entity\Product;
 use App\Entity\ProductVariant;
 use App\Repository\CartRepository;
 use App\Repository\ProductRepository;
+use App\Repository\ProductOfferRepository;
+use App\Entity\ProductOffer;
 use Doctrine\ORM\EntityManagerInterface;
 use Vich\UploaderBundle\Templating\Helper\UploaderHelper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,6 +26,7 @@ class CartApiController extends AbstractController
         private CartRepository $cartRepo,
         private ProductRepository $productRepo,
         private UploaderHelper $uploaderHelper,
+        private ProductOfferRepository $productOfferRepo,
     ) {}
 
     #[Route('', name: 'api_cart_get', methods: ['GET'])]
@@ -35,6 +38,41 @@ class CartApiController extends AbstractController
         }
 
         $cart = $this->getOrCreateCart($user);
+        // Reprice existing lines based on current offers (ensures discounted price is shown)
+        $changed = false;
+        foreach ($cart->getCartItems() as $ci) {
+            $product = $ci->getProduct(); if (!$product) { continue; }
+            $variant = method_exists($ci, 'getProductVariant') ? $ci->getProductVariant() : null;
+            $base = null;
+            if ($variant && method_exists($variant, 'getPrice')) { $base = (float)$variant->getPrice(); }
+            if ($base === null || $base === 0.0) { $base = (float)(method_exists($product, 'getPrice') ? $product->getPrice() : 0); }
+            $newPrice = $base;
+            try {
+                // Prefer variant-specific offer if repository supports it
+                $offer = null;
+                if ($variant && method_exists($this->productOfferRepo, 'findCurrentOfferForVariant')) {
+                    $offer = $this->productOfferRepo->findCurrentOfferForVariant($variant);
+                }
+                if (!$offer) {
+                    $offer = $this->productOfferRepo->findCurrentOfferForProduct($product);
+                }
+                if ($offer instanceof ProductOffer) {
+                    $type = method_exists($offer, 'getDiscountType') ? $offer->getDiscountType() : null;
+                    $val = method_exists($offer, 'getDiscountValue') ? (float)$offer->getDiscountValue() : 0.0;
+                    if ($type === ProductOffer::DISCOUNT_TYPE_PERCENTAGE) {
+                        $newPrice = max(0, $base - ($base * ($val / 100)));
+                    } elseif ($type === ProductOffer::DISCOUNT_TYPE_FIXED) {
+                        $newPrice = max(0, $base - $val);
+                    }
+                }
+            } catch (\Throwable $e) { /* noop */ }
+            $newPrice = number_format($newPrice, 2, '.', '');
+            if ((string)$ci->getUnitPrice() !== (string)$newPrice) {
+                $ci->setUnitPrice($newPrice);
+                $changed = true;
+            }
+        }
+        if ($changed) { $this->em->flush(); }
         return new JsonResponse($this->serializeCart($cart));
     }
 
@@ -148,6 +186,25 @@ class CartApiController extends AbstractController
             $item->setProduct($product);
             if ($variant && method_exists($item, 'setProductVariant')) { $item->setProductVariant($variant); }
             $item->setQuantity($qty);
+            // Determine base price from variant or product
+            $basePrice = null;
+            if ($variant && method_exists($variant, 'getPrice')) { $basePrice = (float)$variant->getPrice(); }
+            if ($basePrice === null || $basePrice === 0.0) { $basePrice = (float)(method_exists($product, 'getPrice') ? $product->getPrice() : 0); }
+            // Apply active product offer (percentage or fixed)
+            $finalPrice = $basePrice;
+            try {
+                $offer = $this->productOfferRepo->findCurrentOfferForProduct($product);
+                if ($offer instanceof ProductOffer) {
+                    $type = method_exists($offer, 'getDiscountType') ? $offer->getDiscountType() : null;
+                    $val = method_exists($offer, 'getDiscountValue') ? (float)$offer->getDiscountValue() : 0.0;
+                    if ($type === ProductOffer::DISCOUNT_TYPE_PERCENTAGE) {
+                        $finalPrice = max(0, $basePrice - ($basePrice * ($val / 100)));
+                    } elseif ($type === ProductOffer::DISCOUNT_TYPE_FIXED) {
+                        $finalPrice = max(0, $basePrice - $val);
+                    }
+                }
+            } catch (\Throwable $e) { /* noop */ }
+            $item->setUnitPrice(number_format($finalPrice, 2, '.', ''));
             $this->em->persist($item);
             $cart->addCartItem($item);
         }
@@ -231,17 +288,39 @@ class CartApiController extends AbstractController
             if ($existing) {
                 $existing->setQuantity($existing->getQuantity() + $qty);
             } else {
+                // Create new line with discounted unit price if offer active
                 $item = new CartItem();
                 $item->setCart($cart);
                 $item->setProduct($product);
                 if ($variant && method_exists($item, 'setProductVariant')) { $item->setProductVariant($variant); }
                 $item->setQuantity($qty);
+
+                // Determine base price
+                $basePrice = null;
+                if ($variant && method_exists($variant, 'getPrice')) { $basePrice = (float)$variant->getPrice(); }
+                if ($basePrice === null || $basePrice === 0.0) { $basePrice = (float)(method_exists($product, 'getPrice') ? $product->getPrice() : 0); }
+
+                // Apply active product offer
+                $finalPrice = $basePrice;
+                try {
+                    $offer = $this->productOfferRepo->findCurrentOfferForProduct($product);
+                    if ($offer instanceof ProductOffer) {
+                        $type = method_exists($offer, 'getDiscountType') ? $offer->getDiscountType() : null;
+                        $val = method_exists($offer, 'getDiscountValue') ? (float)$offer->getDiscountValue() : 0.0;
+                        if ($type === ProductOffer::DISCOUNT_TYPE_PERCENTAGE) {
+                            $finalPrice = max(0, $basePrice - ($basePrice * ($val / 100)));
+                        } elseif ($type === ProductOffer::DISCOUNT_TYPE_FIXED) {
+                            $finalPrice = max(0, $basePrice - $val);
+                        }
+                    }
+                } catch (\Throwable $e) { /* noop */ }
+                $item->setUnitPrice(number_format($finalPrice, 2, '.', ''));
+
                 $this->em->persist($item);
                 $cart->addCartItem($item);
             }
         }
         $this->em->flush();
-
         return new JsonResponse(['success' => true, 'cart' => $this->serializeCart($cart)]);
     }
 
