@@ -56,8 +56,11 @@
 						<ul class="main-menu">
 							
 
-							<li>
+							<li class="has-mega">
 								<a href="{{ path('product_shop') }}">Shop</a>
+								<div class="ov-mega" aria-hidden="true">
+									{{ render(controller('App\\Controller\\MegaMenuController::menu')) }}
+								</div>
 							</li>
 
 							<li class="label1" data-label1="hot">

@@ -1,0 +1,63 @@
+{# Mega Menu content: 4 columns: Categories, Brands, Genres, Shapes #}
+<div class="ov-mega-wrap container">
+  <div class="row g-4 ov-mega-row">
+    <div class="col-12 col-md-6 col-lg-3">
+      <h6 class="ov-mega-title">Categories</h6>
+      <ul class="ov-mega-list">
+        {% for c in categories|slice(0,12) %}
+          <li>
+            <a href="{{ path('product_shop', { 'category[]': c.id }) }}">{{ c.name }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <h6 class="ov-mega-title" style="margin-top:16px;">Shapes</h6>
+      <ul class="ov-mega-list">
+        {% for sh in shapes|slice(0,12) %}
+          <li class="d-flex align-items-center" style="gap:8px;">
+            {% set shImg = sh.imageName ? vich_uploader_asset(sh, 'imageFile') : null %}
+            {% if shImg %}
+              <img src="{{ shImg }}" alt="{{ sh.name }}" style="width:22px;height:22px;border-radius:4px;border:1px solid #eee;object-fit:cover;">
+            {% else %}
+              <span style="width:22px;height:22px;border-radius:4px;border:1px solid #eee;background:#f7f7f7;display:inline-block;"></span>
+            {% endif %}
+            <a href="{{ path('product_shop', { 'shape[]': sh.id }) }}">{{ sh.name }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <h6 class="ov-mega-title">Brands</h6>
+      <ul class="ov-mega-list">
+        {% for b in brands|slice(0,6) %}
+          <li>
+            <a href="{{ path('product_shop', { 'brand[]': b.id }) }}">{{ b.name }}</a>
+          </li>
+        {% endfor %}
+        <li>
+          <a href="{{ path('product_shop') }}">Show more brands →</a>
+        </li>
+      </ul>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <h6 class="ov-mega-title">Genres</h6>
+      <ul class="ov-mega-list">
+        {% for g in genres|slice(0,12) %}
+          <li>
+            <a href="{{ path('product_shop', { 'genre[]': g.id }) }}">{{ g.name }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <h6 class="ov-mega-title">Styles</h6>
+      <ul class="ov-mega-list">
+        {% for st in styles|slice(0,12) %}
+          <li>
+            <a href="{{ path('product_shop', { 'style[]': st.id }) }}">{{ st.name }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>

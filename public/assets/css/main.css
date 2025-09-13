@@ -453,15 +453,79 @@ button.cartp-remove.stext-110.cl2:hover {
   align-items: center;
   height: 65%;
   margin-right: 55px;
+  z-index: 10;
 }
-
+li.has-mega {
+ 
+}
 .logo img {
   max-width: 100%;
   max-height: 100%;
 }
 
+.ov-mega {
+  display: none;
+  position: fixed;
+  width: 100vw;
+  background: #fff;
+  left: 0;
+  right: 0;
+  padding: 98px 0 15px;
+  box-shadow: -1px 11px 20px rgb(59 59 59 / 30%);
+  top: 40px;
+  z-index: -1;
+}
+.container-menu-desktop.fix-menu-desktop .ov-mega  {
+  top: 0;
+}
+.row.g-4.ov-mega-row div:not(:last-child) {
+  border-right: 1px solid rgb(113 127 224 / 30%);
+}
+li.has-mega:hover .ov-mega {
+  display: block;
+}
+.ov-mega h6.ov-mega-title {
+  font-weight: 600;
+  padding: 0 0 15px;
+  position: relative;
+}
+ul.ov-mega-list li a {
+  padding: 0 0 2px;
+  color: #222;
+  position: relative;
+}
+ul.ov-mega-list li a:after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  height: 1px;
+  background: #717fe0;
+  bottom: 0;
+  transition: all 0.4s;
+}
+ul.ov-mega-list li a:hover {
+ 
+  color: #717fe0;
 
+}
+ul.ov-mega-list li a:hover:after {
+ 
+  right: 0;
 
+}
+ul.ov-mega-list li {
+  margin: 0 0 2px;
+}
+.ov-mega h6.ov-mega-title:after {
+  content: "";
+  position: absolute;
+  bottom: 9px;
+  width: 30px;
+  height: 3px;
+  background: #717fe0;
+  left: 0;
+}
 /*------------------------------------------------------------------
 [ Menu ]*/
 
