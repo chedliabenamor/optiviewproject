@@ -1,0 +1,147 @@
+{# Topbar that matches the legacy look: Filter and Search toggles. #}
+<div class="flex-w flex-c-m m-b-10">
+    <div class="flex-c-m stext-106 cl6 size-104 bor4 pointer hov-btn3 trans-04 m-r-8 m-tb-4 js-shop-toggle-filter">
+        <i class="icon-filter cl2 m-r-6 fs-15 trans-04 zmdi zmdi-filter-list"></i>
+        <i class="icon-close-filter cl2 m-r-6 fs-15 trans-04 zmdi zmdi-close dis-none"></i>
+        Filter
+    </div>
+
+    <div class="flex-c-m stext-106 cl6 size-105 bor4 pointer hov-btn3 trans-04 m-tb-4 js-shop-toggle-search">
+        <i class="icon-search cl2 m-r-6 fs-15 trans-04 zmdi zmdi-search"></i>
+        <i class="icon-close-search cl2 m-r-6 fs-15 trans-04 zmdi zmdi-close dis-none"></i>
+        Search
+    </div>
+</div>
+
+{# Search product #}
+<div class="panel-search w-full p-t-10 p-b-15 dis-none js-shop-panel-search">
+    <form class="bor8 dis-flex p-l-15" action="{{ path('product_shop') }}" method="get">
+        {# preserve filters #}
+        {% for id in query.category|default([]) %}<input type="hidden" name="category[]" value="{{ id }}">{% endfor %}
+        {% for id in query.brand|default([]) %}<input type="hidden" name="brand[]" value="{{ id }}">{% endfor %}
+        {% for id in query.color|default([]) %}<input type="hidden" name="color[]" value="{{ id }}">{% endfor %}
+        {% for id in query.shape|default([]) %}<input type="hidden" name="shape[]" value="{{ id }}">{% endfor %}
+        {% for id in query.genre|default([]) %}<input type="hidden" name="genre[]" value="{{ id }}">{% endfor %}
+        {% if query.minPrice is defined %}<input type="hidden" name="minPrice" value="{{ query.minPrice }}">{% endif %}
+        {% if query.maxPrice is defined %}<input type="hidden" name="maxPrice" value="{{ query.maxPrice }}">{% endif %}
+        <input type="hidden" name="sort" value="{{ currentSort|default('newest') }}">
+        <input type="hidden" name="page" value="1">
+
+        <button class="size-113 flex-c-m fs-16 cl2 hov-cl1 trans-04" type="submit" aria-label="Search">
+            <i class="zmdi zmdi-search"></i>
+        </button>
+        <input class="mtext-107 cl2 size-114 plh2 p-r-15" type="text" name="q" placeholder="Search" value="{{ currentQuery|default('') }}" autocomplete="off">
+    </form>
+</div>
+
+{# Filter panel, only Sort By (to match look) #}
+<div class="panel-filter w-full p-t-10 dis-none js-shop-panel-filter">
+    <div class="wrap-filter flex-w bg6 w-full p-lr-40 p-t-27 p-lr-15-sm">
+        <div class="filter-col1 p-r-15 p-b-27">
+            <div class="mtext-102 cl2 p-b-15">Sort By</div>
+            <ul>
+                <li class="p-b-6">
+                    <a class="filter-link stext-106 trans-04 {{ currentSort == 'newest' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'newest', 'page': 1})) }}">Newness</a>
+                </li>
+                <li class="p-b-6">
+                    <a class="filter-link stext-106 trans-04 {{ currentSort == 'price_asc' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'price_asc', 'page': 1})) }}">Price: Low to High</a>
+                </li>
+                <li class="p-b-6">
+                    <a class="filter-link stext-106 trans-04 {{ currentSort == 'price_desc' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'price_desc', 'page': 1})) }}">Price: High to Low</a>
+                </li>
+                <li class="p-b-6">
+                    <a class="filter-link stext-106 trans-04 {{ currentSort == 'oldest' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'oldest', 'page': 1})) }}">Oldest</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// Minimal toggle logic to match legacy behavior
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    var btnFilter = document.querySelector('.js-shop-toggle-filter');
+    var btnSearch = document.querySelector('.js-shop-toggle-search');
+    var panelFilter = document.querySelector('.js-shop-panel-filter');
+    var panelSearch = document.querySelector('.js-shop-panel-search');
+    function toggle(el, btn, other, otherBtn){
+      if (!el || !btn) return;
+      var closeIcon = btn.querySelector('.icon-close-filter, .icon-close-search');
+      var listIcon = btn.querySelector('.zmdi-filter-list, .zmdi-search');
+      var isHidden = el.classList.contains('dis-none');
+      // hide other
+      if (other && !other.classList.contains('dis-none')) other.classList.add('dis-none');
+      if (otherBtn) {
+        var oClose = otherBtn.querySelector('.icon-close-filter, .icon-close-search');
+        if (oClose) oClose.classList.add('dis-none');
+      }
+      // toggle this
+      if (isHidden) {
+        el.classList.remove('dis-none');
+        if (closeIcon) closeIcon.classList.remove('dis-none');
+      } else {
+        el.classList.add('dis-none');
+        if (closeIcon) closeIcon.classList.add('dis-none');
+      }
+    }
+    if (btnFilter) btnFilter.addEventListener('click', function(){ toggle(panelFilter, btnFilter, panelSearch, btnSearch); });
+    if (btnSearch) btnSearch.addEventListener('click', function(){ toggle(panelSearch, btnSearch, panelFilter, btnFilter); });
+  });
+})();
+
+// Live search + AJAX pagination/sort
+(function(){
+  function debounce(fn, wait){ var t; return function(){ clearTimeout(t); var a=arguments, ctx=this; t=setTimeout(function(){ fn.apply(ctx,a); }, wait);} }
+  function fetchResults(url){
+    return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function(r){ return r.json(); });
+  }
+  function updateResults(data){
+    var wrapper = document.getElementById('shop-results');
+    if (!wrapper) return;
+    // Replace inner content (grid + pagination)
+    wrapper.innerHTML = data.grid + data.pagination;
+    wireAjaxLinks();
+  }
+  function buildUrl(params){
+    var base = '{{ path('product_shop') }}';
+    var query = new URLSearchParams(params).toString();
+    return base + (query ? ('?' + query) : '');
+  }
+  function currentParams(){
+    var params = new URLSearchParams(window.location.search);
+    // Ensure filters already in page are preserved
+    // Values are already in the URL; for search we’ll update 'q' below
+    return params;
+  }
+  function pushUrl(url){
+    if (window.history && window.history.pushState){ window.history.pushState({}, '', url); }
+  }
+  function wireAjaxLinks(){
+    // Intercept pagination links with data-ajax="1"
+    document.querySelectorAll('#shop-results a.page-link[data-ajax="1"]').forEach(function(a){
+      a.addEventListener('click', function(e){
+        e.preventDefault();
+        var url = a.getAttribute('href');
+        fetchResults(url).then(function(data){ updateResults(data); pushUrl(url); });
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    // Debounced input on search field
+    var searchInput = document.querySelector('.js-shop-panel-search input[name="q"]');
+    if (searchInput){
+      var run = debounce(function(){
+        var params = currentParams();
+        params.set('q', searchInput.value || '');
+        params.set('page', '1');
+        var url = buildUrl(params);
+        fetchResults(url).then(function(data){ updateResults(data); pushUrl(url); });
+      }, 300);
+      searchInput.addEventListener('input', run);
+    }
+    wireAjaxLinks();
+  });
+})();
+</script>

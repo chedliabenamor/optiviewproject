@@ -1,0 +1,219 @@
+{# Sidebar Filters for Shop Page #}
+<aside class="p-b-30">
+    <form method="get" action="{{ path('product_shop') }}" class="shop-sidebar">
+        {# Preserve page reset to 1 on filter submit #}
+        <input type="hidden" name="page" value="1">
+
+        <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
+            <button type="button" class="ov-acc-header">
+                <span class="mtext-102 cl2">Categories</span>
+                <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
+            </button>
+            <div class="ov-acc-body" style="display:block;">
+            <div class="row g-2 p-t-20 p-b-20">
+                {% for c in categories %}
+                    {% set checked = query.category is defined and c.id in query.category %}
+                    {% set catImg = c.imageName ? vich_uploader_asset(c, 'imageFile') : null %}
+                    <div class="col-6">
+                        <label class="ov-cat-tile {% if checked %}active{% endif %}">
+                            <input type="checkbox" name="category[]" value="{{ c.id }}" class="d-none" {% if checked %}checked{% endif %}>
+                            <span class="ov-cat-thumb" style="background-image: url('{{ catImg ?: asset('assets/images/placeholder.png') }}');"></span>
+                            <span class="ov-cat-overlay">
+                                <span class="ov-cat-title">{{ c.name }}</span>
+                                <span class="ov-cat-count">({{ c.products|length }})</span>
+                            </span>
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+            </div>
+        </div>
+
+        <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
+            <button type="button" class="ov-acc-header">
+                <span class="mtext-102 cl2">Brands</span>
+                <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
+            </button>
+            <div class="ov-acc-body" style="display:block;">
+            <ul class="p-lr-0 p-t-20 p-b-20" style="list-style:none;">
+                {% for b in brands %}
+                    {% set checked = query.brand is defined and b.id in query.brand %}
+                    <li class="p-b-8">
+                        <label class="stext-111 cl6">
+                            <input type="checkbox" name="brand[]" value="{{ b.id }}" {% if checked %}checked{% endif %}> {{ b.name }}
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+            </div>
+        </div>
+
+        <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
+            <button type="button" class="ov-acc-header">
+                <span class="mtext-102 cl2">Color</span>
+                <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
+            </button>
+            <div class="ov-acc-body" style="display:block;">
+            <div class="flex-w flex-m m-r--5 p-t-20 p-b-10">
+                {% for color in colors %}
+                    {% set checked = query.color is defined and color.id in query.color %}
+                    {% set colorImg = color.imageName ? vich_uploader_asset(color, 'imageFile') : null %}
+                    <label class="m-all-5 d-flex align-items-center" title="{{ color.name }}" style="gap:8px;">
+                        <input type="checkbox" class="d-none" name="color[]" value="{{ color.id }}" {% if checked %}checked{% endif %}>
+                        {% if colorImg %}
+                            <img src="{{ colorImg }}" alt="{{ color.name }}" style="width:26px;height:26px;border-radius:4px;border:1px solid #ddd;object-fit:cover;">
+                        {% else %}
+                            <span class="dis-inline-block" style="width:26px;height:26px;border-radius:4px;border:1px solid #ddd;background: {{ color.hexCode ?? '#eee' }}; display:inline-block;"></span>
+                        {% endif %}
+                        <span class="stext-111 cl6">{{ color.name }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            </div>
+        </div>
+
+        <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
+            <button type="button" class="ov-acc-header">
+                <span class="mtext-102 cl2">Shapes</span>
+                <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
+            </button>
+            <div class="ov-acc-body" style="display:block;">
+            <ul class="p-lr-0 p-t-20 p-b-10" style="list-style:none;">
+                {% for s in shapes %}
+                    {% set checked = query.shape is defined and s.id in query.shape %}
+                    {% set shapeImg = s.imageName ? vich_uploader_asset(s, 'imageFile') : null %}
+                    <li class="p-b-8">
+                        <label class="stext-111 cl6 d-flex align-items-center" style="gap:8px;">
+                            <input type="checkbox" name="shape[]" value="{{ s.id }}" {% if checked %}checked{% endif %}>
+                            {% if shapeImg %}
+                                <img src="{{ shapeImg }}" alt="{{ s.name }}" style="width:26px;height:26px;border-radius:4px;border:1px solid #ddd;object-fit:cover;">
+                            {% else %}
+                                <span class="dis-inline-block" style="width:26px;height:26px;border-radius:4px;border:1px solid #ddd;background:#f5f5f5;display:inline-block;"></span>
+                            {% endif %}
+                            <span>{{ s.name }}</span>
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+            </div>
+        </div>
+
+        <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
+            <button type="button" class="ov-acc-header">
+                <span class="mtext-102 cl2">Genre</span>
+                <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
+            </button>
+            <div class="ov-acc-body" style="display:block;">
+            <ul class="p-lr-0 p-t-20 p-b-10" style="list-style:none;">
+                {% for g in genres %}
+                    {% set checked = query.genre is defined and g.id in query.genre %}
+                    <li class="p-b-8">
+                        <label class="stext-111 cl6">
+                            <input type="checkbox" name="genre[]" value="{{ g.id }}" {% if checked %}checked{% endif %}> {{ g.name }}
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+            </div>
+        </div>
+
+        <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
+            <button type="button" class="ov-acc-header">
+                <span class="mtext-102 cl2">Price</span>
+                <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
+            </button>
+            <div class="ov-acc-body" style="display:block;">
+            <h4 class="mtext-102 cl2 p-b-15" style="display:none;">Price</h4>
+            {# Hidden fields actually submitted #}
+            <input type="hidden" name="minPrice" id="minPriceField" value="{{ query.minPrice|default(priceBounds.min) }}">
+            <input type="hidden" name="maxPrice" id="maxPriceField" value="{{ query.maxPrice|default(priceBounds.max) }}">
+
+            {# Range slider UI (two inputs) #}
+            {% set minVal = (query.minPrice is defined and query.minPrice != '') ? query.minPrice : priceBounds.min %}
+            {% set maxVal = (query.maxPrice is defined and query.maxPrice != '') ? query.maxPrice : priceBounds.max %}
+            <div class="p-t-5">
+                <div class="ov-price-slider">
+                    <input type="range" id="priceMinRange" min="{{ priceBounds.min }}" max="{{ priceBounds.max }}" step="1" value="{{ minVal }}" class="ov-range">
+                    <input type="range" id="priceMaxRange" min="{{ priceBounds.min }}" max="{{ priceBounds.max }}" step="1" value="{{ maxVal }}" class="ov-range">
+                </div>
+                <div class="txt-center stext-111 cl6 m-t-10">
+                    From <strong class="js-price-min-label">{{ minVal }}</strong> - To <strong class="js-price-max-label">{{ maxVal }}</strong>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="flex-w m-t-10">
+            <button type="submit" class="flex-c-m stext-101 cl0 size-102 bg3 bor2 hov-btn3 p-lr-15 trans-04 m-r-8">Apply Filters</button>
+            <a href="{{ path('product_shop') }}" class="flex-c-m stext-101 cl5 size-102 bg2 bor1 hov-btn1 p-lr-15 trans-04">Reset</a>
+        </div>
+    </form>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+        var minField = document.getElementById('minPriceField');
+        var maxField = document.getElementById('maxPriceField');
+        var minLabel = document.querySelector('.js-price-min-label');
+        var maxLabel = document.querySelector('.js-price-max-label');
+        var rMin = document.getElementById('priceMinRange');
+        var rMax = document.getElementById('priceMaxRange');
+        if (!rMin || !rMax) return;
+        var minGap = 1; // prevent crossing
+
+        function syncLabels(){
+            var minTxt = rMin.value, maxTxt = rMax.value;
+            try {
+                if (window.Currency) {
+                    minTxt = window.Currency.format(parseFloat(minTxt));
+                    maxTxt = window.Currency.format(parseFloat(maxTxt));
+                }
+            } catch(e){}
+            if (minLabel) minLabel.textContent = minTxt;
+            if (maxLabel) maxLabel.textContent = maxTxt;
+        }
+        function clamp(){
+            if (parseFloat(rMax.value) - parseFloat(rMin.value) < minGap){
+                if (this === rMin){ rMin.value = (parseFloat(rMax.value) - minGap); }
+                else { rMax.value = (parseFloat(rMin.value) + minGap); }
+            }
+            minField.value = rMin.value;
+            maxField.value = rMax.value;
+            syncLabels();
+        }
+        rMin.addEventListener('input', clamp);
+        rMax.addEventListener('input', clamp);
+        // initial sync
+        syncLabels();
+
+        // Toggle active state on category tiles when checkbox changes
+        document.querySelectorAll('.ov-cat-tile input[type="checkbox"]').forEach(function(cb){
+            cb.addEventListener('change', function(){
+                var label = cb.closest('.ov-cat-tile');
+                if (!label) return;
+                if (cb.checked) label.classList.add('active'); else label.classList.remove('active');
+            });
+        });
+
+        // Accordion toggles
+        document.querySelectorAll('.ov-acc-header').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                var body = btn.nextElementSibling;
+                var icon = btn.querySelector('.ov-acc-icon');
+                if (!body) return;
+                var isShown = body.style.display !== 'none';
+                body.style.display = isShown ? 'none' : 'block';
+                if (icon) icon.classList.toggle('rot');
+            });
+        });
+
+        // Always reset to page=1 when applying sidebar filters
+        var sidebarForm = document.querySelector('form.shop-sidebar');
+        if (sidebarForm){
+            var pageInput = sidebarForm.querySelector('input[name="page"]');
+            function resetPage(){ if (pageInput) { pageInput.value = '1'; } }
+            sidebarForm.addEventListener('change', resetPage, true);
+            sidebarForm.addEventListener('submit', resetPage);
+        }
+    });
+    </script>
+</aside>

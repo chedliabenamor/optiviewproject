@@ -3,9 +3,76 @@
 {% block title %}{{ page_title }} - OptiView{% endblock %}
 
 {% block body %}
-<div class="container mt-5 mb-5">
-    <h1>{{ page_title }}</h1>
-    <p>This is the About Us page. Learn more about OptiView here.</p>
-    {# Add your company information, mission, team, etc. here #}
-</div>
+<!-- Title page -->
+	<!-- Title page -->
+	<section class="bg-img1 txt-center p-lr-15 p-tb-92" style="background-image: url('{{ asset('assets/images/bg-about.jpg') }}');">
+		<h2 class="ltext-105 cl0 txt-center">
+			About us 
+		</h2>
+	</section>	
+
+
+	<!-- Content page -->
+	<section class="bg0 p-t-75 p-b-120">
+		<div class="container">
+			<div class="row p-b-148">
+				<div class="col-md-7 col-lg-8">
+					<div class="p-t-7 p-r-85 p-r-15-lg p-r-0-md">
+						<h3 class="mtext-111 cl2 p-b-16">
+							Who We Are
+						</h3>
+
+						<p class="stext-113 cl6 p-b-26">
+							At Optiview Optical, we believe that eyewear is more than just vision correction — it’s style, confidence, and comfort combined. Founded with the mission to make quality glasses accessible to everyone, we bring together modern designs, advanced lens technology, and affordable pricing.
+						</p>
+
+						
+
+						
+					</div>
+				</div>
+
+				<div class="col-11 col-md-5 col-lg-4 m-lr-auto">
+					<div class="how-bor1 ">
+						<div class="hov-img0">
+							<img src="{{ asset('assets/images/about1.jpg') }}" alt="IMG">
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="row">
+				<div class="order-md-2 col-md-7 col-lg-8 p-b-30">
+					<div class="p-t-7 p-l-85 p-l-15-lg p-l-0-md">
+						<h3 class="mtext-111 cl2 p-b-16">
+							Our Mission
+						</h3>
+
+						<p class="stext-113 cl6 p-b-26">
+							To help people see better and live better by offering high-quality eyewear that blends fashion, comfort, and functionality. Whether you need prescription glasses, blue-light protection, or stylish sunglasses, we’re here to make every pair fit perfectly into your lifestyle.
+						</p>
+
+						<div class="bor16 p-l-29 p-b-9 m-t-22">
+							<p class="stext-114 cl6 p-r-40 p-b-11">
+							Your vision and satisfaction are at the heart of everything we do. From the moment you browse our collection to the day your glasses arrive, we’re committed to delivering an experience that’s easy, enjoyable, and reliable.
+							</p>
+
+							<span class="stext-111 cl8">
+								- Optiview Optical 
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="order-md-1 col-11 col-md-5 col-lg-4 m-lr-auto p-b-30">
+					<div class="how-bor2">
+						<div class="hov-img0">
+							<img src="{{ asset('assets/images/about2.jpg') }}" alt="IMG">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>	
+	
 {% endblock %}
