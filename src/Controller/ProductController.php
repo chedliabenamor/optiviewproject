@@ -11,6 +11,7 @@ use App\Repository\BrandRepository;
 use App\Repository\ColorRepository;
 use App\Repository\ShapeRepository;
 use App\Repository\GenreRepository;
+use App\Repository\StyleRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,6 +32,7 @@ class ProductController extends AbstractController
         ColorRepository $colorRepository,
         ShapeRepository $shapeRepository,
         GenreRepository $genreRepository,
+        StyleRepository $styleRepository
     ): Response {
         $perPage = 8;
         $page = max(1, (int) $request->query->get('page', 1));
@@ -40,6 +42,7 @@ class ProductController extends AbstractController
         $brandIds = $request->query->all('brand');   // expects arrays like brand[]=1
         $colorIds = $request->query->all('color');   // expects arrays like color[]=1
         $shapeIds = $request->query->all('shape');   // expects arrays like shape[]=1
+        $styleIds = $request->query->all('style');   // expects arrays like style[]=1
         $genreIds = $request->query->all('genre');   // expects arrays like genre[]=1
         $minPrice = $request->query->getString('minPrice', '');
         $maxPrice = $request->query->getString('maxPrice', '');
@@ -52,7 +55,11 @@ class ProductController extends AbstractController
             ->leftJoin('p.brand', 'br')
             ->leftJoin('p.colors', 'col')
             ->leftJoin('p.shape', 'sh')
+            ->leftJoin('p.style', 'st')
             ->leftJoin('p.genre', 'ge')
+            ->leftJoin('p.productVariants', 'pv')
+            ->leftJoin('pv.color', 'vcol')
+            ->leftJoin('pv.genre', 'vgen')
             ->select('COUNT(DISTINCT p.id)');
 
         if (!empty($catIds)) {
@@ -62,13 +69,18 @@ class ProductController extends AbstractController
             $countQb->andWhere('br.id IN (:brands)')->setParameter('brands', $brandIds);
         }
         if (!empty($colorIds)) {
-            $countQb->andWhere('col.id IN (:colors)')->setParameter('colors', $colorIds);
+            // A product matches if ANY of its variants has one of the selected colors
+            $countQb->andWhere('vcol.id IN (:colors)')->setParameter('colors', $colorIds);
         }
         if (!empty($shapeIds)) {
             $countQb->andWhere('sh.id IN (:shapes)')->setParameter('shapes', $shapeIds);
         }
+        if (!empty($styleIds)) {
+            $countQb->andWhere('st.id IN (:styles)')->setParameter('styles', $styleIds);
+        }
         if (!empty($genreIds)) {
-            $countQb->andWhere('ge.id IN (:genres)')->setParameter('genres', $genreIds);
+            // Genre at variant level
+            $countQb->andWhere('vgen.id IN (:genres)')->setParameter('genres', $genreIds);
         }
         if ($minPrice !== '') {
             $countQb->andWhere('p.price >= :minPrice')->setParameter('minPrice', (float) $minPrice);
@@ -88,11 +100,17 @@ class ProductController extends AbstractController
 
         // Fetch current page products with filters
         $qb = $productRepository->createQueryBuilder('p')
+            ->select('DISTINCT p')
             ->leftJoin('p.category', 'cat')->addSelect('cat')
             ->leftJoin('p.brand', 'br')->addSelect('br')
-            ->leftJoin('p.colors', 'col')->addSelect('col')
             ->leftJoin('p.shape', 'sh')->addSelect('sh')
+            ->leftJoin('p.style', 'st')->addSelect('st')
             ->leftJoin('p.genre', 'ge')->addSelect('ge')
+            // joins needed for filtering, but we don't addSelect to avoid row explosion
+            ->leftJoin('p.colors', 'col')
+            ->leftJoin('p.productVariants', 'pv')
+            ->leftJoin('pv.color', 'vcol')
+            ->leftJoin('pv.genre', 'vgen')
             ->setFirstResult($offset)
             ->setMaxResults($perPage);
 
@@ -103,13 +121,18 @@ class ProductController extends AbstractController
             $qb->andWhere('br.id IN (:brands)')->setParameter('brands', $brandIds);
         }
         if (!empty($colorIds)) {
-            $qb->andWhere('col.id IN (:colors)')->setParameter('colors', $colorIds);
+            // Match via variant colors
+            $qb->andWhere('vcol.id IN (:colors)')->setParameter('colors', $colorIds);
         }
         if (!empty($shapeIds)) {
             $qb->andWhere('sh.id IN (:shapes)')->setParameter('shapes', $shapeIds);
         }
+        if (!empty($styleIds)) {
+            $qb->andWhere('st.id IN (:styles)')->setParameter('styles', $styleIds);
+        }
         if (!empty($genreIds)) {
-            $qb->andWhere('ge.id IN (:genres)')->setParameter('genres', $genreIds);
+            // Match via variant genres
+            $qb->andWhere('vgen.id IN (:genres)')->setParameter('genres', $genreIds);
         }
         if ($minPrice !== '') {
             $qb->andWhere('p.price >= :minPrice')->setParameter('minPrice', (float) $minPrice);
@@ -147,6 +170,7 @@ class ProductController extends AbstractController
         $colors = $colorRepository->findAll();
         $shapes = $shapeRepository->findAll();
         $genres = $genreRepository->findAll();
+        $styles = $styleRepository->findBy([], ['name' => 'ASC']);
 
         // Compute DB min/max price for slider bounds
         $bounds = $productRepository->createQueryBuilder('pp')
@@ -159,6 +183,7 @@ class ProductController extends AbstractController
         if ($request->isXmlHttpRequest()) {
             $gridHtml = $this->renderView('partials/products/_product_grid.html.twig', [
                 'products' => $products,
+                'query' => $request->query->all(),
             ]);
             $paginationHtml = $this->renderView('partials/products/_pagination.html.twig', [
                 'pagination' => [
@@ -188,6 +213,7 @@ class ProductController extends AbstractController
             'colors' => $colors,
             'shapes' => $shapes,
             'genres' => $genres,
+            'styles' => $styles,
             'query' => $request->query->all(),
             'priceBounds' => [ 'min' => $minDb, 'max' => $maxDb ],
             'pagination' => [

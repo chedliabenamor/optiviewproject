@@ -1455,6 +1455,11 @@ form.shop-sidebar label.stext-111.cl6 {
 ;
   gap: 11px;
 }
+/* Highlight selected color swatch in sidebar */
+form.shop-sidebar label.m-all-5:has(input[type="checkbox"]:checked) {
+  border: 1px solid #717fe0;
+  padding: 2px;
+}
 /* ==== Shop Sidebar Enhancements ==== */
 /* Accordion */
 .ov-accordion { border: 1px solid #eee; border-radius: 8px; background: #fff; }

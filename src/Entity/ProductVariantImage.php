@@ -174,7 +174,10 @@ class ProductVariantImage
     public function getImageUrl(): ?string
     {
         if ($this->getImageName()) {
-            return '/uploads/images/product_variants/' . $this->getImageName();
+            // Must align with vich_uploader mapping 'product_variant_images'
+            // config\packages\vich_uploader.yaml -> upload_destination: public/uploads/product_variant_images
+            // and uri_prefix (via parameter) resolves to /uploads/product_variant_images
+            return '/uploads/product_variant_images/' . $this->getImageName();
         }
         return null;
     }

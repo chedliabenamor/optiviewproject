@@ -19,6 +19,7 @@
                         colors: colors,
                         shapes: shapes,
                         genres: genres,
+                        styles: styles,
                         priceBounds: priceBounds,
                         query: query
                     } %}
@@ -30,7 +31,7 @@
                         currentQuery: currentQuery
                     } %}
                     <div id="shop-results">
-                        {% include 'partials/products/_product_grid.html.twig' with { products: products } %}
+                        {% include 'partials/products/_product_grid.html.twig' with { products: products, query: query } %}
                         {% include 'partials/products/_pagination.html.twig' with { pagination: pagination, query: query } %}
                     </div>
 

@@ -100,6 +100,25 @@
 
         <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
             <button type="button" class="ov-acc-header">
+                <span class="mtext-102 cl2">Styles</span>
+                <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
+            </button>
+            <div class="ov-acc-body" style="display:block;">
+            <ul class="p-lr-0 p-t-20 p-b-10" style="list-style:none;">
+                {% for st in styles %}
+                    {% set checked = query.style is defined and st.id in query.style %}
+                    <li class="p-b-8">
+                        <label class="stext-111 cl6">
+                            <input type="checkbox" name="style[]" value="{{ st.id }}" {% if checked %}checked{% endif %}> {{ st.name }}
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+            </div>
+        </div>
+
+        <div class="bor10 p-lr-28 p-t-0 p-b-0 m-b-20 ov-accordion">
+            <button type="button" class="ov-acc-header">
                 <span class="mtext-102 cl2">Genre</span>
                 <i class="zmdi zmdi-chevron-up ov-acc-icon" aria-hidden="true"></i>
             </button>
