@@ -1,10 +1,8 @@
 {# Product grid items only #}
-<div class="row isotope-grid" id="product-grid">
+<div class="row isotope-grid mt-10" id="product-grid">
     {% for product in products %}
-        <div class="product-item-wrapper">
-            {% include 'partials/products/_product_card.html.twig' with { product: product } %}
-        </div>
+        {% include 'partials/products/_product_card.html.twig' with { product: product } %}
     {% else %}
         <p class="p-l-10">No products found.</p>
     {% endfor %}
-</div>
+    </div>

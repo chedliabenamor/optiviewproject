@@ -1460,7 +1460,7 @@ form.shop-sidebar label.stext-111.cl6 {
 .ov-accordion { border: 1px solid #eee; border-radius: 8px; background: #fff; }
 .ov-accordion + .ov-accordion { margin-top: 12px; }
 .ov-acc-header { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 12px; background: transparent; border: 0; cursor: pointer; }
-.ov-acc-header:hover { background: #fafafa; }
+.ov-acc-header:hover { background: transparent; }
 .ov-acc-icon { transition: transform .2s ease; color: #888; }
 .ov-acc-icon.rot { transform: rotate(180deg); }
 .ov-acc-body { border-top: 1px solid #f0f0f0; }

@@ -103,6 +103,7 @@
     // Replace inner content (grid + pagination)
     wrapper.innerHTML = data.grid + data.pagination;
     wireAjaxLinks();
+    enhanceShopUI();
   }
   function buildUrl(params){
     var base = '{{ path('product_shop') }}';
@@ -128,6 +129,26 @@
       });
     });
   }
+  function enhanceShopUI(){
+    // Re-initialize Isotope layout if jQuery + Isotope available
+    try {
+      if (window.jQuery) {
+        var $ = window.jQuery;
+        var $grid = $('.isotope-grid');
+        if ($grid.length && typeof $grid.isotope === 'function'){
+          try { $grid.isotope('destroy'); } catch(e){}
+          $grid.isotope({ itemSelector: '.isotope-item', layoutMode: 'fitRows' });
+          if (typeof $grid.imagesLoaded === 'function') {
+            $grid.imagesLoaded().progress(function(){ $grid.isotope('layout'); });
+          } else {
+            setTimeout(function(){ $grid.isotope('layout'); }, 100);
+          }
+        }
+      }
+    } catch(e) { /* noop */ }
+    // Notify other scripts to re-bind quick view, wishlist, etc.
+    try { document.dispatchEvent(new CustomEvent('shop:updated')); } catch(e) {}
+  }
   document.addEventListener('DOMContentLoaded', function(){
     // Debounced input on search field
     var searchInput = document.querySelector('.js-shop-panel-search input[name="q"]');
@@ -142,6 +163,7 @@
       searchInput.addEventListener('input', run);
     }
     wireAjaxLinks();
+    enhanceShopUI();
   });
 })();
 </script>
