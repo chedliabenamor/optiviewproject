@@ -3,6 +3,7 @@
 {% block title %}{{ product.name }} | Product Details{% endblock %}
 
 {% block body %}
+{% set offerData = product_offer_data(product) %}
 <div class="container">
 		<div class="bread-crumb flex-w p-l-25 p-r-15 p-t-30 p-lr-0-lg">
 			<a href="{{ path('app_home') }}" class="stext-109 cl8 hov-cl1 trans-04">
@@ -78,20 +79,25 @@
 
 						<div class="m-b-15">
                             <!-- Offer Badge -->
-                            <div class="js-offer-badge" style="display: none; margin-bottom: 10px;">
-                                <span class="offer-badge" style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: bold;"></span>
+                            <div class="m-b-15">
+                                <span class="offer-badge" style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; {{ offerData.has_offer ? '' : 'display: none;' }}">{{ offerData.has_offer ? discount_label(product) : '' }}</span>
                             </div>
 
                             <!-- Price Container -->
                             <div class="price-container">
-                                <span class="mtext-106 cl2 js-product-price" id="js-price">€{{ product.price|number_format(2, '.', ',') }}</span>
-                                <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: none;"></span>
+                                {% if offerData.has_offer %}
+                                    <span class="mtext-106 cl2 js-product-price" id="js-price" style="color:#e74c3c; font-weight:700;">€{{ offerData.discounted_price|number_format(2, '.', ',') }}</span>
+                                    <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: inline;">€{{ offerData.original_price|number_format(2, '.', ',') }}</span>
+                                {% else %}
+                                    <span class="mtext-106 cl2 js-product-price" id="js-price">€{{ product.price|number_format(2, '.', ',') }}</span>
+                                    <span class="strike-text js-original-price m-l-10" style="text-decoration: line-through; color: #999; display: none;"></span>
+                                {% endif %}
                                 <span class="js-product-currency"></span>
                                 <div class="js-inline-stock-status stext-110 m-t-6"></div>
                             </div>
 
                             <!-- Countdown Timer -->
-                            <div class="js-offer-countdown" style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                            <div class="js-offer-countdown" style="{{ offerData.has_offer ? '' : 'display: none;' }} margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #e74c3c;">
                                 <div style="font-size: 14px; font-weight: 600; color: #e74c3c; margin-bottom: 5px;">⏰ Limited Time Offer</div>
                                 <div class="countdown-timer" style="font-size: 16px; font-weight: bold; color: #333;">
                                     <span class="js-countdown-days">00</span>d 

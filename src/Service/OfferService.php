@@ -21,11 +21,13 @@ class OfferService
      */
     public function isOfferActive(ProductOffer $offer): bool
     {
-        $now = new \DateTime();
-        
+        // Consider offers active for display/pricing if they overlap any time today
+        $todayStart = new \DateTimeImmutable('today');
+        $todayEnd = (new \DateTimeImmutable('tomorrow'))->modify('-1 second');
+
         return $offer->isActive()
-            && $offer->getStartDate() <= $now 
-            && $offer->getEndDate() >= $now 
+            && $offer->getEndDate() >= $todayStart
+            && $offer->getStartDate() <= $todayEnd
             && $offer->getDeletedAt() === null;
     }
 

@@ -9,11 +9,14 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\HttpFoundation\File\File;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 
 #[ORM\Entity(repositoryClass: ProductOfferRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
+#[Vich\Uploadable]
 class ProductOffer
 {
     #[ORM\ManyToMany(targetEntity: Category::class)]
@@ -77,6 +80,16 @@ class ProductOffer
 
     public const TYPE_PERCENTAGE = 'percentage';
     public const TYPE_FIXED = 'fixed';
+
+    // Vich Uploader fields for offer banner/image
+    #[Vich\UploadableField(mapping: 'offer_images', fileNameProperty: 'imageName', size: 'imageSize')]
+    private ?File $imageFile = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $imageName = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $imageSize = null;
 
     public function __construct()
     {
@@ -258,6 +271,47 @@ class ProductOffer
     {
         $this->updatedAt = $updatedAt;
         return $this;
+    }
+
+    // Vich accessors
+    public function setImageFile(?File $imageFile = null): void
+    {
+        $this->imageFile = $imageFile;
+        if (null !== $imageFile) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+    }
+
+    public function getImageFile(): ?File
+    {
+        return $this->imageFile;
+    }
+
+    public function getImageName(): ?string
+    {
+        return $this->imageName;
+    }
+
+    public function setImageName(?string $imageName): static
+    {
+        $this->imageName = $imageName;
+        return $this;
+    }
+
+    public function getImageSize(): ?int
+    {
+        return $this->imageSize;
+    }
+
+    public function setImageSize(?int $imageSize): static
+    {
+        $this->imageSize = $imageSize;
+        return $this;
+    }
+
+    public function getImageUrl(): ?string
+    {
+        return $this->imageName ? ('/uploads/offers/' . $this->imageName) : null;
     }
 
     public function getDeletedAt(): ?\DateTimeInterface

@@ -1,0 +1,12 @@
+<div class="col-sm-6 col-lg-3 p-b-50">
+  <h4 class="stext-301 cl0 p-b-30">Categories</h4>
+  <ul>
+    {% for c in categories|slice(0,8) %}
+      <li class="p-b-10">
+        <a href="{{ path('product_shop', { 'category[]': c.id }) }}" class="stext-107 cl7 hov-cl1 trans-04">{{ c.name }}</a>
+      </li>
+    {% else %}
+      <li class="p-b-10 stext-107 cl7">No categories found</li>
+    {% endfor %}
+  </ul>
+</div>

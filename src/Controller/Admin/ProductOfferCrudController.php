@@ -18,7 +18,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -27,6 +29,7 @@ use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Vich\UploaderBundle\Form\Type\VichImageType;
 
 class ProductOfferCrudController extends AbstractCrudController
 {
@@ -72,6 +75,15 @@ class ProductOfferCrudController extends AbstractCrudController
         return [
             // IdField::new('id')->hideOnForm(),
             TextField::new('name')->setColumns('col-md-12'),
+            // Display image on index/detail
+            ImageField::new('imageName', 'Image')
+                ->setBasePath('/uploads/offers')
+                ->onlyOnIndex(),
+            // Upload image in forms via Vich
+            Field::new('imageFile', 'Upload Image')
+                ->setFormType(VichImageType::class)
+                ->onlyOnForms()
+                ->setColumns('col-md-6'),
             AssociationField::new('products')->setColumns('col-md-6'),
             AssociationField::new('productVariants')->setLabel('Product Variants')->setColumns('col-md-6'),
             AssociationField::new('brands')->setColumns('col-md-6'),

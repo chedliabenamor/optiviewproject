@@ -2,7 +2,7 @@
 <div class="ov-mega-wrap container">
   <div class="row g-4 ov-mega-row">
     <div class="col-12 col-md-6 col-lg-3">
-      <h6 class="ov-mega-title">Categories</h6>
+      <h6 class="ov-mega-title"><i class="fa fa-list ov-mega-ico" aria-hidden="true"></i> Categories</h6>
       <ul class="ov-mega-list">
         {% for c in categories|slice(0,12) %}
           <li>
@@ -11,15 +11,15 @@
         {% endfor %}
       </ul>
 
-      <h6 class="ov-mega-title" style="margin-top:16px;">Shapes</h6>
+      <h6 class="ov-mega-title" style="margin-top:16px;"><i class="fa fa-circle-o ov-mega-ico" aria-hidden="true"></i> Shapes</h6>
       <ul class="ov-mega-list">
         {% for sh in shapes|slice(0,12) %}
           <li class="d-flex align-items-center" style="gap:8px;">
             {% set shImg = sh.imageName ? vich_uploader_asset(sh, 'imageFile') : null %}
             {% if shImg %}
-              <img src="{{ shImg }}" alt="{{ sh.name }}" style="width:22px;height:22px;border-radius:4px;border:1px solid #eee;object-fit:cover;">
+              <img src="{{ shImg }}" alt="{{ sh.name }}" style="width:30px;height:30px;border-radius:4px;border:1px solid #eee;object-fit:cover;">
             {% else %}
-              <span style="width:22px;height:22px;border-radius:4px;border:1px solid #eee;background:#f7f7f7;display:inline-block;"></span>
+              <span style="width:30px;height:30px;border-radius:4px;border:1px solid #eee;background:#f7f7f7;display:inline-block;"></span>
             {% endif %}
             <a href="{{ path('product_shop', { 'shape[]': sh.id }) }}">{{ sh.name }}</a>
           </li>
@@ -27,7 +27,7 @@
       </ul>
     </div>
     <div class="col-12 col-md-6 col-lg-3">
-      <h6 class="ov-mega-title">Brands</h6>
+      <h6 class="ov-mega-title"><i class="fa fa-tags ov-mega-ico" aria-hidden="true"></i> Brands</h6>
       <ul class="ov-mega-list">
         {% for b in brands|slice(0,6) %}
           <li>
@@ -40,7 +40,7 @@
       </ul>
     </div>
     <div class="col-12 col-md-6 col-lg-3">
-      <h6 class="ov-mega-title">Genres</h6>
+      <h6 class="ov-mega-title"><i class="fa fa-book ov-mega-ico" aria-hidden="true"></i> Genres</h6>
       <ul class="ov-mega-list">
         {% for g in genres|slice(0,12) %}
           <li>
@@ -50,7 +50,7 @@
       </ul>
     </div>
     <div class="col-12 col-md-6 col-lg-3">
-      <h6 class="ov-mega-title">Styles</h6>
+      <h6 class="ov-mega-title"><i class="fa fa-star ov-mega-ico" aria-hidden="true"></i> Styles</h6>
       <ul class="ov-mega-list">
         {% for st in styles|slice(0,12) %}
           <li>

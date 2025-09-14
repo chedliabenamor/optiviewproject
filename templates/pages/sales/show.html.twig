@@ -1,0 +1,217 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ offer.name }} | Offer{% endblock %}
+
+{% block body %}
+<section class="bg0 p-t-40 p-b-60">
+  <div class="container">
+    <div class="bread-crumb flex-w  p-r-15 p-b-15 p-lr-0-lg">
+      <a href="{{ path('app_home') }}" class="stext-109 cl8 hov-cl1 trans-04">Home
+        <i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
+      </a>
+      <a href="{{ path('sales_index') }}" class="stext-109 cl8 hov-cl1 trans-04">Sales
+        <i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
+      </a>
+      <span class="stext-109 cl4">{{ offer.name }}</span>
+    </div>
+    {# Hero section #}
+    <div class="row  m-b-25">
+      <div class="col-12 col-lg-7">
+        {% set heroImg = vich_uploader_asset(offer, 'imageFile') ?: (offer.imageUrl ?? null) %}
+        {% if heroImg %}
+          <div class="bor10">
+            <img src="{{ heroImg }}" alt="{{ offer.name }}" style="width:100%;height:auto;display:block;">
+          </div>
+        {% endif %}
+      </div>
+      <div class="col-12 col-lg-5 m-t-20 m-t-lg-0">
+        <h1 class="mtext-105 cl2 m-b-10">{{ offer.name }}</h1>
+        {% if offer.description %}
+          <p class="stext-111 cl6 m-b-12">{{ offer.description|striptags }}</p>
+        {% endif %}
+        <div class="bor10 p-3" style="background:#f8f9fa">
+          <div class="d-flex flex-wrap" style="gap:10px">
+            <span class="badge" style="background:#e74c3c;color:#fff;font-weight:700">{% if offer.discountType == 'percentage' %}-{{ offer.discountValue|number_format(0) }}%{% else %}-€{{ offer.discountValue|number_format(2, '.', ',') }}{% endif %}</span>
+            <span class="badge" style="background:#ffe9e6;color:#e74c3c">Valid until {{ offer.endDate|date('M d, Y H:i') }}</span>
+          </div>
+          <div class="m-t-12">
+            <a href="#offer-products" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Shop this offer</a>
+          </div>
+          {% set now = date() %}
+          {% if offer.endDate and offer.endDate > now %}
+            <div class="m-t-12 stext-111"><span>⏳ Ends in</span> <span id="js-offer-countdown" data-end="{{ offer.endDate|date('c') }}"></span></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Products grid #}
+    <div id="offer-products" class="m-t-20">
+      {# Related products slider - shows every product impacted by this offer #}
+{% if variantOnly and variants is defined and variants|length > 0 %}
+<section class="sec-relate-product bg0 p-t-45 p-b-105">
+  <div class="container">
+    <div class="p-b-45">
+      <h3 class="ltext-106 cl5 txt-center">Related Products</h3>
+    </div>
+    <div class="wrap-slick2">
+      <div class="slick2">
+        {% for v in variants %}
+          {% set product = v.product %}
+          {% set thumb = null %}
+          {% for vimg in v.productVariantImages %}
+            {% if thumb is null %}
+              {% set t = vich_uploader_asset(vimg, 'imageFile') %}
+              {% if t %}{% set thumb = t %}{% endif %}
+            {% endif %}
+          {% endfor %}
+          {% set vOffer = variant_offer_data(v) %}
+          <div class="item-slick2 p-l-15 p-r-15 p-t-15 p-b-15">
+            <div class="block2">
+              <div class="block2-pic hov-img0">
+                <img src="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}" alt="{{ product.name }}">
+                {% if vOffer.has_offer %}
+                  <div class="discount-badge" style="position: absolute; top: 10px; left: 10px; background: #e74c3c; color: white; padding: 5px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; z-index: 2;">-{{ vOffer.discount_percentage|round(0, 'floor') }}%</div>
+                {% endif %}
+                <a href="{{ path('product_show', {id: product.id}) }}" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04">Quick View</a>
+              </div>
+              <div class="block2-txt flex-w flex-t p-t-14">
+                <div class="block2-txt-child1 flex-col-l ">
+                  <a href="{{ path('product_show', {id: product.id}) }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">
+                    {{ product.name }}{% if v.color %} — {{ v.color.name }}{% endif %}
+                  </a>
+                  {% if vOffer.has_offer %}
+                    <span class="stext-105 cl3" style="font-weight:700;color:#e74c3c;">€{{ vOffer.discounted_price|number_format(2, '.', ',') }}</span>
+                    <span class="stext-105 cl6" style="text-decoration:line-through;margin-left:8px;">€{{ vOffer.original_price|number_format(2, '.', ',') }}</span>
+                  {% else %}
+                    <span class="stext-105 cl3">€{{ v.price|number_format(2, '.', ',') }}</span>
+                  {% endif %}
+                </div>
+                <div class="block2-txt-child2 flex-r p-t-3">
+                  <a href="#" class="btn-addwish-b2 dis-block pos-relative js-addwish-b2"
+                     data-product-id="{{ product.id }}"
+                     data-product-name="{{ product.name|e('html_attr') }}"
+                     data-product-image="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}"
+                     data-product-price="{{ vOffer.has_offer ? vOffer.discounted_price|number_format(2, '.', '') : v.price|number_format(2, '.', '') }}"
+                     data-product-original-price="{{ vOffer.has_offer ? vOffer.original_price|number_format(2, '.', '') : '' }}"
+                     data-product-has-offer="{{ vOffer.has_offer ? '1' : '0' }}"
+                     data-product-currency="EUR">
+                    <img class="icon-heart1 dis-block trans-04" src="{{ asset('assets/images/icons/icon-heart-01.png') }}" alt="ICON">
+                    <img class="icon-heart2 dis-block trans-04 ab-t-l" src="{{ asset('assets/images/icons/icon-heart-02.png') }}" alt="ICON">
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% elseif products is defined and products|length > 0 %}
+<section class="sec-relate-product bg0 p-t-45 p-b-105">
+  <div class="container">
+    <div class="p-b-45">
+      <h3 class="ltext-106 cl5 txt-center">Related Products</h3>
+    </div>
+
+    <div class="wrap-slick2">
+      <div class="slick2">
+        {% for p in products %}
+          <div class="item-slick2 p-l-15 p-r-15 p-t-15 p-b-15">
+            {# Reuse existing product card (uses .block2 structure compatible with theme) #}
+            {% include 'partials/products/_homepage_product_card.html.twig' with { product: p } %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% elseif variants is defined and variants|length > 0 %}
+<section class="sec-relate-product bg0 p-t-45 p-b-105">
+  <div class="container">
+    <div class="p-b-45">
+      <h3 class="ltext-106 cl5 txt-center">Related Variants</h3>
+    </div>
+    <div class="wrap-slick2">
+      <div class="slick2">
+        {% for v in variants %}
+          {% set product = v.product %}
+          {% set thumb = null %}
+          {% for vimg in v.productVariantImages %}
+            {% if thumb is null %}
+              {% set t = vich_uploader_asset(vimg, 'imageFile') %}
+              {% if t %}{% set thumb = t %}{% endif %}
+            {% endif %}
+          {% endfor %}
+          {% set vOffer = variant_offer_data(v) %}
+          <div class="item-slick2 p-l-15 p-r-15 p-t-15 p-b-15">
+            <div class="block2">
+              <div class="block2-pic hov-img0">
+                <img src="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}" alt="{{ product.name }}">
+                {% if vOffer.has_offer %}
+                  <div class="discount-badge" style="position: absolute; top: 10px; left: 10px; background: #e74c3c; color: white; padding: 5px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; z-index: 2;">-{{ vOffer.discount_percentage|round(0, 'floor') }}%</div>
+                {% endif %}
+                <a href="{{ path('product_show', {id: product.id}) }}" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04">Quick View</a>
+              </div>
+              <div class="block2-txt flex-w flex-t p-t-14">
+                <div class="block2-txt-child1 flex-col-l ">
+                  <a href="{{ path('product_show', {id: product.id}) }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">
+                    {{ product.name }}{% if v.color %} — {{ v.color.name }}{% endif %}
+                  </a>
+                  {% if vOffer.has_offer %}
+                    <span class="stext-105 cl3" style="font-weight:700;color:#e74c3c;">€{{ vOffer.discounted_price|number_format(2, '.', ',') }}</span>
+                    <span class="stext-105 cl6" style="text-decoration:line-through;margin-left:8px;">€{{ vOffer.original_price|number_format(2, '.', ',') }}</span>
+                  {% else %}
+                    <span class="stext-105 cl3">€{{ v.price|number_format(2, '.', ',') }}</span>
+                  {% endif %}
+                </div>
+                <div class="block2-txt-child2 flex-r p-t-3">
+                  <a href="#" class="btn-addwish-b2 dis-block pos-relative js-addwish-b2"
+                     data-product-id="{{ product.id }}"
+                     data-product-name="{{ product.name|e('html_attr') }}"
+                     data-product-image="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}"
+                     data-product-price="{{ vOffer.has_offer ? vOffer.discounted_price|number_format(2, '.', '') : v.price|number_format(2, '.', '') }}"
+                     data-product-original-price="{{ vOffer.has_offer ? vOffer.original_price|number_format(2, '.', '') : '' }}"
+                     data-product-has-offer="{{ vOffer.has_offer ? '1' : '0' }}"
+                     data-product-currency="EUR">
+                    <img class="icon-heart1 dis-block trans-04" src="{{ asset('assets/images/icons/icon-heart-01.png') }}" alt="ICON">
+                    <img class="icon-heart2 dis-block trans-04 ab-t-l" src="{{ asset('assets/images/icons/icon-heart-02.png') }}" alt="ICON">
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+    </div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+        $('header').addClass('header-v4');
+    });
+(function(){
+  var el = document.getElementById('js-offer-countdown');
+  if(!el) return;
+  var endIso = el.getAttribute('data-end');
+  function tick(){
+    try {
+      var end = new Date(endIso); var now = new Date(); var diff = end - now;
+      if (diff <= 0) { el.textContent = 'Expired'; clearInterval(timer); return; }
+      var s = Math.floor(diff/1000), d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60), sec = s%60;
+      el.textContent = (d>0? d+'d ':'') + String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+    } catch(e){}
+  }
+  tick();
+  var timer = setInterval(tick, 1000);
+})();
+</script>
+
+
+{% endblock %}

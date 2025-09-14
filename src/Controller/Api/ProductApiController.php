@@ -65,15 +65,18 @@ class ProductApiController extends AbstractController
                 if ($basePrice === null) {
                     return null;
                 }
-                $now = new \DateTime();
+                $todayStart = new \DateTimeImmutable('today');
+                $todayEnd = (new \DateTimeImmutable('tomorrow'))->modify('-1 second');
                 $best = null;
                 $original = (float) $basePrice;
                 foreach ($offers as $offer) {
                     if (!$offer->isActive()) { continue; }
+                    if (method_exists($offer, 'getDeletedAt') && $offer->getDeletedAt() !== null) { continue; }
                     $start = $offer->getStartDate();
                     $end = $offer->getEndDate();
                     if (!$start || !$end) { continue; }
-                    if ($now < $start || $now > $end) { continue; }
+                    // Active any time today
+                    if ($end < $todayStart || $start > $todayEnd) { continue; }
 
                     $discounted = $original;
                     if ($offer->getDiscountType() === \App\Entity\ProductOffer::TYPE_PERCENTAGE) {
@@ -82,7 +85,7 @@ class ProductApiController extends AbstractController
                         $discounted = max(0, $original - (float)$offer->getDiscountValue());
                     }
 
-                    if ($best === null || $discounted < $best['discounted_price']) {
+                    if ($best === null || $discounted < (float)$best['discounted_price']) {
                         $percentage = $original > 0 ? (($original - $discounted) / $original) * 100 : 0;
                         $best = [
                             'has_offer' => true,
@@ -136,11 +139,13 @@ class ProductApiController extends AbstractController
                     // Compute offers applicable to variant (per rules):
                     // - Include variant-specific offers
                     // - Include category and brand offers
-                    // - DO NOT include product-specific offers
+                    // - Include product-specific offers (applies to all variants of the product)
                     $variantOffers = [];
                     foreach ($variant->getProductOffers() as $o) { $variantOffers[] = $o; }
-                    // Merge cat/brand offers
-                    $variantOffers = array_merge($variantOffers, $categoryOffers, $brandOffers);
+                    // Merge product/cat/brand offers
+                    $productOffers = [];
+                    foreach ($product->getProductOffers() as $po) { $productOffers[] = $po; }
+                    $variantOffers = array_merge($variantOffers, $productOffers, $categoryOffers, $brandOffers);
                     $variantOffer = $computeOffer($variant->getPrice(), $variantOffers);
 
                     return [

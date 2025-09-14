@@ -131,7 +131,7 @@
 								</div>
 
 								<p class="stext-102 cl6">
-									{{ comment.content }}
+									{{ comment.content|striptags|replace({'&nbsp;':' '})|trim }}
 								</p>
 							</div>
 						</div>
