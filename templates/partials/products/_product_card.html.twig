@@ -73,7 +73,7 @@
             {% elseif product.overviewImage %}
                 <img src="{{ vich_uploader_asset(product, 'overviewImageFile') }}" alt="{{ product.name }}">
             {% else %}
-                <img src="{{ asset('assets/images/no-image.png') }}" alt="No image">
+                <img src="{{ asset('assets/images/no-image.webp') }}" alt="No image">
             {% endif %}
             {# Discount Badge (prefer variant offer, else product offer) #}
             {% if hasVariantOffer %}
@@ -94,7 +94,7 @@
                data-product-has-offer="{{ hasVariantOffer ? '1' : (offerData is defined and offerData.has_offer ? '1' : '0') }}"
                 data-product-currency="EUR"
                 data-product-description="{{ product.description|default('')|e('js') }}"
-               data-product-image="{{ variantImageSrc ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}">
+               data-product-image="{{ variantImageSrc ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.webp')) }}">
                 Quick View
             </a>
         </div>
@@ -129,7 +129,7 @@
                 <a href="#" class="btn-addwish-b2 dis-block pos-relative js-addwish-b2"
     data-product-id="{{ product.id }}"
     data-product-name="{{ product.name|e('js') }}"
-    data-product-image="{{ variantImageSrc ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}"
+    data-product-image="{{ variantImageSrc ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.webp')) }}"
     data-product-price="€{{ hasVariantOffer ? discountedPrice|number_format(2, '.', '') : (offerData is defined and offerData.has_offer ? offerData.discounted_price|number_format(2, '.', '') : basePrice|number_format(2, '.', '') ) }}"
     data-product-original-price="{{ hasVariantOffer ? '€' ~ originalPrice|number_format(2, '.', '') : (offerData is defined and offerData.has_offer ? '€' ~ offerData.original_price|number_format(2, '.', '') : '') }}"
     data-product-has-offer="{{ hasVariantOffer ? '1' : (offerData is defined and offerData.has_offer ? '1' : '0') }}">

@@ -69,7 +69,7 @@
           <div class="item-slick2 p-l-15 p-r-15 p-t-15 p-b-15">
             <div class="block2">
               <div class="block2-pic hov-img0">
-                <img src="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}" alt="{{ product.name }}">
+                <img src="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.webp')) }}" alt="{{ product.name }}">
                 {% if vOffer.has_offer %}
                   <div class="discount-badge" style="position: absolute; top: 10px; left: 10px; background: #e74c3c; color: white; padding: 5px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; z-index: 2;">-{{ vOffer.discount_percentage|round(0, 'floor') }}%</div>
                 {% endif %}
@@ -91,7 +91,7 @@
                   <a href="#" class="btn-addwish-b2 dis-block pos-relative js-addwish-b2"
                      data-product-id="{{ product.id }}"
                      data-product-name="{{ product.name|e('html_attr') }}"
-                     data-product-image="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}"
+                     data-product-image="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.webp')) }}"
                      data-product-price="{{ vOffer.has_offer ? vOffer.discounted_price|number_format(2, '.', '') : v.price|number_format(2, '.', '') }}"
                      data-product-original-price="{{ vOffer.has_offer ? vOffer.original_price|number_format(2, '.', '') : '' }}"
                      data-product-has-offer="{{ vOffer.has_offer ? '1' : '0' }}"
@@ -148,7 +148,7 @@
           <div class="item-slick2 p-l-15 p-r-15 p-t-15 p-b-15">
             <div class="block2">
               <div class="block2-pic hov-img0">
-                <img src="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}" alt="{{ product.name }}">
+                <img src="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.webp')) }}" alt="{{ product.name }}">
                 {% if vOffer.has_offer %}
                   <div class="discount-badge" style="position: absolute; top: 10px; left: 10px; background: #e74c3c; color: white; padding: 5px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; z-index: 2;">-{{ vOffer.discount_percentage|round(0, 'floor') }}%</div>
                 {% endif %}
@@ -170,7 +170,7 @@
                   <a href="#" class="btn-addwish-b2 dis-block pos-relative js-addwish-b2"
                      data-product-id="{{ product.id }}"
                      data-product-name="{{ product.name|e('html_attr') }}"
-                     data-product-image="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.png')) }}"
+                     data-product-image="{{ thumb ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.webp')) }}"
                      data-product-price="{{ vOffer.has_offer ? vOffer.discounted_price|number_format(2, '.', '') : v.price|number_format(2, '.', '') }}"
                      data-product-original-price="{{ vOffer.has_offer ? vOffer.original_price|number_format(2, '.', '') : '' }}"
                      data-product-has-offer="{{ vOffer.has_offer ? '1' : '0' }}"
