@@ -53,6 +53,7 @@ class ReviewCrudController extends AbstractCrudController
             ->setPaginatorPageSize(10) // Number of reviews per page
             ->setPaginatorRangeSize(4)
             ->overrideTemplate('crud/index', 'admin/Review/index.html.twig')
+            ->overrideTemplate('crud/detail', 'admin/Review/detail.html.twig')
             ->showEntityActionsInlined();
     }
 
@@ -62,7 +63,8 @@ class ReviewCrudController extends AbstractCrudController
         yield AssociationField::new('product', 'Product')
             ->setColumns('col-md-6')
             ->setRequired(true)
-            ->autocomplete();
+            ->autocomplete()
+            ->setFormTypeOption('disabled', true);
         // Display user but do not allow changing from admin forms
         yield AssociationField::new('user')->setColumns('col-md-6')->hideOnForm();
         yield AssociationField::new('user')->setColumns('col-md-6')->onlyOnForms()->setFormTypeOption('disabled', true);
@@ -80,7 +82,7 @@ class ReviewCrudController extends AbstractCrudController
             ->onlyOnForms()
             ->setFormTypeOption('disabled', true);
         yield BooleanField::new('isApproved')->setColumns('col-md-6');
-        yield TextareaField::new('comment')->hideOnIndex()->setColumns('col-md-12');
+        yield TextareaField::new('comment')->hideOnIndex()->setColumns('col-md-12')->setFormTypeOption('disabled', true);
         yield DateTimeField::new('createdAt')->hideOnForm();
     }
 

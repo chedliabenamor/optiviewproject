@@ -175,20 +175,27 @@
                         <tr>
                             <td>
                                 {% if item.productVariant %}
-                                    {% set images = item.productVariant.images ?? [] %}
-                                    {% set firstImage = images|length > 0 ? images[0] : null %}
-                                    {% if firstImage %}
-                                        <a href="#" class="image-popup-trigger" data-image-url="{{ asset('uploads/images/products/' ~ firstImage) }}">
-                                            <img src="{{ asset('uploads/images/products/' ~ firstImage) }}" alt="{{ item.productVariant }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                    {# Prefer the first variant image via getter; fallback to product overview #}
+                                    {% set variantImageUrl = item.productVariant.getFirstImageUrl() %}
+                                    {% if variantImageUrl %}
+                                        <a href="#" class="image-popup-trigger" data-image-url="{{ asset(variantImageUrl) }}">
+                                            <img src="{{ asset(variantImageUrl) }}" alt="{{ item.productVariant }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                                         </a>
                                     {% else %}
-                                        <span class="text-muted">No image</span>
+                                        {% set product = item.productVariant.product ?? null %}
+                                        {% if product and product.overviewImage %}
+                                            <a href="#" class="image-popup-trigger" data-image-url="{{ asset('uploads/products/' ~ product.overviewImage) }}">
+                                                <img src="{{ asset('uploads/products/' ~ product.overviewImage) }}" alt="{{ product.name }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">No image</span>
+                                        {% endif %}
                                     {% endif %}
                                 {% else %}
                                     {% set product = item.product ?: null %}
                                     {% if product and product.overviewImage %}
-                                        <a href="#" class="image-popup-trigger" data-image-url="{{ asset('uploads/images/products/' ~ product.overviewImage) }}">
-                                            <img src="{{ asset('uploads/images/products/' ~ product.overviewImage) }}" alt="{{ product.name }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                        <a href="#" class="image-popup-trigger" data-image-url="{{ asset('uploads/products/' ~ product.overviewImage) }}">
+                                            <img src="{{ asset('uploads/products/' ~ product.overviewImage) }}" alt="{{ product.name }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                                         </a>
                                     {% else %}
                                         <span class="text-muted">No image</span>

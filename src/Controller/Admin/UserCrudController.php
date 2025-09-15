@@ -29,6 +29,7 @@ use App\Service\UserManager;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
+use App\Controller\Admin\Filter\UserRoleFilter;
 use Symfony\Component\HttpFoundation\RequestStack;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
@@ -315,13 +316,8 @@ class UserCrudController extends AbstractCrudController
 public function configureFilters(Filters $filters): Filters
 {
     return $filters
-        ->add(ChoiceFilter::new('roles')
-            ->setChoices([
-                'Administrator' => 'ROLE_ADMIN',
-                'User' => 'ROLE_USER',
-            ])
-            ->canSelectMultiple(true)
-        )
+        // Custom filter that handles roles stored as JSON array
+        ->add(UserRoleFilter::new('roles', 'Role'))
         ->add(BooleanFilter::new('active', 'Status')
             ->setFormTypeOption('choices', [
                 'Active' => true,
@@ -336,19 +332,8 @@ public function configureFilters(Filters $filters): Filters
         FieldCollection $fields,
         FilterCollection $filters
     ): QueryBuilder {
-        $qb = parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters);
-        $request = $this->requestStack->getCurrentRequest();
-        if ($request) {
-            $role = $request->query->get('role');
-            $active = $request->query->get('active');
-            if ($role) {
-                $qb->andWhere('entity.roles LIKE :role')->setParameter('role', '%"' . $role . '"%');
-            }
-            if ($active !== null && $active !== '') {
-                $qb->andWhere('entity.active = :active')->setParameter('active', (bool) $active);
-            }
-        }
-        return $qb;
+        // Rely on EasyAdmin's Filters (including the CallbackFilter above) instead of manual request parsing
+        return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters);
     }
 
     public function index(AdminContext $context)

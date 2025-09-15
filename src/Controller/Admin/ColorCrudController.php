@@ -101,7 +101,10 @@ class ColorCrudController extends AbstractCrudController
     {
         // yield IdField::new('id')->hideOnForm();
         yield TextField::new('imageFile', 'Image File')->setFormType(VichImageType::class)->onlyOnForms();
-        yield ImageField::new('imageName', 'Image')->setBasePath('/uploads/images/colors')->hideOnForm();
+        yield ImageField::new('imageName', 'Image')
+            ->setBasePath('/uploads/images/colors')
+            ->setTemplatePath('admin/field/color_image.html.twig')
+            ->hideOnForm();
         yield TextField::new('name');
        
 

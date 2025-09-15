@@ -69,7 +69,11 @@ class ShapeCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         $imageFile = TextField::new('imageFile')->setFormType(VichImageType::class)->hideOnIndex();
-        $imageName = ImageField::new('imageName')->setBasePath('/uploads/shapes')->setLabel('Image')->hideOnForm();
+        $imageName = ImageField::new('imageName')
+            ->setBasePath('/uploads/shapes')
+            ->setTemplatePath('admin/field/shape_image.html.twig')
+            ->setLabel('Image')
+            ->hideOnForm();
 
         if ($pageName === Crud::PAGE_INDEX) {
             $fields = [

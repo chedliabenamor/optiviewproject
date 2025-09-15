@@ -194,53 +194,71 @@
                             <div class="card-header">
                                 <h5 class="mb-0"><i class="fas fa-heart text-danger me-2"></i>Wishlist Products</h5>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body p-0">
                                 {% if user.wishlist and user.wishlist.wishlistItems.count > 0 %}
-                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                                        {% for item in user.wishlist.wishlistItems %}
-                                            {% set product = item.product %}
-                                            <div class="col">
-                                                <div class="card h-100">
-                                                    {% set productImage = (product is defined and product and product.images is defined and product.images is not empty and product.images.first and product.images.first.imageName is defined) ? asset('uploads/products/' ~ product.images.first.imageName) : 'https://via.placeholder.com/200x150?text=' ~ ((product and product.name is defined ? product.name : 'Product')|url_encode) %}
-                                                    <img src="{{ productImage }}" class="card-img-top" alt="{{ product.name|default('Product Image') }}" style="height: 150px; object-fit: cover;">
-                                                    <div class="card-body">
-                                                        <h6 class="card-title">{{ product.name|default('N/A') }}</h6>
-                                                        {% if product.price is defined and product.price is not null %}
-                                                            <p class="card-text fw-bold">{{ product.price|number_format(2, '.', '') }} €</p>
-                                                        {% else %}
-                                                            <p class="card-text text-muted">Price not available</p>
-                                                        {% endif %}
-                                                    </div>
-                                                    <div class="card-footer text-center bg-light d-flex justify-content-around">
-                                                        {# View Product Link #}
-                                                        {% set product_detail_url = ea_url()
-                                                            .setController('App\\Controller\\Admin\\ProductCrudController')
-                                                            .setAction('detail')
-                                                            .setEntityId(product.id)
-                                                            .generateUrl() %}
-                                                        <a href="{{ product_detail_url }}" class="btn btn-sm btn-outline-primary" title="View Product">
-                                                            <i class="fas fa-eye"></i> View
-                                                        </a>
-
-                                                        {# Edit Product Link #}
-                                                        {% set product_edit_url = ea_url()
-                                                            .setController('App\\Controller\\Admin\\ProductCrudController')
-                                                            .setAction('edit')
-                                                            .setEntityId(product.id)
-                                                            .generateUrl() %}
-                                                        <a href="{{ product_edit_url }}" class="btn btn-sm btn-outline-secondary" title="Edit Product">
-                                                            <i class="fas fa-edit"></i> Edit
-                                                        </a>
-
-                                                        {# Remove from Wishlist (Requires custom controller action) #}
-                                                        {# Example backend route: path('app_wishlist_remove_product', {wishlistId: user.wishlist.id, productId: product.id}) #}
-                                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Remove from Wishlist (Action not implemented)" disabled>
-                                                            <i class="fas fa-trash-alt"></i> Remove
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0 align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width:72px;">Image</th>
+                                                    <th>Product</th>
+                                                    <th style="width:160px;">Variant</th>
+                                                    <th style="width:140px;" class="text-end">Price</th>
+                                                    <th style="width:160px;" class="text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in user.wishlist.wishlistItems %}
+                                                    {% set product = item.product %}
+                                                    {% set variant = item.productVariant ?? null %}
+                                                    {% set variantImageUrl = variant ? variant.getFirstImageUrl() : null %}
+                                                    {% set productOverview = (product and product.overviewImage is defined and product.overviewImage) ? 'uploads/products/' ~ product.overviewImage : null %}
+                                                    {% set img = variantImageUrl ?: (productOverview ? asset(productOverview) : asset('assets/images/placeholder-600x600.png')) %}
+                                                    <tr>
+                                                        <td>
+                                                            <img src="{{ img }}" alt="{{ product.name|default('Product') }}" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
+                                                        </td>
+                                                        <td>
+                                                            {{ product.name|default('N/A') }}
+                                                        </td>
+                                                        <td>
+                                                            {% if variant and variant.color %}
+                                                                <span class="badge bg-light text-dark">{{ variant.color.name }}</span>
+                                                            {% else %}
+                                                                <span class="text-muted">—</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td class="text-end">
+                                                            {% if variant and variant.price is not null %}
+                                                                €{{ variant.price|number_format(2, '.', ',') }}
+                                                            {% elseif product.price is defined and product.price is not null %}
+                                                                €{{ product.price|number_format(2, '.', ',') }}
+                                                            {% else %}
+                                                                <span class="text-muted">N/A</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td class="text-center">
+                                                            {% set product_detail_url = ea_url()
+                                                                .setController('App\\Controller\\Admin\\ProductCrudController')
+                                                                .setAction('detail')
+                                                                .setEntityId(product.id)
+                                                                .generateUrl() %}
+                                                            {% set product_edit_url = ea_url()
+                                                                .setController('App\\Controller\\Admin\\ProductCrudController')
+                                                                .setAction('edit')
+                                                                .setEntityId(product.id)
+                                                                .generateUrl() %}
+                                                            <a href="{{ product_detail_url }}" class="btn btn-sm btn-outline-primary" title="View Product">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                            <a href="{{ product_edit_url }}" class="btn btn-sm btn-outline-secondary" title="Edit Product">
+                                                                <i class="fas fa-edit"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 {% else %}
                                     <p class="text-center text-muted p-4">No products in wishlist.</p>

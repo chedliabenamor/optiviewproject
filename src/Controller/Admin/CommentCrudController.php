@@ -18,7 +18,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
@@ -61,8 +61,10 @@ class CommentCrudController extends AbstractCrudController
         }
         yield $authorField;
 
-        yield AssociationField::new('post')->setColumns('col-md-12');
-        yield TextEditorField::new('content')->setColumns('col-md-12')->hideOnIndex();
+        yield AssociationField::new('post')->setColumns('col-md-12')->setFormTypeOption('disabled', true);
+        // Content should be visible but read-only on forms
+      
+        yield TextareaField::new('content')->hideOnIndex()->setColumns('col-md-12')->setFormTypeOption('disabled', true);
         yield BooleanField::new('isApproved', 'Approved')->setColumns('col-md-6');
         yield DateTimeField::new('createdAt')->hideOnForm();
 

@@ -1,0 +1,10 @@
+{# Custom renderer for Color image with fallback #}
+{% set imgName = field.value %}
+{% set basePath = field.customOptions.get('basePath') ?: '' %}
+{% set src = imgName ? (basePath ~ '/' ~ imgName) : asset('assets/images/no-image.webp') %}
+
+{% if ea.crud.currentAction == 'index' %}
+  <img src="{{ src }}" alt="Color Image" style="width:60px;height:60px;object-fit:cover;border-radius:4px;">
+{% else %}
+  <img src="{{ src }}" alt="Color Image" class="img-thumbnail" style="max-width:240px;height:auto;object-fit:cover;">
+{% endif %}

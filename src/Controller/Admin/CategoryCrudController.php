@@ -58,7 +58,11 @@ class CategoryCrudController extends AbstractCrudController
         return [
             // IdField::new('id')->hideOnForm(),
             TextField::new('imageFile')->setFormType(VichImageType::class)->onlyOnForms(),
-            ImageField::new('imageName')->setBasePath($this->params->get('app.path.category_images'))->hideOnForm()->setLabel('Image'),
+            ImageField::new('imageName')
+                ->setBasePath($this->params->get('app.path.category_images'))
+                ->setTemplatePath('admin/field/category_image.html.twig')
+                ->hideOnForm()
+                ->setLabel('Image'),
             TextField::new('name'),
             AssociationField::new('products')->hideOnForm()
            

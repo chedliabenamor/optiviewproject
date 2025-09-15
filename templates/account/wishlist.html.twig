@@ -30,38 +30,47 @@
             <a href="/" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Continue Shopping</a>
           </div>
         {% else %}
-          <div class="row" id="account-wishlist-list">
-            {% for it in items %}
-              <div class="col-sm-6 col-md-6 col-lg-4 p-b-35 js-wishlist-card" data-product-id="{{ it.productId }}" data-variant-id="{{ it.variantId }}">
-                <div class="block2">
-                  <div class="block2-pic hov-img0">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle" id="account-wishlist-list">
+              <thead>
+                <tr>
+                  <th style="width:72px;">Image</th>
+                  <th>Product</th>
+                  <th style="width:160px;">Variant</th>
+                  <th style="width:140px;" class="text-end">Price</th>
+                  <th style="width:140px;" class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for it in items %}
+                <tr class="js-wishlist-row" data-product-id="{{ it.productId }}" data-variant-id="{{ it.variantId }}">
+                  <td>
                     <a href="{{ it.url }}">
-                      <img src="{{ it.image ?: asset('assets/images/placeholder-600x600.png') }}" alt="{{ it.name|e }}">
+                      <img class="img-thumbnail js-wishlist-image" src="{{ it.image ?: asset('assets/images/placeholder-600x600.png') }}" alt="{{ it.name|e }}" style="width:60px;height:60px;object-fit:cover;">
                     </a>
-                    <button class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-remove-wishlist-item"
-                            data-product-id="{{ it.productId }}" data-variant-id="{{ it.variantId }}">
-                      Remove
-                    </button>
-                  </div>
-
-                  <div class="block2-txt flex-w flex-t p-t-14">
-                    <div class="block2-txt-child1 flex-col-l ">
-                      <a href="{{ it.url }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">{{ it.name }}</a>
-                      {% if it.variantLabel %}
-                        <div class="stext-110 cl6">color: {{ it.variantLabel }}</div>
-                      {% endif %}
-                      <span class="stext-105 cl3 js-price" style="color:;font-weight:;">
-                        €{{ it.price|number_format(2, '.', ',') }}
-                      </span>
-                      <span class="stext-110 cl6 js-original-price" style="display:none;text-decoration:line-through;margin-left:8px;"></span>
-                    </div>
-                    <div class="block2-txt-child2 flex-r p-t-3">
-                      
-                    </div>
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
+                  </td>
+                  <td>
+                    <a href="{{ it.url }}" class="stext-104 cl4 hov-cl1 trans-04">{{ it.name }}</a>
+                  </td>
+                  <td>
+                    {% if it.variantLabel %}
+                      <span class="badge bg-light text-dark">{{ it.variantLabel }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <span class="js-price" data-price-eur="{{ it.price }}">€{{ it.price|number_format(2, '.', ',') }}</span>
+                    <span class="js-original-price" style="display:none;text-decoration:line-through;margin-left:8px;"></span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ it.url }}" class="btn btn-sm btn-outline-primary">View</a>
+                    <button class="btn btn-sm btn-outline-danger js-remove-wishlist-item" data-product-id="{{ it.productId }}" data-variant-id="{{ it.variantId }}">Remove</button>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
           </div>
         {% endif %}
       </div>
@@ -70,7 +79,7 @@
 </section>
 
 <script>
-// Handle remove buttons (AJAX to existing /wishlist/remove endpoint)
+// Handle remove buttons (AJAX to existing /wishlist/remove endpoint) and work with table rows
 (function(){
   document.addEventListener('click', function(e){
     var btn = e.target.closest('.js-remove-wishlist-item');
@@ -85,9 +94,9 @@
     })
     .then(function(r){ return r.json(); })
     .then(function(list){
-      // Remove card from DOM
-      var card = btn.closest('.js-wishlist-card');
-      if (card) card.parentNode.removeChild(card);
+      // Remove row from DOM
+      var row = btn.closest('.js-wishlist-row');
+      if (row && row.parentNode) row.parentNode.removeChild(row);
       // Update header count and broadcast
       try {
         var count = Array.isArray(list) ? list.length : 0;
@@ -99,9 +108,10 @@
         document.dispatchEvent(new CustomEvent('wishlistUpdated'));
       } catch(e){}
       // Empty state
-      var grid = document.getElementById('account-wishlist-list');
-      if (grid && grid.children.length === 0) {
-        grid.outerHTML = '<div class="p-t-40 p-b-40 text-center">\
+      var tableBody = document.querySelector('#account-wishlist-list tbody');
+      if (tableBody && tableBody.children.length === 0) {
+        var wrapper = document.getElementById('account-wishlist-list').parentNode;
+        wrapper.innerHTML = '<div class="p-t-40 p-b-40 text-center">\
           <div class="mtext-101 cl2 m-b-12">Your wishlist is empty.</div>\
           <a href="/" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Continue Shopping</a>\
         </div>';
@@ -120,20 +130,20 @@
 (function(){
   function toNum(txt){ try { return parseFloat(String(txt).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; } }
   document.addEventListener('DOMContentLoaded', function(){
-    var cards = document.querySelectorAll('#account-wishlist-list .js-wishlist-card');
-    if (!cards || cards.length === 0) return;
+    var rows = document.querySelectorAll('#account-wishlist-list .js-wishlist-row');
+    if (!rows || rows.length === 0) return;
     function fmt(n){ return (window.Currency && typeof window.Currency.format==='function') ? window.Currency.format(n) : ('€' + (typeof n==='number'? n.toFixed(2) : n)); }
-    cards.forEach(function(card){
-      var pid = card.getAttribute('data-product-id');
-      var vid = card.getAttribute('data-variant-id');
+    rows.forEach(function(row){
+      var pid = row.getAttribute('data-product-id');
+      var vid = row.getAttribute('data-variant-id');
       if (!pid) return;
       fetch('/api/products/' + pid + '/quick-view')
         .then(function(r){ return r.ok ? r.json() : null; })
         .then(function(data){
           if (!data) return;
-          var imgEl = card.querySelector('.block2-pic img');
-          var priceEl = card.querySelector('.js-price');
-          var origEl = card.querySelector('.js-original-price');
+          var imgEl = row.querySelector('img.js-wishlist-image');
+          var priceEl = row.querySelector('.js-price');
+          var origEl = row.querySelector('.js-original-price');
           var showDiscount = function(discounted, original){
             if (!priceEl) return;
             priceEl.textContent = fmt(discounted);
