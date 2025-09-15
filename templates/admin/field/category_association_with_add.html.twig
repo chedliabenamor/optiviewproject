@@ -1,0 +1,111 @@
+{% extends "@EasyAdmin/crud/field/association.html.twig" %}
+
+{#
+  Custom Association field for Product.category with an "Add Category" modal
+  Requires controller route: admin_category_new_ajax (GET returns form HTML, POST returns JSON {success, entity:{id,name}})
+#}
+
+{% block field_widget %}
+  {{ parent() }}
+
+  {# Add Category button #}
+  <button type="button"
+          class="btn btn-outline-primary btn-sm ms-2 mt-2"
+          data-bs-toggle="modal"
+          data-bs-target="#ea-add-category-modal">
+    <i class="fa fa-plus me-1"></i> Add Category
+  </button>
+
+  {# Modal #}
+  <div class="modal fade" id="ea-add-category-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="ea-add-category-modal-body">
+          <div class="text-center text-muted py-4">
+            <i class="fa fa-spinner fa-spin me-2"></i> Loading form...
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="ea-add-category-submit">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const modalId = 'ea-add-category-modal';
+      const modalEl = document.getElementById(modalId);
+      if (!modalEl) return;
+
+      const bootstrapModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      const bodyEl = document.getElementById('ea-add-category-modal-body');
+      const submitBtn = document.getElementById('ea-add-category-submit');
+
+      // Target the current association field's input (TomSelect source element)
+      const fieldSelector = '[name="{{ field.form.vars.full_name|e('js') }}"]';
+      const selectEl = document.querySelector(fieldSelector);
+
+      const loadForm = async () => {
+        try {
+          const resp = await fetch('{{ path('admin_category_new_ajax') }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          const html = await resp.text();
+          bodyEl.innerHTML = html;
+        } catch (e) {
+          bodyEl.innerHTML = '<div class="text-danger">Failed to load form. Please refresh.</div>';
+        }
+      };
+
+      modalEl.addEventListener('show.bs.modal', loadForm);
+
+      submitBtn.addEventListener('click', async function(){
+        const form = bodyEl.querySelector('form');
+        if (!form) return;
+        const formData = new FormData(form);
+        try {
+          const resp = await fetch('{{ path('admin_category_new_ajax') }}', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+          });
+          const json = await resp.json();
+          if (json.success && json.entity && json.entity.id) {
+            // Add the new category to TomSelect (autocomplete) or to the select element
+            if (selectEl && selectEl.tomselect) {
+              const ts = selectEl.tomselect;
+              ts.addOption({ value: String(json.entity.id), text: json.entity.name });
+              ts.refreshOptions(false);
+              ts.addItem(String(json.entity.id));
+            } else if (selectEl) {
+              // Fallback to plain select
+              const opt = document.createElement('option');
+              opt.value = json.entity.id;
+              opt.textContent = json.entity.name;
+              opt.selected = true;
+              selectEl.appendChild(opt);
+            }
+            bootstrapModal.hide();
+          } else if (json.form_html) {
+            // Validation error path from controller: re-render form
+            bodyEl.innerHTML = json.form_html;
+          } else {
+            // If controller returned HTML (not JSON) for errors
+            try {
+              const asText = await resp.text();
+              bodyEl.innerHTML = asText;
+            } catch (_) {
+              bodyEl.innerHTML = '<div class="text-danger">Unexpected server response.</div>';
+            }
+          }
+        } catch (e) {
+          bodyEl.innerHTML = '<div class="text-danger">Failed to save. Please try again.</div>';
+        }
+      });
+    })();
+  </script>
+{% endblock %}

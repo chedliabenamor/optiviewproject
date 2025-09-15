@@ -2,38 +2,43 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Category;
-use App\Form\CategoryType;
+use App\Entity\Shape;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 
-class CategoryModalController extends AbstractController
+class ShapeModalController extends AbstractController
 {
-    #[Route('/admin-ajax/category/new', name: 'admin_category_new_modal')]
+    #[Route('/admin-ajax/shape/new', name: 'admin_shape_new_modal')]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
-        $category = new Category();
-        $form = $this->createForm(CategoryType::class, $category);
+        $shape = new Shape();
+
+        $form = $this->createFormBuilder($shape)
+            ->add('name', TextType::class, [
+                'required' => true,
+                'label' => 'Name',
+            ])
+            ->getForm();
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($category);
+            $entityManager->persist($shape);
             $entityManager->flush();
 
-            // Return a JSON response to signal success and provide the new entity
             return $this->json([
                 'success' => true,
                 'entity' => [
-                    'id' => $category->getId(),
-                    'name' => $category->getName(),
+                    'id' => $shape->getId(),
+                    'name' => $shape->getName(),
                 ],
             ]);
         }
 
-        // For XHR GET requests, return plain HTML so the modal can inject it directly
         if ($request->isXmlHttpRequest()) {
             $html = $this->renderView('admin/category/modal.html.twig', [
                 'form' => $form->createView(),
@@ -41,7 +46,6 @@ class CategoryModalController extends AbstractController
             return new Response($html);
         }
 
-        // Fallback for direct access
         return $this->render('admin/category/modal.html.twig', [
             'form' => $form->createView(),
         ]);

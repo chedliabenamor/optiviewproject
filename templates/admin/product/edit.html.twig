@@ -10,11 +10,7 @@
     {{ form_start(edit_form) }}
     {{ form_widget(edit_form) }}
 
-    <div class="form-group mt-3">
-        <button type="button" class="btn btn-secondary" id="add-category-btn">
-            <i class="fas fa-plus"></i> Add New Category
-        </button>
-    </div>
+  
 
     <div class="form-group mt-3">
         <button type="submit" class="btn btn-primary">Save changes</button>
@@ -22,8 +18,8 @@
     {{ form_end(edit_form) }}
 {% endblock %}
 
-{# Include the centralized modal and JS logic #}
-{% block body_end_content %}
-    {{ parent() }}
-    {{ include('admin/product/_category_modal_logic.html.twig') }}
+{# Include the centralized modal and JS logic in the right EA block #}
+{% block body_javascript %}
+    {{ parent() }} 
+    {{ include('admin/product/_quick_add_modal.html.twig') }}
 {% endblock %}

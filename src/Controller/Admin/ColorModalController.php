@@ -2,38 +2,53 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Category;
-use App\Form\CategoryType;
+use App\Entity\Color;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Vich\UploaderBundle\Form\Type\VichImageType;
 
-class CategoryModalController extends AbstractController
+class ColorModalController extends AbstractController
 {
-    #[Route('/admin-ajax/category/new', name: 'admin_category_new_modal')]
+    #[Route('/admin-ajax/color/new', name: 'admin_color_new_modal')]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
-        $category = new Category();
-        $form = $this->createForm(CategoryType::class, $category);
+        $color = new Color();
+
+        $builder = $this->createFormBuilder($color)
+            ->add('name', TextType::class, [
+                'required' => true,
+                'label' => 'Name',
+            ]);
+
+        if (property_exists(Color::class, 'imageFile')) {
+            $builder->add('imageFile', VichImageType::class, [
+                'required' => false,
+                'label' => 'Image',
+                'allow_delete' => false,
+                'download_uri' => false,
+            ]);
+        }
+
+        $form = $builder->getForm();
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($category);
+            $entityManager->persist($color);
             $entityManager->flush();
 
-            // Return a JSON response to signal success and provide the new entity
             return $this->json([
                 'success' => true,
                 'entity' => [
-                    'id' => $category->getId(),
-                    'name' => $category->getName(),
+                    'id' => $color->getId(),
+                    'name' => $color->getName(),
                 ],
             ]);
         }
 
-        // For XHR GET requests, return plain HTML so the modal can inject it directly
         if ($request->isXmlHttpRequest()) {
             $html = $this->renderView('admin/category/modal.html.twig', [
                 'form' => $form->createView(),
@@ -41,7 +56,6 @@ class CategoryModalController extends AbstractController
             return new Response($html);
         }
 
-        // Fallback for direct access
         return $this->render('admin/category/modal.html.twig', [
             'form' => $form->createView(),
         ]);

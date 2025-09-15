@@ -5,18 +5,14 @@
     {{ form_start(new_form) }}
     {{ form_widget(new_form) }}
 
-    <div class="form-group mt-3">
-        <button type="button" class="btn btn-secondary" id="add-category-btn">
-            <i class="fas fa-plus"></i> Add New Category
-        </button>
-    </div>
+  
 
     {{ form_end(new_form) }}
 {% endblock %}
 
-{# Include the centralized modal and JS logic #}
-{% block body_end_content %}
+{# Include the centralized modal and JS logic in the right EA block #}
+{% block body_javascript %}
     {{ parent() }}
-    {{ include('admin/product/_category_modal_logic.html.twig') }}
+    {{ include('admin/product/_quick_add_modal.html.twig') }}
 {% endblock %}
 

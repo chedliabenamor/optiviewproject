@@ -64,6 +64,8 @@ class ProductVariantCrudController extends AbstractCrudController
         return $crud
             ->setPageTitle('detail', fn(ProductVariant $variant) => sprintf('Variant: %s', $variant->getSku() ?: $variant->getColor() ?: ('#' . $variant->getId())))
             ->overrideTemplate('crud/detail', 'admin/productvariant/product_variant_detail.html.twig')
+            ->overrideTemplate('crud/new', 'admin/productvariant/new.html.twig')
+            ->overrideTemplate('crud/edit', 'admin/productvariant/edit.html.twig')
             ->setPaginatorPageSize(10)
             ->setPaginatorRangeSize(4)
             ->showEntityActionsInlined();
@@ -78,9 +80,25 @@ class ProductVariantCrudController extends AbstractCrudController
             yield AssociationField::new('product')->autocomplete()->setColumns('col-md-12');
         }
         
-        yield AssociationField::new('color')->setColumns('col-md-4');
-        yield AssociationField::new('style')->autocomplete()->setColumns('col-md-4');
-        yield AssociationField::new('genre')->autocomplete()->setColumns('col-md-4');
+        yield AssociationField::new('color')
+            ->setColumns('col-md-4')
+            ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Black', 'placeholder' => 'e.g. Black'])
+            ->setFormTypeOption('help_html', true)
+            ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="color" data-fetch="/admin-ajax/color/new" data-title="Add Color"><i class="fa fa-plus me-1"></i> Add Color</button>');
+
+        yield AssociationField::new('style')
+            ->autocomplete()
+            ->setColumns('col-md-4')
+            ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Retro', 'placeholder' => 'e.g. Retro'])
+            ->setFormTypeOption('help_html', true)
+            ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="style" data-fetch="/admin-ajax/style/new" data-title="Add Style"><i class="fa fa-plus me-1"></i> Add Style</button>');
+
+        yield AssociationField::new('genre')
+            ->autocomplete()
+            ->setColumns('col-md-4')
+            ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Unisex', 'placeholder' => 'e.g. Unisex'])
+            ->setFormTypeOption('help_html', true)
+            ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="genre" data-fetch="/admin-ajax/genre/new" data-title="Add Genre"><i class="fa fa-plus me-1"></i> Add Genre</button>');
 
         yield TextField::new('sku')->setColumns('col-md-4')->setHelp('SKU will be auto-generated if left empty');
         yield MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-6');

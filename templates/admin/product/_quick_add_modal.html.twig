@@ -1,0 +1,115 @@
+{# Shared quick-add modal and JS for Brand, Category, Color, Style, Shape, Genre #}
+
+<div class="modal fade" id="ea-quick-add-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="ea-quick-add-title">Quick Add</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="ea-quick-add-body">
+        <div class="text-center text-muted py-4">
+          <i class="fa fa-spinner fa-spin me-2"></i> Loading form...
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="ea-quick-add-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const modalEl = document.getElementById('ea-quick-add-modal');
+  if (!modalEl) return;
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  const bodyEl = document.getElementById('ea-quick-add-body');
+  const titleEl = document.getElementById('ea-quick-add-title');
+  const saveBtn = document.getElementById('ea-quick-add-save');
+
+  let originSelect = null; // select or input[data-ea-autocomplete]
+  let currentFetchUrl = null;
+
+  // Delegate click on any quick-add button
+  document.addEventListener('click', async function(e){
+    const btn = e.target.closest('.ea-quick-add');
+    if (!btn) return;
+
+    // Find the select/input for the field that owns this button
+    const wrapper = btn.closest('.form-group');
+    originSelect = wrapper ? (wrapper.querySelector('select, input[data-ea-autocomplete]')) : null;
+    const fetchUrl = btn.getAttribute('data-fetch');
+    const title = btn.getAttribute('data-title') || 'Quick Add';
+
+    titleEl.textContent = title;
+    bodyEl.innerHTML = '<div class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin me-2"></i> Loading form...</div>';
+    currentFetchUrl = fetchUrl;
+
+    try {
+      const resp = await fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const html = await resp.text();
+      bodyEl.innerHTML = html;
+      modal.show();
+    } catch (err) {
+      bodyEl.innerHTML = '<div class="text-danger">Failed to load form. Please retry.</div>';
+      modal.show();
+    }
+  });
+
+  // Save handler
+  saveBtn.addEventListener('click', async function(){
+    if (!bodyEl) return;
+    const form = bodyEl.querySelector('form');
+    if (!form) return;
+
+    saveBtn.disabled = true;
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      const fd = new FormData(form);
+      const postUrl = form.getAttribute('action') || currentFetchUrl;
+      const resp = await fetch(postUrl, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
+
+      // try JSON first
+      let json = null;
+      try { json = await resp.json(); } catch (_) { json = null; }
+
+      if (json && json.success && json.entity && json.entity.id && originSelect) {
+        const id = String(json.entity.id);
+        const label = json.entity.name || ('#' + id);
+        if (originSelect.tomselect) {
+          const ts = originSelect.tomselect;
+          ts.addOption({ value: id, text: label });
+          ts.refreshOptions(false);
+          ts.addItem(id);
+        } else if (originSelect.tagName === 'SELECT') {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = label;
+          opt.selected = true;
+          originSelect.appendChild(opt);
+        } else if (originSelect.matches('input[data-ea-autocomplete]')) {
+          // Fallback: set raw input value
+          originSelect.value = label;
+        }
+        modal.hide();
+      } else if (json && json.form_html) {
+        // server provided re-rendered form (validation errors)
+        bodyEl.innerHTML = json.form_html;
+      } else {
+        // if not JSON (e.g., HTML page), replace body with text
+        const text = await resp.text();
+        bodyEl.innerHTML = text;
+      }
+    } catch (err) {
+      bodyEl.innerHTML = '<div class="text-danger">Failed to save. Please try again.</div>';
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  });
+})();
+</script>

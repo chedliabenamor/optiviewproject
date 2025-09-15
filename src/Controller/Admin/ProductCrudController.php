@@ -221,12 +221,18 @@ class ProductCrudController extends AbstractCrudController
                 ->setCrudController(BrandCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6')
+                ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Gucci', 'placeholder' => 'e.g. Gucci'])
+                ->setFormTypeOption('help_html', true)
+                ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="brand" data-fetch="/admin-ajax/brand/new" data-title="Add Brand"><i class="fa fa-plus me-1"></i> Add Brand</button>')
                 ->autocomplete(),
 
-            AssociationField::new('category')
+                AssociationField::new('category')
                 ->setCrudController(CategoryCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6')
+                ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Women', 'placeholder' => 'e.g. Women'])
+                ->setFormTypeOption('help_html', true)
+                ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="category" data-fetch="/admin-ajax/category/new" data-title="Add Category"><i class="fa fa-plus me-1"></i> Add Category</button>')
                 ->autocomplete(),
 
             AssociationField::new('colors')
@@ -235,24 +241,34 @@ class ProductCrudController extends AbstractCrudController
                 ->setFormTypeOption('by_reference', false)
                 ->hideOnIndex()
                 ->setColumns('col-md-6')
+                ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. White', 'placeholder' => 'e.g. White'])
+                ->setFormTypeOption('help_html', true)
+                ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="color" data-fetch="/admin-ajax/color/new" data-title="Add Color"><i class="fa fa-plus me-1"></i> Add Color</button>')
                 ->autocomplete(),
 
             AssociationField::new('style')
                 ->setCrudController(StyleCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6') // Added column setting
+                ->setFormTypeOption('help_html', true)
+                ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="style" data-fetch="/admin-ajax/style/new" data-title="Add Style"><i class="fa fa-plus me-1"></i> Add Style</button>')
                 ->autocomplete(),
 
             AssociationField::new('shape')
                 ->setCrudController(ShapeCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6') // Added column setting
+                ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Square', 'placeholder' => 'e.g. Square'])
+                ->setFormTypeOption('help_html', true)
+                ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="shape" data-fetch="/admin-ajax/shape/new" data-title="Add Shape"><i class="fa fa-plus me-1"></i> Add Shape</button>')
                 ->autocomplete(),
 
             AssociationField::new('genre')
                 ->setCrudController(GenreCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6') // Added column setting
+                ->setFormTypeOption('help_html', true)
+                ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="genre" data-fetch="/admin-ajax/genre/new" data-title="Add Genre"><i class="fa fa-plus me-1"></i> Add Genre</button>')
                 ->autocomplete(),
 
             CollectionField::new('productVariants')

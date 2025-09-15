@@ -1,4 +1,56 @@
-{{ form_start(form, {'attr': {'id': 'category-modal-form'}}) }}
-{{ form_widget(form) }}
-<button type="submit" class="btn btn-primary">Save Category</button>
-{{ form_end(form) }}
+{# Beautiful, compact form for the Add Category modal #}
+{{ form_start(form, {
+  'attr': {
+    'id': 'category-modal-form',
+    'class': 'needs-validation'
+  },
+  'novalidate': 'novalidate'
+}) }}
+
+  <div class="mb-3">
+    {{ form_label(form.name, 'Name', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+    {{ form_widget(form.name, {'attr': {'class': 'form-control', 'placeholder': 'e.g. Sunglasses'}}) }}
+    <div class="form-text">Pick a short and clear name.</div>
+    {{ form_errors(form.name) }}
+  </div>
+
+  {% if form.imageFile is defined %}
+    <div class="mb-3">
+      {{ form_label(form.imageFile, 'Image', {'label_attr': {'class': 'form-label fw-semibold'}}) }}
+      <div class="d-flex align-items-center gap-3">
+        <img id="category-image-preview" src="{{ asset('assets/images/no-image.webp') }}" alt="Preview" class="rounded border" style="width:72px;height:72px;object-fit:cover;">
+        <div class="flex-fill">
+          {{ form_widget(form.imageFile, {'attr': {'class': 'form-control'}}) }}
+          <div class="form-text">Optional. PNG/JPG/WebP up to 1MB.</div>
+          {{ form_errors(form.imageFile) }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Render any remaining hidden fields #}
+  {{ form_rest(form) }}
+
+{{ form_end(form, { render_rest: false }) }}
+
+<script>
+  (function(){
+    const input = document.querySelector('#category-modal-form input[type="file"]');
+    const preview = document.getElementById('category-image-preview');
+    if (input && preview) {
+      input.addEventListener('change', function(){
+        const [file] = this.files || [];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        preview.src = url;
+      });
+    }
+  })();
+  // Prevent native form submit; outer modal Save button does AJAX
+  (function(){
+    const form = document.getElementById('category-modal-form');
+    if (form) {
+      form.addEventListener('submit', function(e){ e.preventDefault(); });
+    }
+  })();
+</script>
