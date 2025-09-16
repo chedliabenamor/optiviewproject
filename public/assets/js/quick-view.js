@@ -727,13 +727,52 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         
-        // Handle quantity increase
+        // Handle quantity increase with stock cap
         if (e.target.closest('.btn-num-product-up')) {
             e.preventDefault();
             const btn = e.target.closest('.btn-num-product-up');
             const input = btn.previousElementSibling;
             const currentValue = parseInt(input.value) || 1;
-            input.value = currentValue + 1;
+            // Determine available from DOM (preferred)
+            let available = null;
+            try {
+                const stockQtyEl = quickViewModal.querySelector('.js-stock-quantity');
+                if (stockQtyEl && stockQtyEl.textContent) {
+                    const n = parseInt(stockQtyEl.textContent.replace(/[^0-9\-]/g, ''));
+                    if (!isNaN(n)) available = n;
+                }
+            } catch(_){}
+            const next = currentValue + 1;
+            if (available !== null && next > available) {
+                const msg = available === 1 ? 'Only 1 item is available. Please update your quantity.' : `Only ${available} items are available. Please update your quantity.`;
+                if (typeof Swal !== 'undefined') { Swal.fire('Stock limit', msg, 'warning'); } else { alert(msg); }
+                input.value = available > 0 ? available : 1;
+                return;
+            }
+            input.value = next;
+            return;
+        }
+
+        // Handle direct typing in quantity input (enforce stock cap)
+        const qtyInput = e.target.closest('.num-product');
+        if (qtyInput && e.type === 'change') {
+            try {
+                let val = parseInt(qtyInput.value) || 1;
+                if (val < 1) val = 1;
+                let available = null;
+                const stockQtyEl = quickViewModal.querySelector('.js-stock-quantity');
+                if (stockQtyEl && stockQtyEl.textContent) {
+                    const n = parseInt(stockQtyEl.textContent.replace(/[^0-9\-]/g, ''));
+                    if (!isNaN(n)) available = n;
+                }
+                if (available !== null && val > available) {
+                    const msg = available === 1 ? 'Only 1 item is available. Please update your quantity.' : `Only ${available} items are available. Please update your quantity.`;
+                    if (typeof Swal !== 'undefined') { Swal.fire('Stock limit', msg, 'warning'); } else { alert(msg); }
+                    qtyInput.value = available > 0 ? available : 1;
+                } else {
+                    qtyInput.value = val;
+                }
+            } catch(_){}
             return;
         }
 
@@ -755,6 +794,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 const variantId = addToCartBtn.dataset.variantId || '';
                 const qtyInput = quickViewModal.querySelector('.num-product');
                 const quantity = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+                // Final guard: don't allow exceeding available
+                let available = null;
+                try {
+                    const stockQtyEl = quickViewModal.querySelector('.js-stock-quantity');
+                    if (stockQtyEl && stockQtyEl.textContent) {
+                        const n = parseInt(stockQtyEl.textContent.replace(/[^0-9\-]/g, ''));
+                        if (!isNaN(n)) available = n;
+                    }
+                } catch(_){}
+                if (available !== null && quantity > available) {
+                    const msg = available === 1 ? 'Only 1 item is available. Please update your quantity.' : `Only ${available} items are available. Please update your quantity.`;
+                    if (typeof Swal !== 'undefined') { Swal.fire('Stock limit', msg, 'warning'); } else { alert(msg); }
+                    if (qtyInput) qtyInput.value = available > 0 ? available : 1;
+                    return;
+                }
 
                 // Read displayed name
                 const nameEl = quickViewModal.querySelector('.js-product-name');
@@ -797,7 +852,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Optional: immediate feedback
                 if (typeof Swal !== 'undefined') {
-                    Swal.fire({ position: 'top-end', icon: 'success', title: 'Added to cart!', showConfirmButton: false, timer: 1000 });
+                    Swal.fire({ position: 'top-center', icon: 'success', title: 'Added to cart!', showConfirmButton: false, timer: 1000 });
                 }
             } catch (err) {
                 console.error('Failed to add to cart from quick-view:', err);

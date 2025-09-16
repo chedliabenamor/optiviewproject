@@ -529,7 +529,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     var current = qtyEl ? parseInt(qtyEl.textContent) || 1 : 1;
                     var next = current - 1;
                     fetch('/api/cart/update', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ productId: pid, variantId: vid || null, quantity: next }) })
-                        .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                        .then(function(r){
+                            return r.json().then(function(data){
+                                if (!r.ok || data.success === false) {
+                                    var msg = (data && data.message) ? data.message : 'Could not update quantity.';
+                                    if (typeof Swal !== 'undefined') { Swal.fire('Stock limit', msg, 'warning'); }
+                                    else { alert(msg); }
+                                    return Promise.reject(data);
+                                }
+                                return data;
+                            }).catch(function(){
+                                if (!r.ok) { if (typeof Swal !== 'undefined') { Swal.fire('Error', 'Could not update quantity.', 'error'); } else { alert('Could not update quantity.'); } }
+                                return Promise.reject();
+                            });
+                        })
                         .then(function(resp){ var items = normalizeServerCart(resp.cart || resp); renderCartItems(items); })
                         .catch(function(){});
                 } else {
@@ -554,7 +567,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     var current2 = qtyEl2 ? parseInt(qtyEl2.textContent) || 1 : 1;
                     var next2 = current2 + 1;
                     fetch('/api/cart/update', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ productId: pid2, variantId: vid2 || null, quantity: next2 }) })
-                        .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                        .then(function(r){
+                            return r.json().then(function(data){
+                                if (!r.ok || data.success === false) {
+                                    var msg = (data && data.message) ? data.message : 'Could not update quantity.';
+                                    if (typeof Swal !== 'undefined') { Swal.fire('Stock limit', msg, 'warning'); }
+                                    else { alert(msg); }
+                                    return Promise.reject(data);
+                                }
+                                return data;
+                            }).catch(function(){
+                                if (!r.ok) { if (typeof Swal !== 'undefined') { Swal.fire('Error', 'Could not update quantity.', 'error'); } else { alert('Could not update quantity.'); } }
+                                return Promise.reject();
+                            });
+                        })
                         .then(function(resp){ var items2 = normalizeServerCart(resp.cart || resp); renderCartItems(items2); })
                         .catch(function(){});
                 } else {
@@ -590,7 +616,20 @@ document.addEventListener('DOMContentLoaded', function () {
             var d = e && e.detail ? e.detail : {};
             if (isAuth()) {
                 fetch('/api/cart/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: d.productId, variantId: d.variantId || null, quantity: d.quantity || 1 }) })
-                    .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                    .then(function(r){
+                        return r.json().then(function(data){
+                            if (!r.ok || data.success === false) {
+                                var msg = (data && data.message) ? data.message : 'Could not add item to cart.';
+                                if (typeof Swal !== 'undefined') { Swal.fire('Stock limit', msg, 'warning'); }
+                                else { alert(msg); }
+                                return Promise.reject(data);
+                            }
+                            return data;
+                        }).catch(function(){
+                            if (!r.ok) { if (typeof Swal !== 'undefined') { Swal.fire('Error', 'Could not add item to cart.', 'error'); } else { alert('Could not add item to cart.'); } }
+                            return Promise.reject();
+                        });
+                    })
                     .then(function(resp){ var items = normalizeServerCart(resp.cart || resp); renderCartItems(items); })
                     .catch(function(){ /* noop */ });
                 // Also remove the specific item from the server-side wishlist and refresh wishlist panel

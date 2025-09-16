@@ -232,7 +232,9 @@ button.cartp-remove.stext-110.cl2:hover {
 [ Slick2 ]*/
 .slick-slide {outline: none !important;}
 
-
+.swal2-container.swal2-center.swal2-backdrop-show {
+  z-index: 999999;
+}
 
 .service {
   padding-block: 25px;

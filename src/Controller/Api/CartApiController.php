@@ -111,17 +111,25 @@ class CartApiController extends AbstractController
             return new JsonResponse(['success' => true, 'cart' => $this->serializeCart($cart)]);
         }
 
-        // Stock check against product/variant
+        // Stock check against product/variant with precise messaging
         $product = $target->getProduct();
         $variant = method_exists($target, 'getProductVariant') ? $target->getProductVariant() : null;
+        $available = null;
         if ($variant) {
-            if (method_exists($variant, 'getStock') && $variant->getStock() < $quantity) {
-                return new JsonResponse(['success' => false, 'message' => 'Not enough stock for selected variant'], Response::HTTP_BAD_REQUEST);
+            if (method_exists($variant, 'getStock')) {
+                $available = (int) $variant->getStock();
             }
         } else {
-            if (method_exists($product, 'getTotalStock') && $product->getTotalStock() < $quantity) {
-                return new JsonResponse(['success' => false, 'message' => 'Not enough stock for this product'], Response::HTTP_BAD_REQUEST);
+            if (method_exists($product, 'getTotalStock')) {
+                $available = (int) $product->getTotalStock();
             }
+        }
+        if ($available !== null && $quantity > $available) {
+            $isSingular = ($available === 1);
+            $msg = $isSingular
+                ? 'Only 1 item is available. Please update your quantity.'
+                : sprintf('Only %d items are available. Please update your quantity.', $available);
+            return new JsonResponse(['success' => false, 'message' => $msg], Response::HTTP_BAD_REQUEST);
         }
 
         $target->setQuantity($quantity);
@@ -154,17 +162,6 @@ class CartApiController extends AbstractController
             }
         }
 
-        // Stock checks
-        if ($variant) {
-            if (method_exists($variant, 'getStock') && $variant->getStock() < $qty) {
-                return new JsonResponse(['success' => false, 'message' => 'Not enough stock for selected variant'], Response::HTTP_BAD_REQUEST);
-            }
-        } else {
-            if (method_exists($product, 'getTotalStock') && $product->getTotalStock() < $qty) {
-                return new JsonResponse(['success' => false, 'message' => 'Not enough stock for this product'], Response::HTTP_BAD_REQUEST);
-            }
-        }
-
         $cart = $this->getOrCreateCart($user);
 
         // Try to find existing item by product + variant
@@ -175,6 +172,36 @@ class CartApiController extends AbstractController
                 $ciVarId = $ciVar ? $ciVar->getId() : null;
                 $vId = $variant ? $variant->getId() : null;
                 if ($ciVarId === $vId) { $existing = $ci; break; }
+            }
+        }
+
+        // Stock checks factoring in existing quantity in cart
+        $available = null;
+        if ($variant) {
+            if (method_exists($variant, 'getStock')) {
+                $available = (int) $variant->getStock();
+            }
+        } else {
+            if (method_exists($product, 'getTotalStock')) {
+                $available = (int) $product->getTotalStock();
+            }
+        }
+        if ($available !== null) {
+            $currentQtyInCart = $existing ? (int) $existing->getQuantity() : 0;
+            $requestedTotal = $currentQtyInCart + $qty;
+            if ($requestedTotal > $available) {
+                $remaining = max($available - $currentQtyInCart, 0);
+                if ($remaining <= 0) {
+                    return new JsonResponse([
+                        'success' => false,
+                        'message' => 'This item is out of stock.'
+                    ], Response::HTTP_BAD_REQUEST);
+                }
+                $isSingular = ($remaining === 1);
+                $msg = $isSingular
+                    ? 'Only 1 item is available. Please update your quantity.'
+                    : sprintf('Only %d items are available. Please update your quantity.', $remaining);
+                return new JsonResponse(['success' => false, 'message' => $msg], Response::HTTP_BAD_REQUEST);
             }
         }
 

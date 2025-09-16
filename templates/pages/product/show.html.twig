@@ -458,6 +458,91 @@
             defaultImages.push({ url: img.getAttribute('src'), alt: img.getAttribute('alt') || '{{ product.name|e('js') }}' });
         });
 
+        // ========= Quantity & Stock validation on Product Detail =========
+        (function(){
+            var addBtn = document.querySelector('.js-addcart-detail');
+            var qtyInput = document.querySelector('.num-product');
+            var variantSelect = document.querySelector('.js-variant-select');
+            // Helper: get available stock from selected option
+            function getAvailable(){
+                try {
+                    if (!variantSelect) return parseInt({{ product.getTotalStock() }}) || 0;
+                    var opt = variantSelect.options[variantSelect.selectedIndex];
+                    var ds = opt ? (opt.getAttribute('data-stock') || opt.dataset.stock) : null;
+                    var n = ds != null && ds !== '' ? parseInt(ds) : null;
+                    return isNaN(n) ? 0 : n;
+                } catch(e){ return 0; }
+            }
+            function showLimitMsg(av){
+                var msg = (av === 1) ? 'Only 1 item is available. Please update your quantity.' : ('Only ' + av + ' items are available. Please update your quantity.');
+                if (typeof Swal !== 'undefined') { Swal.fire('Stock limit', msg, 'warning'); }
+                else if (typeof swal !== 'undefined') { swal('Stock limit', msg, 'warning'); }
+                else { alert(msg); }
+            }
+            function clampQty(){
+                if (!qtyInput) return;
+                var val = parseInt(qtyInput.value) || 1;
+                if (val < 1) val = 1;
+                var available = getAvailable();
+                if (available > 0 && val > available) {
+                    showLimitMsg(available);
+                    qtyInput.value = available;
+                } else {
+                    qtyInput.value = val;
+                }
+            }
+            // Hook +/- buttons
+            document.addEventListener('click', function(e){
+                var down = e.target.closest('.btn-num-product-down');
+                if (down) { setTimeout(clampQty, 0); return; }
+                var up = e.target.closest('.btn-num-product-up');
+                if (up) { setTimeout(function(){
+                    var current = parseInt(qtyInput.value) || 1;
+                    var next = current + 0; // already incremented by theme JS
+                    var available = getAvailable();
+                    if (available > 0 && next > available) { showLimitMsg(available); qtyInput.value = available; }
+                }, 0); return; }
+            });
+            // Hook direct typing
+            if (qtyInput) {
+                qtyInput.addEventListener('change', clampQty);
+                qtyInput.addEventListener('input', function(){ /* debounce-like clamp */ setTimeout(clampQty, 0); });
+            }
+            // Keep add button's data-variant-id in sync for convenience (optional)
+            if (variantSelect && addBtn) {
+                variantSelect.addEventListener('change', function(){
+                    var val = variantSelect.value;
+                    addBtn.dataset.variantId = (val && val !== 'product') ? val : '';
+                    clampQty();
+                });
+            }
+            // Handle add-to-cart click: validate then dispatch global event used by cart panel
+            if (addBtn) {
+                addBtn.addEventListener('click', function(ev){
+                    ev.preventDefault();
+                    var available = getAvailable();
+                    var q = parseInt(qtyInput && qtyInput.value) || 1;
+                    if (available > 0 && q > available) { showLimitMsg(available); clampQty(); return; }
+                    var productId = addBtn.getAttribute('data-product-id');
+                    var vId = '';
+                    if (variantSelect) {
+                        var v = variantSelect.value;
+                        vId = (v && v !== 'product') ? v : '';
+                    } else {
+                        vId = addBtn.getAttribute('data-variant-id') || '';
+                    }
+                    // Try to read visible name/price/image
+                    var name = (document.querySelector('.js-name-detail') || document.getElementById('quick-view-product-title') || {}).textContent || '';
+                    var priceText = (document.querySelector('.js-product-price') || {}).textContent || '';
+                    var priceNum = (function(t){ try { return parseFloat(String(t).replace(/[^0-9.\-]/g,'')) || 0; } catch(e){ return 0; } })(priceText);
+                    var imgEl = document.querySelector('.slick3 .item-slick3.slick-current img') || document.querySelector('.slick3 .item-slick3 img');
+                    var img = imgEl ? imgEl.getAttribute('src') : ({{ product.overviewImage ? (vich_uploader_asset(product, 'overviewImageFile') | json_encode | raw) : 'null' }} || '');
+                    var evt = new CustomEvent('addToCart', { detail: { productId: productId, productName: name, productPrice: priceNum, productImage: img, quantity: q, variantId: vId || null, variantName: '' }, bubbles: true });
+                    document.dispatchEvent(evt);
+                });
+            }
+        })();
+
         // --- Offer/Price helpers (mirrors quick-view.js) ---
         var offerState = { productOffer: null, variantOffers: {} };
         var countdownTimerId = null;
@@ -1090,7 +1175,7 @@
                     document.dispatchEvent(evt);
 
                     if (typeof Swal !== 'undefined') {
-                        Swal.fire({ position: 'top-end', icon: 'success', title: 'Added to cart!', showConfirmButton: false, timer: 1000 });
+                        Swal.fire({ position: 'top-center', icon: 'success', title: 'Added to cart!', showConfirmButton: false, timer: 1000 });
                     }
                 } catch(err) {
                     console.error('Failed to add to cart from product detail:', err);
