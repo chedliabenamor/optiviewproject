@@ -34,6 +34,16 @@ class ProductApiController extends AbstractController
     public function quickView(Product $product): JsonResponse
     {
         try {
+            // Block archived products or products tied to archived category/brand
+            if (method_exists($product, 'getDeletedAt') && $product->getDeletedAt() !== null) {
+                return new JsonResponse(['error' => 'Product archived'], Response::HTTP_NOT_FOUND);
+            }
+            if ($product->getCategory() && method_exists($product->getCategory(), 'getDeletedAt') && $product->getCategory()->getDeletedAt() !== null) {
+                return new JsonResponse(['error' => 'Category archived'], Response::HTTP_NOT_FOUND);
+            }
+            if ($product->getBrand() && method_exists($product->getBrand(), 'getDeletedAt') && $product->getBrand()->getDeletedAt() !== null) {
+                return new JsonResponse(['error' => 'Brand archived'], Response::HTTP_NOT_FOUND);
+            }
             // Serialize the product with all necessary associations
             $data = $this->serializer->normalize(
                 $product,
@@ -52,12 +62,12 @@ class ProductApiController extends AbstractController
             $data['overviewImage'] = $overview ? ($this->productOverviewImagesUriPrefix . '/' . $overview) : null;
             $data['quantityInStock'] = $product->getTotalStock();
             $data['description'] = $product->getDescription();
-            // Expose simple meta fields for popup
-            $data['brand'] = $product->getBrand() ? $product->getBrand()->getName() : null;
-            $data['category'] = $product->getCategory() ? $product->getCategory()->getName() : null;
-            $data['style'] = $product->getStyle() ? $product->getStyle()->getName() : null;
-            $data['shape'] = $product->getShape() ? $product->getShape()->getName() : null;
-            $data['genre'] = $product->getGenre() ? $product->getGenre()->getName() : null;
+            // Expose simple meta fields for popup (skip archived attributes)
+            $data['brand'] = ($product->getBrand() && $product->getBrand()->getDeletedAt() === null) ? $product->getBrand()->getName() : null;
+            $data['category'] = ($product->getCategory() && $product->getCategory()->getDeletedAt() === null) ? $product->getCategory()->getName() : null;
+            $data['style'] = ($product->getStyle() && $product->getStyle()->getDeletedAt() === null) ? $product->getStyle()->getName() : null;
+            $data['shape'] = ($product->getShape() && $product->getShape()->getDeletedAt() === null) ? $product->getShape()->getName() : null;
+            $data['genre'] = ($product->getGenre() && $product->getGenre()->getDeletedAt() === null) ? $product->getGenre()->getName() : null;
             $data['loyaltyPoints'] = $product->getLoyaltyPoints();
 
             // Helper to compute the best active offer and discounted price
@@ -102,7 +112,7 @@ class ProductApiController extends AbstractController
             };
 
             // Add product-level color (primary) if set
-            if ($product->getPrimaryColor()) {
+            if ($product->getPrimaryColor() && $product->getPrimaryColor()->getDeletedAt() === null) {
                 $data['productColor'] = [
                     'id' => $product->getPrimaryColor()->getId(),
                     'name' => $product->getPrimaryColor()->getName(),
@@ -121,12 +131,19 @@ class ProductApiController extends AbstractController
 
             // Process variants with color, style, genre and images
             if ($product->getProductVariants() && $product->getProductVariants()->count() > 0) {
-                $data['productVariants'] = $product->getProductVariants()->map(function($variant) use ($product, $computeOffer, $categoryOffers, $brandOffers) {
+                $variantsPayload = [];
+                foreach ($product->getProductVariants() as $variant) {
+                    // Skip only if the variant itself is archived/inactive
+                    if (method_exists($variant, 'getDeletedAt') && $variant->getDeletedAt() !== null) { continue; }
+                    if (method_exists($variant, 'isActive') && !$variant->isActive()) { continue; }
+                    // Hide options whose attributes are archived
+                    if ($variant->getColor() && method_exists($variant->getColor(), 'getDeletedAt') && $variant->getColor()->getDeletedAt() !== null) { continue; }
+                    if ($variant->getStyle() && method_exists($variant->getStyle(), 'getDeletedAt') && $variant->getStyle()->getDeletedAt() !== null) { continue; }
+                    if ($variant->getGenre() && method_exists($variant->getGenre(), 'getDeletedAt') && $variant->getGenre()->getDeletedAt() !== null) { continue; }
                     // Variant images (use accessor building URL)
                     $variantImages = [];
                     if ($variant->getProductVariantImages() && $variant->getProductVariantImages()->count() > 0) {
                         foreach ($variant->getProductVariantImages() as $vImage) {
-                            // Build full URL using Vich mapping prefix to avoid 404s due to base path
                             $fileName = $vImage->getImageName();
                             $url = $fileName ? ($this->productVariantImagesUriPrefix . '/' . $fileName) : $vImage->getImageUrl();
                             $variantImages[] = [
@@ -142,33 +159,29 @@ class ProductApiController extends AbstractController
                     // - Include product-specific offers (applies to all variants of the product)
                     $variantOffers = [];
                     foreach ($variant->getProductOffers() as $o) { $variantOffers[] = $o; }
-                    // Merge product/cat/brand offers
                     $productOffers = [];
                     foreach ($product->getProductOffers() as $po) { $productOffers[] = $po; }
                     $variantOffers = array_merge($variantOffers, $productOffers, $categoryOffers, $brandOffers);
                     $variantOffer = $computeOffer($variant->getPrice(), $variantOffers);
 
-                    return [
+                    $variantsPayload[] = [
                         'id' => $variant->getId(),
                         'name' => (string) $variant,
                         'price' => $variant->getPrice(),
                         'quantityInStock' => $variant->getStock(),
                         'sku' => $variant->getSku(),
                         'stockStatus' => $variant->getStockStatus(),
-                        'color' => $variant->getColor() ? [
+                        'color' => ($variant->getColor() ? [
                             'id' => $variant->getColor()->getId(),
                             'name' => $variant->getColor()->getName(),
-                        ] : null,
-                        'style' => $variant->getStyle() ? [
-                            'name' => $variant->getStyle()->getName(),
-                        ] : null,
-                        'genre' => $variant->getGenre() ? [
-                            'name' => $variant->getGenre()->getName(),
-                        ] : null,
+                        ] : null),
+                        'style' => ($variant->getStyle() ? [ 'name' => $variant->getStyle()->getName() ] : null),
+                        'genre' => ($variant->getGenre() ? [ 'name' => $variant->getGenre()->getName() ] : null),
                         'productVariantImages' => $variantImages,
                         'offer' => $variantOffer,
                     ];
-                })->toArray();
+                }
+                $data['productVariants'] = array_values($variantsPayload);
             }
 
             // Process images

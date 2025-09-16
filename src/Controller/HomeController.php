@@ -20,12 +20,12 @@ class HomeController extends AbstractController
         \App\Repository\ShapeRepository $shapeRepository,
         \App\Repository\GenreRepository $genreRepository
     ): Response {
-        $categories = $categoryRepository->findAll();
-        $products = $productRepository->findBy([], ['id' => 'DESC']); // latest first
-        $brands = $brandRepository->findAll();
-        $colors = $colorRepository->findAll();
-        $shapes = $shapeRepository->findAll();
-        $genres = $genreRepository->findAll();
+        $categories = $categoryRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $products = $productRepository->findBy(['deletedAt' => null], ['id' => 'DESC']); // latest first, non-archived
+        $brands = $brandRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $colors = $colorRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $shapes = $shapeRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $genres = $genreRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
         
         // Fetch latest 3 blog posts
         $latestPosts = $postRepository->findBy(
@@ -40,10 +40,11 @@ class HomeController extends AbstractController
         $saleCategory       = $categoryRepository->findOneBy(['name' => 'Sale']);
         $topRateCategory    = $categoryRepository->findOneBy(['name' => 'Top Rate']);
 
-        $bestSellerProducts = $bestSellerCategory ? $bestSellerCategory->getProducts() : [];
-        $featuredProducts   = $featuredCategory ? $featuredCategory->getProducts() : [];
-        $saleProducts       = $saleCategory ? $saleCategory->getProducts() : [];
-        $topRateProducts    = $topRateCategory ? $topRateCategory->getProducts() : [];
+        // Filter out archived products within each tab category
+        $bestSellerProducts = $bestSellerCategory ? array_values(array_filter($bestSellerCategory->getProducts()->toArray(), fn($p) => $p->getDeletedAt() === null)) : [];
+        $featuredProducts   = $featuredCategory ? array_values(array_filter($featuredCategory->getProducts()->toArray(), fn($p) => $p->getDeletedAt() === null)) : [];
+        $saleProducts       = $saleCategory ? array_values(array_filter($saleCategory->getProducts()->toArray(), fn($p) => $p->getDeletedAt() === null)) : [];
+        $topRateProducts    = $topRateCategory ? array_values(array_filter($topRateCategory->getProducts()->toArray(), fn($p) => $p->getDeletedAt() === null)) : [];
 
         return $this->render('pages/index.html.twig', [
             'categories' => $categories,

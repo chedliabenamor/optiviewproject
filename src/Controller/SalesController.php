@@ -25,6 +25,7 @@ class SalesController extends AbstractController
             ->where('o.isActive = :active')
             ->andWhere('o.endDate >= :todayStart')
             ->andWhere('o.startDate <= :todayEnd')
+            ->andWhere('o.deletedAt IS NULL')
             ->setParameter('active', true)
             ->setParameter('todayStart', $todayStart)
             ->setParameter('todayEnd', $todayEnd);
@@ -54,29 +55,39 @@ class SalesController extends AbstractController
     {
         // Gather related items
         $products = [];
-        $variants = $offer->getProductVariants();
+        // Filter out archived/inactive variants
+        $variants = array_values(array_filter($offer->getProductVariants()->toArray(), function($v){
+            if (method_exists($v, 'getDeletedAt') && $v->getDeletedAt() !== null) return false;
+            if (method_exists($v, 'isActive') && !$v->isActive()) return false;
+            // Skip if color/style/genre archived
+            if ($v->getColor() && method_exists($v->getColor(), 'getDeletedAt') && $v->getColor()->getDeletedAt() !== null) return false;
+            if ($v->getStyle() && method_exists($v->getStyle(), 'getDeletedAt') && $v->getStyle()->getDeletedAt() !== null) return false;
+            if ($v->getGenre() && method_exists($v->getGenre(), 'getDeletedAt') && $v->getGenre()->getDeletedAt() !== null) return false;
+            return true;
+        }));
 
         $hasDirectProducts = ($offer->getProducts() && $offer->getProducts()->count() > 0);
         $hasBrands = (method_exists($offer, 'getBrands') && $offer->getBrands() && $offer->getBrands()->count() > 0);
         $hasCategories = (method_exists($offer, 'getCategories') && $offer->getCategories() && $offer->getCategories()->count() > 0);
-        $variantOnly = !$hasDirectProducts && !$hasBrands && !$hasCategories && ($variants && $variants->count() > 0);
+        // $variants is an array after filtering; use count($variants)
+        $variantOnly = !$hasDirectProducts && !$hasBrands && !$hasCategories && (is_array($variants) ? count($variants) > 0 : ($variants && $variants->count() > 0));
 
         // If it's NOT variant-only, collect products from all sources
         if (!$variantOnly) {
             // Direct products
-            foreach ($offer->getProducts() as $p) { $products[$p->getId()] = $p; }
+            foreach ($offer->getProducts() as $p) { if ($p->getDeletedAt() === null) { $products[$p->getId()] = $p; } }
             // Products from variants in the offer
-            foreach ($variants as $v) { if ($v->getProduct()) { $products[$v->getProduct()->getId()] = $v->getProduct(); } }
+            foreach ($variants as $v) { if ($v->getProduct() && $v->getProduct()->getDeletedAt() === null) { $products[$v->getProduct()->getId()] = $v->getProduct(); } }
             // Products by brands
             if ($hasBrands) {
                 foreach ($offer->getBrands() as $b) {
-                    foreach ($productRepository->findBy(['brand' => $b]) as $p) { $products[$p->getId()] = $p; }
+                    foreach ($productRepository->findBy(['brand' => $b, 'deletedAt' => null]) as $p) { $products[$p->getId()] = $p; }
                 }
             }
             // Products by categories
             if ($hasCategories) {
                 foreach ($offer->getCategories() as $c) {
-                    foreach ($productRepository->findBy(['category' => $c]) as $p) { $products[$p->getId()] = $p; }
+                    foreach ($productRepository->findBy(['category' => $c, 'deletedAt' => null]) as $p) { $products[$p->getId()] = $p; }
                 }
             }
         }

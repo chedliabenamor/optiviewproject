@@ -8,6 +8,7 @@ use App\Entity\Brand;
 use App\Entity\Style;
 use App\Entity\Shape;
 use App\Entity\Genre;
+use App\Entity\Color;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
@@ -48,6 +49,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use App\Filter\StockStatusFilter;
+use Doctrine\ORM\EntityRepository;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 
 use App\Repository\ProductVariantRepository;
 use App\Service\SkuGeneratorService;
@@ -223,8 +226,18 @@ class ProductCrudController extends AbstractCrudController
                 ->setColumns('col-md-6')
                 ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Gucci', 'placeholder' => 'e.g. Gucci'])
                 ->setFormTypeOption('help_html', true)
+                ->setFormType(EntityType::class)
+                ->setFormTypeOptions([
+                    'class' => Brand::class,
+                    'choice_label' => 'name',
+                    'query_builder' => function (EntityRepository $er) {
+                        return $er->createQueryBuilder('e')
+                            ->andWhere('e.deletedAt IS NULL')
+                            ->orderBy('e.name', 'ASC');
+                    },
+                ])
                 ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="brand" data-fetch="/admin-ajax/brand/new" data-title="Add Brand"><i class="fa fa-plus me-1"></i> Add Brand</button>')
-                ->autocomplete(),
+                ,
 
                 AssociationField::new('category')
                 ->setCrudController(CategoryCrudController::class)
@@ -232,8 +245,18 @@ class ProductCrudController extends AbstractCrudController
                 ->setColumns('col-md-6')
                 ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Women', 'placeholder' => 'e.g. Women'])
                 ->setFormTypeOption('help_html', true)
+                ->setFormType(EntityType::class)
+                ->setFormTypeOptions([
+                    'class' => Category::class,
+                    'choice_label' => 'name',
+                    'query_builder' => function (EntityRepository $er) {
+                        return $er->createQueryBuilder('e')
+                            ->andWhere('e.deletedAt IS NULL')
+                            ->orderBy('e.name', 'ASC');
+                    },
+                ])
                 ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="category" data-fetch="/admin-ajax/category/new" data-title="Add Category"><i class="fa fa-plus me-1"></i> Add Category</button>')
-                ->autocomplete(),
+                ,
 
             AssociationField::new('colors')
                 ->setCrudController(ColorCrudController::class)
@@ -243,16 +266,37 @@ class ProductCrudController extends AbstractCrudController
                 ->setColumns('col-md-6')
                 ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. White', 'placeholder' => 'e.g. White'])
                 ->setFormTypeOption('help_html', true)
+                ->setFormType(EntityType::class)
+                ->setFormTypeOptions([
+                    'class' => Color::class,
+                    'choice_label' => 'name',
+                    'multiple' => true,
+                    'query_builder' => function (EntityRepository $er) {
+                        return $er->createQueryBuilder('e')
+                            ->andWhere('e.deletedAt IS NULL')
+                            ->orderBy('e.name', 'ASC');
+                    },
+                ])
                 ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="color" data-fetch="/admin-ajax/color/new" data-title="Add Color"><i class="fa fa-plus me-1"></i> Add Color</button>')
-                ->autocomplete(),
+                ,
 
             AssociationField::new('style')
                 ->setCrudController(StyleCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6') // Added column setting
                 ->setFormTypeOption('help_html', true)
+                ->setFormType(EntityType::class)
+                ->setFormTypeOptions([
+                    'class' => Style::class,
+                    'choice_label' => 'name',
+                    'query_builder' => function (EntityRepository $er) {
+                        return $er->createQueryBuilder('e')
+                            ->andWhere('e.deletedAt IS NULL')
+                            ->orderBy('e.name', 'ASC');
+                    },
+                ])
                 ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="style" data-fetch="/admin-ajax/style/new" data-title="Add Style"><i class="fa fa-plus me-1"></i> Add Style</button>')
-                ->autocomplete(),
+                ,
 
             AssociationField::new('shape')
                 ->setCrudController(ShapeCrudController::class)
@@ -260,16 +304,36 @@ class ProductCrudController extends AbstractCrudController
                 ->setColumns('col-md-6') // Added column setting
                 ->setFormTypeOption('attr', ['data-ea-autocomplete-placeholder' => 'e.g. Square', 'placeholder' => 'e.g. Square'])
                 ->setFormTypeOption('help_html', true)
+                ->setFormType(EntityType::class)
+                ->setFormTypeOptions([
+                    'class' => Shape::class,
+                    'choice_label' => 'name',
+                    'query_builder' => function (EntityRepository $er) {
+                        return $er->createQueryBuilder('e')
+                            ->andWhere('e.deletedAt IS NULL')
+                            ->orderBy('e.name', 'ASC');
+                    },
+                ])
                 ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="shape" data-fetch="/admin-ajax/shape/new" data-title="Add Shape"><i class="fa fa-plus me-1"></i> Add Shape</button>')
-                ->autocomplete(),
+                ,
 
             AssociationField::new('genre')
                 ->setCrudController(GenreCrudController::class)
                 ->setFormTypeOption('by_reference', true)
                 ->setColumns('col-md-6') // Added column setting
                 ->setFormTypeOption('help_html', true)
+                ->setFormType(EntityType::class)
+                ->setFormTypeOptions([
+                    'class' => Genre::class,
+                    'choice_label' => 'name',
+                    'query_builder' => function (EntityRepository $er) {
+                        return $er->createQueryBuilder('e')
+                            ->andWhere('e.deletedAt IS NULL')
+                            ->orderBy('e.name', 'ASC');
+                    },
+                ])
                 ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="genre" data-fetch="/admin-ajax/genre/new" data-title="Add Genre"><i class="fa fa-plus me-1"></i> Add Genre</button>')
-                ->autocomplete(),
+                ,
 
             CollectionField::new('productVariants')
                 ->setLabel('Product Variants')
@@ -302,9 +366,36 @@ class ProductCrudController extends AbstractCrudController
         $isArchivedView = $request?->query->get('show') === 'archived';
 
         if ($isArchivedView) {
-            $queryBuilder->andWhere('entity.deletedAt IS NOT NULL');
+            // Archived view: show products explicitly archived OR tied to archived relations
+            $queryBuilder
+                ->leftJoin('entity.category', 'cat')
+                ->leftJoin('entity.brand', 'br')
+                ->leftJoin('entity.style', 'st')
+                ->leftJoin('entity.shape', 'sh')
+                ->leftJoin('entity.genre', 'ge')
+                ->andWhere('(
+                    entity.deletedAt IS NOT NULL
+                    OR (cat IS NOT NULL AND cat.deletedAt IS NOT NULL)
+                    OR (br IS NOT NULL AND br.deletedAt IS NOT NULL)
+                    OR (st IS NOT NULL AND st.deletedAt IS NOT NULL)
+                    OR (sh IS NOT NULL AND sh.deletedAt IS NOT NULL)
+                    OR (ge IS NOT NULL AND ge.deletedAt IS NOT NULL)
+                )');
         } else {
-            $queryBuilder->andWhere('entity.deletedAt IS NULL');
+            // Active view: hide archived products and products tied to archived relations
+            $queryBuilder
+                ->andWhere('entity.deletedAt IS NULL')
+                // join related entities to check their archived status
+                ->leftJoin('entity.category', 'cat')
+                ->leftJoin('entity.brand', 'br')
+                ->leftJoin('entity.style', 'st')
+                ->leftJoin('entity.shape', 'sh')
+                ->leftJoin('entity.genre', 'ge')
+                ->andWhere('(cat IS NULL OR cat.deletedAt IS NULL)')
+                ->andWhere('(br IS NULL OR br.deletedAt IS NULL)')
+                ->andWhere('(st IS NULL OR st.deletedAt IS NULL)')
+                ->andWhere('(sh IS NULL OR sh.deletedAt IS NULL)')
+                ->andWhere('(ge IS NULL OR ge.deletedAt IS NULL)');
         }
 
         return $queryBuilder;

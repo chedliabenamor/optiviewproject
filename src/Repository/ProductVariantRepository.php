@@ -63,15 +63,27 @@ class ProductVariantRepository extends ServiceEntityRepository
     bool $archived = false
 ): array {
     $qb = $this->createQueryBuilder('v')
-        ->leftJoin('v.color', 'c') // Join with Color entity
+        ->leftJoin('v.color', 'c')
+        ->leftJoin('v.style', 'st')
+        ->leftJoin('v.genre', 'g')
         ->andWhere('v.product = :productId')
         ->setParameter('productId', $productId);
 
     // ✅ switch between active/archived
     if ($archived) {
-        $qb->andWhere('v.deletedAt IS NOT NULL');
+        // Archived tab: include variants that are archived themselves OR whose attributes are archived
+        $qb->andWhere('(
+            v.deletedAt IS NOT NULL
+            OR (c.id IS NOT NULL AND c.deletedAt IS NOT NULL)
+            OR (st.id IS NOT NULL AND st.deletedAt IS NOT NULL)
+            OR (g.id IS NOT NULL AND g.deletedAt IS NOT NULL)
+        )');
     } else {
-        $qb->andWhere('v.deletedAt IS NULL');
+        // Active tab: only show variants that are active and whose attributes are not archived
+        $qb->andWhere('v.deletedAt IS NULL')
+           ->andWhere('(c.id IS NULL OR c.deletedAt IS NULL)')
+           ->andWhere('(st.id IS NULL OR st.deletedAt IS NULL)')
+           ->andWhere('(g.id IS NULL OR g.deletedAt IS NULL)');
     }
 
     // Apply filters

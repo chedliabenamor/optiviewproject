@@ -49,7 +49,7 @@ class ProductController extends AbstractController
         $q = trim($request->query->getString('q', ''));
         $sort = $request->query->getString('sort', 'newest');
 
-        // Build COUNT query with filters
+        // Build COUNT query with filters (exclude archived/soft-deleted everywhere)
         $countQb = $productRepository->createQueryBuilder('p')
             ->leftJoin('p.category', 'cat')
             ->leftJoin('p.brand', 'br')
@@ -60,7 +60,14 @@ class ProductController extends AbstractController
             ->leftJoin('p.productVariants', 'pv')
             ->leftJoin('pv.color', 'vcol')
             ->leftJoin('pv.genre', 'vgen')
-            ->select('COUNT(DISTINCT p.id)');
+            ->select('COUNT(DISTINCT p.id)')
+            ->andWhere('p.deletedAt IS NULL')
+            ->andWhere('(cat IS NULL OR cat.deletedAt IS NULL)')
+            ->andWhere('(br IS NULL OR br.deletedAt IS NULL)')
+            ->andWhere('(sh IS NULL OR sh.deletedAt IS NULL)')
+            ->andWhere('(st IS NULL OR st.deletedAt IS NULL)')
+            ->andWhere('(ge IS NULL OR ge.deletedAt IS NULL)')
+            ->andWhere('(pv.id IS NULL OR (pv.deletedAt IS NULL AND pv.isActive = 1))');
 
         if (!empty($catIds)) {
             $countQb->andWhere('cat.id IN (:cats)')->setParameter('cats', $catIds);
@@ -69,8 +76,8 @@ class ProductController extends AbstractController
             $countQb->andWhere('br.id IN (:brands)')->setParameter('brands', $brandIds);
         }
         if (!empty($colorIds)) {
-            // A product matches if ANY of its variants has one of the selected colors
-            $countQb->andWhere('vcol.id IN (:colors)')->setParameter('colors', $colorIds);
+            // A product matches if ANY of its non-archived variant colors is selected
+            $countQb->andWhere('vcol.id IN (:colors) AND vcol.deletedAt IS NULL')->setParameter('colors', $colorIds);
         }
         if (!empty($shapeIds)) {
             $countQb->andWhere('sh.id IN (:shapes)')->setParameter('shapes', $shapeIds);
@@ -79,8 +86,8 @@ class ProductController extends AbstractController
             $countQb->andWhere('st.id IN (:styles)')->setParameter('styles', $styleIds);
         }
         if (!empty($genreIds)) {
-            // Genre at variant level
-            $countQb->andWhere('vgen.id IN (:genres)')->setParameter('genres', $genreIds);
+            // Genre at variant level (non-archived only)
+            $countQb->andWhere('vgen.id IN (:genres) AND vgen.deletedAt IS NULL')->setParameter('genres', $genreIds);
         }
         if ($minPrice !== '') {
             $countQb->andWhere('p.price >= :minPrice')->setParameter('minPrice', (float) $minPrice);
@@ -98,7 +105,7 @@ class ProductController extends AbstractController
         if ($page > $pages) { $page = $pages; }
         $offset = ($page - 1) * $perPage;
 
-        // Fetch current page products with filters
+        // Fetch current page products with filters (exclude archived/soft-deleted everywhere)
         $qb = $productRepository->createQueryBuilder('p')
             ->select('DISTINCT p')
             ->leftJoin('p.category', 'cat')->addSelect('cat')
@@ -111,6 +118,13 @@ class ProductController extends AbstractController
             ->leftJoin('p.productVariants', 'pv')
             ->leftJoin('pv.color', 'vcol')
             ->leftJoin('pv.genre', 'vgen')
+            ->andWhere('p.deletedAt IS NULL')
+            ->andWhere('(cat IS NULL OR cat.deletedAt IS NULL)')
+            ->andWhere('(br IS NULL OR br.deletedAt IS NULL)')
+            ->andWhere('(sh IS NULL OR sh.deletedAt IS NULL)')
+            ->andWhere('(st IS NULL OR st.deletedAt IS NULL)')
+            ->andWhere('(ge IS NULL OR ge.deletedAt IS NULL)')
+            ->andWhere('(pv.id IS NULL OR (pv.deletedAt IS NULL AND pv.isActive = 1))')
             ->setFirstResult($offset)
             ->setMaxResults($perPage);
 
@@ -121,8 +135,8 @@ class ProductController extends AbstractController
             $qb->andWhere('br.id IN (:brands)')->setParameter('brands', $brandIds);
         }
         if (!empty($colorIds)) {
-            // Match via variant colors
-            $qb->andWhere('vcol.id IN (:colors)')->setParameter('colors', $colorIds);
+            // Match via non-archived variant colors
+            $qb->andWhere('vcol.id IN (:colors) AND vcol.deletedAt IS NULL')->setParameter('colors', $colorIds);
         }
         if (!empty($shapeIds)) {
             $qb->andWhere('sh.id IN (:shapes)')->setParameter('shapes', $shapeIds);
@@ -131,8 +145,8 @@ class ProductController extends AbstractController
             $qb->andWhere('st.id IN (:styles)')->setParameter('styles', $styleIds);
         }
         if (!empty($genreIds)) {
-            // Match via variant genres
-            $qb->andWhere('vgen.id IN (:genres)')->setParameter('genres', $genreIds);
+            // Match via non-archived variant genres
+            $qb->andWhere('vgen.id IN (:genres) AND vgen.deletedAt IS NULL')->setParameter('genres', $genreIds);
         }
         if ($minPrice !== '') {
             $qb->andWhere('p.price >= :minPrice')->setParameter('minPrice', (float) $minPrice);
@@ -164,17 +178,18 @@ class ProductController extends AbstractController
 
         $products = $qb->getQuery()->getResult();
 
-        // Filter data
-        $categories = $categoryRepository->findBy([], ['name' => 'ASC']);
-        $brands = $brandRepository->findBy([], ['name' => 'ASC']);
-        $colors = $colorRepository->findAll();
-        $shapes = $shapeRepository->findAll();
-        $genres = $genreRepository->findAll();
-        $styles = $styleRepository->findBy([], ['name' => 'ASC']);
+        // Filter data (facet lists) -> exclude archived
+        $categories = $categoryRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $brands     = $brandRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $colors     = $colorRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $shapes     = $shapeRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $genres     = $genreRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $styles     = $styleRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
 
         // Compute DB min/max price for slider bounds
         $bounds = $productRepository->createQueryBuilder('pp')
             ->select('MIN(pp.price) AS minPrice, MAX(pp.price) AS maxPrice')
+            ->andWhere('pp.deletedAt IS NULL')
             ->getQuery()->getSingleResult();
         $minDb = isset($bounds['minPrice']) ? (float) $bounds['minPrice'] : 0.0;
         $maxDb = isset($bounds['maxPrice']) ? (float) $bounds['maxPrice'] : 0.0;
@@ -274,10 +289,11 @@ class ProductController extends AbstractController
             return $this->redirectToRoute('product_show', ['id' => $product->getId()]);
         }
 
-        // Fetch approved reviews for display
+        // Fetch approved, non-archived reviews for display
         $reviews = $reviewRepository->findBy([
             'product' => $product,
             'isApproved' => true,
+            'deletedAt' => null,
         ], ['createdAt' => 'DESC']);
 
         return $this->render('pages/product/show.html.twig', [
