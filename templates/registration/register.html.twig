@@ -137,6 +137,12 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            $(".js-select2").each(function(){
+			$(this).select2({
+				minimumResultsForSearch: 20,
+				dropdownParent: $(this).next('.dropDownSelect2')
+			});
+		});
             // Password toggle functionality
             const passwordInput = document.getElementById('registration_form_plainPassword_first');
             const togglePasswordButton = document.getElementById('toggleRegisterPasswordButton');
