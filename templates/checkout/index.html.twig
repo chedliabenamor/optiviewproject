@@ -91,9 +91,23 @@
                             <div class="d-flex justify-content-between m-b-6"><span>Subtotal</span><strong id="sum-subtotal">€0.00</strong></div>
                             <div class="d-flex justify-content-between m-b-6"><span>Tax (7%)</span><strong id="sum-tax">€0.00</strong></div>
                             <div class="d-flex justify-content-between m-b-6"><span>Shipping fee</span><strong id="sum-shipping">€0.00</strong></div>
+                            <div class="d-flex justify-content-between m-b-6"><span>Loyalty discount</span><strong id="sum-points-discount">-€0.00</strong></div>
                             <hr/>
                             <div class="d-flex justify-content-between m-b-12"><span>Total</span><strong id="sum-total">€0.00</strong></div>
                             <button type="submit" class="w-100 flex-c-m stext-101 cl0 size-116 bg3 bor14 hov-btn3 p-lr-15 trans-04">Place Order</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row m-t-16">
+                    <div class="col-md-8">
+                        <div class="bor10 p-3">
+                            <h5 class="stext-301 cl2 m-b-12">Loyalty Points</h5>
+                            <p class="m-b-8">Your balance: <strong id="loyalty-balance">{{ loyaltyBalance }}</strong> points</p>
+                            <div class="input-group">
+                                <input type="number" min="0" max="{{ loyaltyBalance }}" step="1" class="form-control" name="loyaltyPointsToApply" id="loyaltyPointsToApply" placeholder="Enter points to apply" />
+                                <button type="button" class="btn btn-outline-secondary" id="btn-apply-all">Use max</button>
+                            </div>
+                            <small class="text-muted">1 point = 0.01 {{ defaults.currency == 'USD' ? 'USD' : 'EUR' }}. Discount cannot exceed the order total.</small>
                         </div>
                     </div>
                 </div>
@@ -120,8 +134,9 @@ document.addEventListener('DOMContentLoaded', function(){
         var currency = sel('currency') ? sel('currency').value : 'EUR';
         var deliveryType = sel('deliveryType') ? sel('deliveryType').value : 'Standard';
         var destination = sel('destination') ? sel('destination').value : 'Domestic';
+        var points = document.getElementById('loyaltyPointsToApply') ? parseInt(document.getElementById('loyaltyPointsToApply').value||'0',10) : 0;
         // Ask server for shipping fee (it also returns subtotal/tax/total from current cart)
-        var url = '/api/checkout/shipping-fee?currency=' + encodeURIComponent(currency) + '&deliveryType=' + encodeURIComponent(deliveryType) + '&destination=' + encodeURIComponent(destination);
+        var url = '/api/checkout/shipping-fee?currency=' + encodeURIComponent(currency) + '&deliveryType=' + encodeURIComponent(deliveryType) + '&destination=' + encodeURIComponent(destination) + '&points=' + encodeURIComponent(points);
         fetch(url)
             .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
             .then(function(resp){
@@ -129,20 +144,40 @@ document.addEventListener('DOMContentLoaded', function(){
                 document.getElementById('sum-subtotal').textContent = fmt(resp.subtotal, cur);
                 document.getElementById('sum-tax').textContent = fmt(resp.tax, cur);
                 document.getElementById('sum-shipping').textContent = fmt(resp.shippingFee, cur);
+                document.getElementById('sum-points-discount').textContent = '-' + fmt(resp.pointsDiscount || 0, cur);
                 document.getElementById('sum-total').textContent = fmt(resp.total, cur);
             })
             .catch(function(){
                 // fallback: compute subtotal only
                 fetchCartSubtotal().then(function(sub){
                     var tax = sub * 0.07; var ship = (deliveryType==='Standard' && (sub+tax)>=100)?0:(destination==='International'?30.90:20.90) + (deliveryType==='Express'?15:(deliveryType==='Same-day'?20:0));
+                    var discount = 0; // offline can't compute points reliably
                     document.getElementById('sum-subtotal').textContent = fmt(sub, currency);
                     document.getElementById('sum-tax').textContent = fmt(tax, currency);
                     document.getElementById('sum-shipping').textContent = fmt(ship, currency);
-                    document.getElementById('sum-total').textContent = fmt(sub+tax+ship, currency);
+                    document.getElementById('sum-points-discount').textContent = '-' + fmt(discount, currency);
+                    document.getElementById('sum-total').textContent = fmt(Math.max(0, sub+tax+ship-discount), currency);
                 });
             });
     }
     ['currency','deliveryType','destination'].forEach(function(n){ var el = sel(n); if (el) { el.addEventListener('change', refreshSummary); }});
+    var pointsInput = document.getElementById('loyaltyPointsToApply');
+    if (pointsInput) {
+        pointsInput.addEventListener('input', function(){
+            var bal = parseInt(document.getElementById('loyalty-balance').textContent||'0',10)||0;
+            var v = parseInt(pointsInput.value||'0',10)||0;
+            if (v < 0) v = 0; if (v > bal) v = bal; pointsInput.value = v;
+            refreshSummary();
+        });
+    }
+    var btnAll = document.getElementById('btn-apply-all');
+    if (btnAll && pointsInput) {
+        btnAll.addEventListener('click', function(){
+            var bal = parseInt(document.getElementById('loyalty-balance').textContent||'0',10)||0;
+            pointsInput.value = bal;
+            refreshSummary();
+        });
+    }
     refreshSummary();
 });
 </script>

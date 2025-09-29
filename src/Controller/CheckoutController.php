@@ -6,6 +6,7 @@ use App\Entity\Order;
 use App\Entity\OrderItem;
 use App\Entity\CartItem;
 use App\Repository\CartRepository;
+use App\Service\LoyaltyPointsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,6 +20,7 @@ class CheckoutController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private CartRepository $cartRepo,
+        private LoyaltyPointsService $loyalty,
     ) {}
 
     #[Route('/checkout', name: 'app_checkout', methods: ['GET'])]
@@ -39,6 +41,7 @@ class CheckoutController extends AbstractController
 
         return $this->render('checkout/index.html.twig', [
             'defaults' => $defaults,
+            'loyaltyBalance' => (int)($user->getLoyaltyPoints() ?? 0),
         ]);
     }
 
@@ -64,6 +67,7 @@ class CheckoutController extends AbstractController
         $destination = (string)($request->request->get('destination') ?? 'Domestic');
         $notes = (string)($request->request->get('notes') ?? '');
         $paymentMethod = (string)($request->request->get('paymentMethod') ?? 'credit card');
+        $pointsRequested = (int)($request->request->get('loyaltyPointsToApply') ?? 0);
 
         // Basic validation (lightweight for now)
         $allowedCurrency = ['EUR', 'USD'];
@@ -134,6 +138,17 @@ class CheckoutController extends AbstractController
         // Add shipping fee (no discounts in customer side)
         $shippingFee = $order->getShippingFee();
         $order->setTotalAmount(bcadd($order->getTotalAmount() ?? '0.00', $shippingFee, 2));
+
+        // Loyalty redemption: apply after tax+shipping cap
+        $userBalance = (int)($user->getLoyaltyPoints() ?? 0);
+        $gross = (float)$order->getFinalTotal(); // includes tax + shipping
+        if ($pointsRequested > 0 && $userBalance > 0 && $gross > 0) {
+            $calc = $this->loyalty->calculateRedemption($userBalance, $pointsRequested, $gross);
+            $order->setAppliedPoints($calc['appliedPoints']);
+            $order->setPointsDiscount($calc['discount']);
+            // Deduct from user balance immediately
+            $user->setLoyaltyPoints(max(0, $userBalance - $calc['appliedPoints']));
+        }
 
         $this->em->flush();
 

@@ -44,6 +44,13 @@ class Order
     #[ORM\Column(type: Types::INTEGER, options: ["default" => 0])]
     private int $totalPointsEarned = 0;
 
+    // Loyalty redemption fields
+    #[ORM\Column(type: Types::INTEGER, options: ["default" => 0])]
+    private int $appliedPoints = 0;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ["default" => 0])]
+    private ?string $pointsDiscount = '0.00';
+
     #[ORM\Column(length: 50)]
     #[Assert\NotBlank]
     #[Assert\Choice(choices: [
@@ -346,14 +353,15 @@ class Order
     }
 
     /**
-     * Final total (items total + tax + shipping)
+     * Final total (totalAmount already includes shipping) + tax - points discount
      */
     public function getFinalTotal(): string
     {
-        $total = (float)$this->getTotalAmount();
+        $total = (float)$this->getTotalAmount(); // includes shipping
         $tax = (float)$this->getTaxAmount();
-        $shipping = (float)$this->getShippingFee();
-        return number_format($total + $tax + $shipping, 2, '.', '');
+        $discount = (float)($this->getPointsDiscount() ?? '0.00');
+        $final = max(0, ($total + $tax) - $discount);
+        return number_format($final, 2, '.', '');
     }
 
     public function getCurrency(): ?string
@@ -420,6 +428,28 @@ class Order
     public function setTrackingNumber(?string $trackingNumber): static
     {
         $this->trackingNumber = $trackingNumber;
+        return $this;
+    }
+
+    public function getAppliedPoints(): int
+    {
+        return $this->appliedPoints;
+    }
+
+    public function setAppliedPoints(int $appliedPoints): static
+    {
+        $this->appliedPoints = max(0, $appliedPoints);
+        return $this;
+    }
+
+    public function getPointsDiscount(): ?string
+    {
+        return $this->pointsDiscount ?? '0.00';
+    }
+
+    public function setPointsDiscount(string $pointsDiscount): static
+    {
+        $this->pointsDiscount = $pointsDiscount;
         return $this;
     }
 

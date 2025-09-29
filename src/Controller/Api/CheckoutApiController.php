@@ -4,6 +4,7 @@ namespace App\Controller\Api;
 
 use App\Controller\Api\CartApiController; // for reference to structure
 use App\Repository\CartRepository;
+use App\Service\LoyaltyPointsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,7 +14,7 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api/checkout')]
 class CheckoutApiController extends AbstractController
 {
-    public function __construct(private CartRepository $cartRepo) {}
+    public function __construct(private CartRepository $cartRepo, private LoyaltyPointsService $loyalty) {}
 
     #[Route('/shipping-fee', name: 'api_checkout_shipping_fee', methods: ['GET'])]
     public function shippingFee(Request $request): JsonResponse
@@ -26,6 +27,7 @@ class CheckoutApiController extends AbstractController
         $currency = (string)($request->query->get('currency') ?? 'EUR');
         $deliveryType = (string)($request->query->get('deliveryType') ?? 'Standard');
         $destination = (string)($request->query->get('destination') ?? 'Domestic');
+        $requestedPoints = (int)($request->query->get('points') ?? 0);
 
         // Compute subtotal from cart
         $cart = $this->cartRepo->findOneBy(['user' => $user]);
@@ -66,6 +68,19 @@ class CheckoutApiController extends AbstractController
 
         $grandTotal = number_format($totalWithTax + (float)$shippingFee, 2, '.', '');
 
+        // Optional points redemption preview
+        $appliedPoints = 0;
+        $pointsDiscount = '0.00';
+        if ($requestedPoints > 0) {
+            $balance = (int)($user->getLoyaltyPoints() ?? 0);
+            $maxAmount = (float)$grandTotal;
+            [$appliedPoints, $pointsDiscount] = (function(int $balance, int $req, float $max) {
+                $res = $this->loyalty->calculateRedemption($balance, $req, $max);
+                return [$res['appliedPoints'], $res['discount']];
+            })($balance, $requestedPoints, $maxAmount);
+            $grandTotal = number_format(max(0, (float)$grandTotal - (float)$pointsDiscount), 2, '.', '');
+        }
+
         return new JsonResponse([
             'success' => true,
             'currency' => $currency,
@@ -73,6 +88,8 @@ class CheckoutApiController extends AbstractController
             'tax' => number_format($taxAmount, 2, '.', ''),
             'shippingFee' => $shippingFee,
             'total' => $grandTotal,
+            'appliedPoints' => $appliedPoints,
+            'pointsDiscount' => $pointsDiscount,
         ]);
     }
 }

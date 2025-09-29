@@ -16,7 +16,10 @@
                     <li class="m-b-6"><strong>Subtotal:</strong> {{ order.getSubtotal() }}</li>
                     <li class="m-b-6"><strong>Tax ({{ constant('App\\Entity\\Order::TAX_PERCENT') }}%):</strong> {{ order.getTaxAmount() }}</li>
                     <li class="m-b-6"><strong>Shipping fee:</strong> {{ order.getShippingFee() }}</li>
-                    <li class="m-b-6"><strong>Total:</strong> {{ order.totalAmount }}</li>
+                    <li class="m-b-6"><strong>Applied points:</strong> {{ order.appliedPoints }}</li>
+                    <li class="m-b-6"><strong>Points discount:</strong> {{ order.pointsDiscount }}</li>
+                    <li class="m-b-6"><strong>Total (before discount):</strong> {{ (order.totalAmount + order.getTaxAmount())|number_format(2,'.','') }}</li>
+                    <li class="m-b-6"><strong>Final total:</strong> {{ order.getFinalTotal() }}</li>
                     <li class="m-b-6"><strong>Total points earned:</strong> {{ order.totalPointsEarned }}</li>
                 </ul>
             </div>
