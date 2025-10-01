@@ -15,13 +15,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use Vich\UploaderBundle\Form\Type\VichImageType;
+use Vich\UploaderBundle\Form\Type\VichFileType;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
@@ -196,6 +196,15 @@ class ProductCrudController extends AbstractCrudController
                 ->setFormType(VichImageType::class)
                 ->hideOnIndex()
                 ->setColumns('col-md-6'),
+            // 3D Overlay file (.glb/.obj/.png)
+            Field::new('overlayFile', '3D Overlay File')
+                ->setFormType(VichFileType::class)
+                ->setHelp('Allowed: .glb, .obj, .png (transparent)')
+                ->hideOnIndex()
+                ->setColumns('col-md-6'),
+            TextField::new('overlayAsset', 'Overlay Asset')
+                ->onlyOnIndex()
+                ->setHelp('Stored filename'),
             TextField::new('name')->setColumns('col-md-12'),
             TextField::new('sku')->setColumns('col-md-12')->setHelp('SKU will be auto-generated if left empty'),
             TextEditorField::new('description')->hideOnIndex()->setColumns('col-md-12'),

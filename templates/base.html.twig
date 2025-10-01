@@ -132,7 +132,6 @@
                 $(this).css({'position':'relative', 'overflow':'hidden'});
                 var ps = new PerfectScrollbar(this, {
                     wheelSpeed: 1,
-                    scrollingThreshold: 1000,
                     wheelPropagation: false,
                 });
                 $(window).on('resize', function(){ ps.update(); });
@@ -140,54 +139,25 @@
         });
     </script>
 
-    <!-- Global currency formatting for product cards -->
-    <script>
-    (function(){
-        function formatCardPrices(){
-            if (!window.Currency) return;
-            document.querySelectorAll('.js-card-price').forEach(function(el){
-                var eur = parseFloat(el.getAttribute('data-price-eur') || '');
-                if (!isNaN(eur)) {
-                    el.textContent = window.Currency.format(eur);
-                }
-            });
-            document.querySelectorAll('.js-card-original').forEach(function(el){
-                var eur = parseFloat(el.getAttribute('data-original-eur') || '');
-                if (!isNaN(eur)) {
-                    el.textContent = window.Currency.format(eur);
-                }
-            });
-        }
-        document.addEventListener('DOMContentLoaded', formatCardPrices);
-        document.addEventListener('currencyChanged', formatCardPrices);
-    })();
-    </script>
-
-    <!-- Format free shipping threshold text -->
-    <script>
-    (function(){
-        function formatFreeShipping(){
-            if (!window.Currency) return;
-            document.querySelectorAll('.js-free-ship-amt').forEach(function(el){
-                var eur = parseFloat(el.getAttribute('data-amount-eur') || '');
-                if (!isNaN(eur)) {
-                    el.textContent = window.Currency.format(eur);
-                }
-            });
-        }
-        document.addEventListener('DOMContentLoaded', function(){ setTimeout(formatFreeShipping, 100); });
-        document.addEventListener('currencyChanged', formatFreeShipping);
-    })();
-    </script>
-
-    <!-- Merge guest wishlist into user account on login -->
+    <!-- Try On: inject button and dispatch global event for Jeeliz -->
     <script>
     document.addEventListener('DOMContentLoaded', function(){
-        // Highlight active currency in header / set selects
         try {
-            var cur = (window.Currency && window.Currency.current) || 'EUR';
-            // Legacy button support (if any remain)
-            var legacyBtns = document.querySelectorAll('.js-currency-option');
+            var addBtn = document.querySelector('.js-addcart-detail');
+            if (!addBtn) return; // not on product detail
+            // Avoid duplicate
+            if (document.querySelector('.js-tryon')) return;
+            // Create button
+            var tryBtn = document.createElement('button');
+            tryBtn.type = 'button';
+            tryBtn.className = 'flex-c-m stext-101 cl0 size-101 bg3 bor1 hov-btn1 p-lr-15 trans-04 m-l-10 js-tryon';
+            // Prefer product-level overlay from the product option in the select
+            var sel = document.querySelector('.js-variant-select');
+            var prodOverlay = '';
+            if (sel) {
+                for (var i=0;i<sel.options.length;i++){
+                    var o = sel.options[i];
+                    if (o && o.value === 'product') { prodOverlay = o.getAttribute('data-overlay') || ''; break; }
             if (legacyBtns.length) {
                 legacyBtns.forEach(function(el){
                     if (String(el.getAttribute('data-currency')) === cur) { el.classList.add('active'); } else { el.classList.remove('active'); }

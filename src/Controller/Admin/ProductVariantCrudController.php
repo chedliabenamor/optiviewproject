@@ -14,7 +14,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
+use Vich\UploaderBundle\Form\Type\VichFileType;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
@@ -105,6 +106,13 @@ class ProductVariantCrudController extends AbstractCrudController
 
         yield NumberField::new('stock')->setColumns('col-md-6')->setRequired(true);
         yield BooleanField::new('isActive')->setColumns('col-md-6');
+
+        // 3D Overlay file upload for this variant
+        yield Field::new('overlayFile', '3D Overlay File')
+            ->setFormType(VichFileType::class)
+            ->onlyOnForms()
+            ->setHelp('Allowed: .glb, .obj, .png (transparent)');
+        yield TextField::new('overlayAsset', 'Overlay Asset')->onlyOnIndex();
 
         yield CollectionField::new('productVariantImages')
             ->useEntryCrudForm(ProductVariantImageCrudController::class)

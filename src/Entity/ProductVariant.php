@@ -11,14 +11,16 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 use App\Entity\Style;
 use App\Entity\Genre;
-use Gedmo\Mapping\Annotation as Gedmo;
-use Symfony\Component\Serializer\Annotation\Groups;
-use App\Validator\UniqueSku;
+    use Gedmo\Mapping\Annotation as Gedmo;
+    use Symfony\Component\Serializer\Annotation\Groups;
+    use App\Validator\UniqueSku;
+    use Symfony\Component\HttpFoundation\File\File;
+    use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ORM\Entity(repositoryClass: ProductVariantRepository::class)]
+#[Vich\Uploadable]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['sku'], message: 'The SKU "{{ value }}" is already in use. Please choose a different SKU.', ignoreNull: true)]
-#[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
 class ProductVariant
 {
     /**
@@ -46,7 +48,6 @@ class ProductVariant
     #[ORM\ManyToOne(inversedBy: 'productVariants')]
     #[Groups(['product_quick_view'])]
     private ?Color $color = null;
-
     #[ORM\ManyToOne(targetEntity: Style::class)]
     #[Groups(['product_quick_view'])]
     private ?Style $style = null;
@@ -77,6 +78,13 @@ class ProductVariant
     #[ORM\OneToMany(mappedBy: 'productVariant', targetEntity: ProductVariantImage::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Groups(['product_quick_view'])]
     private Collection $productVariantImages;
+
+    // Vich Uploadable Field for 3D overlay assets specific to this variant
+    #[Vich\UploadableField(mapping: 'product_variant_overlay_files', fileNameProperty: 'overlayAsset')]
+    private ?File $overlayFile = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $overlayAsset = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $createdAt = null;
@@ -277,6 +285,30 @@ class ProductVariant
     public function preUpdate(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function setOverlayFile(?File $file = null): void
+    {
+        $this->overlayFile = $file;
+        if (null !== $file) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+    }
+
+    public function getOverlayFile(): ?File
+    {
+        return $this->overlayFile;
+    }
+
+    public function getOverlayAsset(): ?string
+    {
+        return $this->overlayAsset;
+    }
+
+    public function setOverlayAsset(?string $overlayAsset): self
+    {
+        $this->overlayAsset = $overlayAsset;
+        return $this;
     }
 
     public function getStockStatus(): ?string

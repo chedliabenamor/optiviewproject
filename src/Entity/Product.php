@@ -1,19 +1,18 @@
 <?php
 
 namespace App\Entity;
-
 use App\Repository\ProductRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\HttpFoundation\File\File;
-use Vich\UploaderBundle\Mapping\Annotation as Vich;
-use App\Entity\ProductVariant;
-use App\Entity\Color;
-use Gedmo\Mapping\Annotation as Gedmo;
-use Symfony\Component\Serializer\Annotation\Groups;
+    use Symfony\Component\Validator\Constraints as Assert;
+    use Symfony\Component\HttpFoundation\File\File;
+    use Vich\UploaderBundle\Mapping\Annotation as Vich;
+    use App\Entity\ProductVariant;
+    use App\Entity\Color;
+    use Gedmo\Mapping\Annotation as Gedmo;
+    use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 
@@ -66,6 +65,14 @@ class Product
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $overviewImage = null; // Stores the filename of the overview image
+
+
+    // Vich Uploadable Field for 3D overlay assets (.glb/.obj or transparent .png)
+    #[Vich\UploadableField(mapping: 'product_overlay_files', fileNameProperty: 'overlayAsset')]
+    private ?File $overlayFile = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $overlayAsset = null; // stored filename of uploaded overlay
 
 
     #[ORM\ManyToOne(inversedBy: 'products')]
@@ -151,6 +158,30 @@ class Product
     public function setOverviewImage(?string $overviewImage): self
     {
         $this->overviewImage = $overviewImage;
+        return $this;
+    }
+
+    public function setOverlayFile(?File $file = null): void
+    {
+        $this->overlayFile = $file;
+        if (null !== $file) {
+            $this->updatedAt = new \DateTime();
+        }
+    }
+
+    public function getOverlayFile(): ?File
+    {
+        return $this->overlayFile;
+    }
+
+    public function getOverlayAsset(): ?string
+    {
+        return $this->overlayAsset;
+    }
+
+    public function setOverlayAsset(?string $overlayAsset): self
+    {
+        $this->overlayAsset = $overlayAsset;
         return $this;
     }
 

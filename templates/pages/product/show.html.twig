@@ -156,6 +156,7 @@
                                                 data-style="{{ product.style ? product.style.name : null }}"
                                                 data-stock="{{ product.getTotalStock() }}"
                                                 data-stock-status="{{ product.getStockStatus() }}"
+                                                data-overlay="{{ product.overlayAsset ? vich_uploader_asset(product, 'overlayFile') : '' }}"
                                             >{{ baseLabel }}</option>
                                             {% for opt in variantOptions %}
 												{# find the variant again to extract sku/price #}
