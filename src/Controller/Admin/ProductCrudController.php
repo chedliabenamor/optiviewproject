@@ -16,6 +16,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
@@ -203,8 +204,7 @@ class ProductCrudController extends AbstractCrudController
                 ->hideOnIndex()
                 ->setColumns('col-md-6'),
             TextField::new('overlayAsset', 'Overlay Asset')
-                ->onlyOnIndex()
-                ->setHelp('Stored filename'),
+                ->hideOnIndex(),
             TextField::new('name')->setColumns('col-md-12'),
             TextField::new('sku')->setColumns('col-md-12')->setHelp('SKU will be auto-generated if left empty'),
             TextEditorField::new('description')->hideOnIndex()->setColumns('col-md-12'),

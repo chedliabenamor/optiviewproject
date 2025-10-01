@@ -139,80 +139,20 @@
         });
     </script>
 
-    <!-- Try On: inject button and dispatch global event for Jeeliz -->
+    <!-- Try On: click handler for homepage cards and Quick View -->
     <script>
-    document.addEventListener('DOMContentLoaded', function(){
-        try {
-            var addBtn = document.querySelector('.js-addcart-detail');
-            if (!addBtn) return; // not on product detail
-            // Avoid duplicate
-            if (document.querySelector('.js-tryon')) return;
-            // Create button
-            var tryBtn = document.createElement('button');
-            tryBtn.type = 'button';
-            tryBtn.className = 'flex-c-m stext-101 cl0 size-101 bg3 bor1 hov-btn1 p-lr-15 trans-04 m-l-10 js-tryon';
-            // Prefer product-level overlay from the product option in the select
-            var sel = document.querySelector('.js-variant-select');
-            var prodOverlay = '';
-            if (sel) {
-                for (var i=0;i<sel.options.length;i++){
-                    var o = sel.options[i];
-                    if (o && o.value === 'product') { prodOverlay = o.getAttribute('data-overlay') || ''; break; }
-            if (legacyBtns.length) {
-                legacyBtns.forEach(function(el){
-                    if (String(el.getAttribute('data-currency')) === cur) { el.classList.add('active'); } else { el.classList.remove('active'); }
-                    el.addEventListener('click', function(e){
-                        e.preventDefault();
-                        var sel = el.getAttribute('data-currency');
-                        if (window.Currency && (sel === 'EUR' || sel === 'USD')) {
-                            window.Currency.set(sel);
-                            legacyBtns.forEach(function(o){ if (o.getAttribute('data-currency') === sel) { o.classList.add('active'); } else { o.classList.remove('active'); } });
-                        }
-                    });
-                });
-            }
-            // New <select> controls
-            document.querySelectorAll('.js-currency-select').forEach(function(sel){
-                try { sel.value = cur; } catch(e){}
-                sel.addEventListener('change', function(){
-                    var val = sel.value;
-                    if (window.Currency && (val === 'EUR' || val === 'USD')) {
-                        window.Currency.set(val);
-                    }
-                });
-            });
-        } catch(e){}
-
-        var isAuth = (typeof window.isAuthenticated !== 'undefined') && (window.isAuthenticated === true || window.isAuthenticated === 'true');
-        if (!isAuth) return;
-        try {
-            var local = localStorage.getItem('wishlist');
-            var items = local ? JSON.parse(local) : [];
-            if (!Array.isArray(items) || items.length === 0) return;
-            // Build minimal payload {id, variantId}
-            var payload = { items: items.map(function(it){ return { id: it.id, variantId: (it.variantId || null) }; }) };
-            fetch('/api/wishlist/merge', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify(payload)
-            })
-            .then(function(r){ return r.json(); })
-            .then(function(d){
-                if (d && d.success) {
-                    try { localStorage.removeItem('wishlist'); } catch(e){}
-                    // Update header count and broadcast refresh
-                    try {
-                        var cnt = Array.isArray(d.items) ? d.items.length : 0;
-                        document.querySelectorAll('.icon-header-noti').forEach(function(icon){
-                            if (icon.querySelector('.zmdi-favorite-outline') || icon.querySelector('.zmdi-favorite')) {
-                                icon.setAttribute('data-notify', cnt);
-                            }
-                        });
-                        document.dispatchEvent(new CustomEvent('wishlistUpdated'));
-                    } catch(e){}
-                }
-            }).catch(function(){});
-        } catch(e){}
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.js-tryon, .js-tryon-card');
+        if (!btn) return;
+        e.preventDefault();
+        var overlayUrl = btn.getAttribute('data-overlay');
+        if (!overlayUrl) {
+            try { Swal.fire({ icon: 'info', text: 'No Try On available for this item.' }); } catch(_) { alert('No Try On available for this item.'); }
+            return;
+        }
+        // Dispatch global event so a Jeeliz initializer can handle it
+        document.dispatchEvent(new CustomEvent('tryon:start', { detail: { overlayUrl: overlayUrl } }));
+        // If you prefer direct start here, you can integrate JeelizVTOWidget API.
     });
     </script>
     

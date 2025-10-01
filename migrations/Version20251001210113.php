@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20251001153932 extends AbstractMigration
+final class Version20251001210113 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -21,7 +21,7 @@ final class Version20251001153932 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE `order` ADD applied_points INT DEFAULT 0 NOT NULL, ADD points_discount NUMERIC(10, 2) DEFAULT '0' NOT NULL
+            ALTER TABLE `order` CHANGE points_discount points_discount NUMERIC(10, 2) DEFAULT '0' NOT NULL
         SQL);
         $this->addSql(<<<'SQL'
             ALTER TABLE product ADD overlay_asset VARCHAR(255) DEFAULT NULL
@@ -35,7 +35,7 @@ final class Version20251001153932 extends AbstractMigration
     {
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE `order` DROP applied_points, DROP points_discount
+            ALTER TABLE `order` CHANGE points_discount points_discount NUMERIC(10, 2) DEFAULT '0.00' NOT NULL
         SQL);
         $this->addSql(<<<'SQL'
             ALTER TABLE product DROP overlay_asset
