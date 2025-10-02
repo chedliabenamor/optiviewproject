@@ -19,6 +19,7 @@ use Vich\UploaderBundle\Form\Type\VichFileType;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
+use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
@@ -64,9 +65,6 @@ class ProductVariantCrudController extends AbstractCrudController
     {
         return $crud
             ->setPageTitle('detail', fn(ProductVariant $variant) => sprintf('Variant: %s', $variant->getSku() ?: $variant->getColor() ?: ('#' . $variant->getId())))
-            ->overrideTemplate('crud/detail', 'admin/productvariant/product_variant_detail.html.twig')
-            ->overrideTemplate('crud/new', 'admin/productvariant/new.html.twig')
-            ->overrideTemplate('crud/edit', 'admin/productvariant/edit.html.twig')
             ->setPaginatorPageSize(10)
             ->setPaginatorRangeSize(4)
             ->showEntityActionsInlined();
@@ -351,12 +349,11 @@ class ProductVariantCrudController extends AbstractCrudController
                 return;
             }
             throw $e;
-        } catch (\Exception $e) {
             $this->addFlash('error', 'An error occurred while updating the product variant. Please try again.');
         }
     }
 
-    public function new(AdminContext $context): Response
+    public function new(AdminContext $context): KeyValueStore
     {
         $response = parent::new($context);
         
@@ -376,7 +373,7 @@ class ProductVariantCrudController extends AbstractCrudController
         return $response;
     }
 
-    public function edit(AdminContext $context): Response
+    public function edit(AdminContext $context): KeyValueStore
     {
         $response = parent::edit($context);
         

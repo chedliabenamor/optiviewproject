@@ -27,14 +27,13 @@
         data-product-currency="EUR">
             Quick View
         </a>
-            {% if product.overlayAsset %}
-            <a href="#"
-        class="block2-btn flex-c-m stext-103 cl2 size-102 bg3 bor2 hov-btn1 p-lr-15 trans-04 js-tryon-card"
-        data-overlay="{{ vich_uploader_asset(product, 'overlayFile') }}"
-        data-product-name="{{ product.name|e('html_attr') }}">
-            Try On
-        </a>
-            {% endif %}
+          {% if product.overlayAsset %}
+            <button class="flex-c-m stext-101 cl0 size-101 bg3 bor1 hov-btn1 p-lr-15 trans-04 js-tryon m-l-10"
+                    data-overlay="{{ asset('uploads/overlays/' ~ product.overlayAsset) }}"
+                    title="Try On">
+                Try On
+            </button>
+        {% endif %}
         </div>
     </div>
     <div class="block2-txt flex-w flex-t p-t-14">

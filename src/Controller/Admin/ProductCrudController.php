@@ -30,6 +30,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use App\Controller\Admin\ProductVariantCrudController; // Added for product variants
 use App\Controller\Admin\ColorCrudController;
 use Doctrine\ORM\EntityManagerInterface;
@@ -361,6 +362,13 @@ class ProductCrudController extends AbstractCrudController
             ->add(EntityFilter::new('shape'))
             ->add(EntityFilter::new('genre'))
             ->add(StockStatusFilter::new('quantityInStock', 'Stock Status'));
+    }
+
+    public function configureAssets(Assets $assets): Assets
+    {
+        // Make quick-add modal/JS available in both new and edit forms
+        return Assets::new()
+            ->addJsFile('/assets/admin/quick-add.js');
     }
 
 

@@ -67,9 +67,13 @@ class Product
     private ?string $overviewImage = null; // Stores the filename of the overview image
 
 
-    // Vich Uploadable Field for 3D overlay assets (.glb/.obj or transparent .png)
-    #[Vich\UploadableField(mapping: 'product_overlay_files', fileNameProperty: 'overlayAsset')]
+    // Vich Uploadable Field for 3D overlay files
+    #[Vich\UploadableField(
+        mapping: 'product_overlay_files',
+        fileNameProperty: 'overlayAsset'
+    )]
     private ?File $overlayFile = null;
+
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $overlayAsset = null; // stored filename of uploaded overlay
