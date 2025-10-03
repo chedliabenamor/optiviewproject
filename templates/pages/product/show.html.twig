@@ -436,6 +436,63 @@
         </div>
         </section>
 
+        <!-- AR Try On Button and Container -->
+        <div class="m-t-30 m-b-30 text-center">
+            <button id="ar-tryon-btn" class="btn btn-primary" style="font-size: 18px; padding: 10px 30px;">
+                <i class="fa fa-camera-retro"></i> Try On (AR)
+            </button>
+        </div>
+        <div id="jeeliz-ar-container" style="width: 420px; height: 350px; margin: 0 auto; display: none;"></div>
+
+        <!-- JeelizVTOWidget script include -->
+        <script src="/assets/jeeliz/dist/JeelizVTOWidget.js"></script>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tryOnBtn = document.getElementById('ar-tryon-btn');
+            const arContainer = document.getElementById('jeeliz-ar-container');
+            const variantSelect = document.querySelector('.js-variant-select');
+
+            function getOverlayPath() {
+                if (variantSelect) {
+                    const opt = variantSelect.options[variantSelect.selectedIndex];
+                    if (opt && opt.getAttribute('data-overlay')) {
+                        return opt.getAttribute('data-overlay');
+                    }
+                }
+                // fallback: base product overlay data
+                const baseOpt = variantSelect ? variantSelect.querySelector('option[value="product"]') : null;
+                return baseOpt ? baseOpt.getAttribute('data-overlay') : '';
+            }
+
+            let widgetInitialized = false;
+
+            tryOnBtn.addEventListener('click', function() {
+                const overlayUrl = getOverlayPath();
+                if (!overlayUrl) {
+                    alert('No 3D overlay/model available for this product.');
+                    return;
+                }
+                arContainer.style.display = 'block';
+                if (widgetInitialized) {
+                    // If already initialized, just update the model
+                    if (window.JEEWIDGET && window.JEEWIDGET.load_model) {
+                        window.JEEWIDGET.load_model(overlayUrl);
+                    }
+                    return;
+                }
+                // Initialize JeelizVTOWidget
+                window.JEEWIDGET = JeelizVTOWidget({
+                    canvasId: null, // will create its own canvas
+                    position: 'center',
+                    callbackReady: function(){},
+                    path_3D: overlayUrl,
+                    containerId: 'jeeliz-ar-container',
+                });
+                widgetInitialized = true;
+            });
+        });
+        </script>
+
     {# JS to render variant thumbnails in Select2 and update price/image/gallery on selection #}
     <script>
     document.addEventListener('DOMContentLoaded', function() {

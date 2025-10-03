@@ -139,4 +139,48 @@
             </div>
         </div>
     </div>
+    {% if product.overlayAsset %}
+        <div class="text-center m-t-10">
+            <button class="flex-c-m stext-101 cl0 size-101 bg3 bor1 hov-btn1 p-lr-15 trans-04 js-tryon"
+                    data-overlay="{{ asset('uploads/overlays/' ~ product.overlayAsset) }}"
+                    title="Try On">
+                Try On
+            </button>
+        </div>
+    {% endif %}
 </div>
+
+{# Global AR container for shop cards #}
+<div id="shop-jeeliz-ar-container" style="width: 420px; height: 350px; margin: 30px auto; display: none; z-index:9999; position:relative;"></div>
+
+<script src="/assets/jeeliz/dist/JeelizVTOWidget.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let widgetInitialized = false;
+    const arContainer = document.getElementById('shop-jeeliz-ar-container');
+    document.body.addEventListener('click', function(e) {
+        const btn = e.target.closest('.js-tryon');
+        if (!btn) return;
+        const overlayUrl = btn.getAttribute('data-overlay');
+        if (!overlayUrl) {
+            alert('No 3D overlay/model available for this product.');
+            return;
+        }
+        arContainer.style.display = 'block';
+        if (widgetInitialized) {
+            if (window.JEEWIDGET && window.JEEWIDGET.load_model) {
+                window.JEEWIDGET.load_model(overlayUrl);
+            }
+            return;
+        }
+        window.JEEWIDGET = JeelizVTOWidget({
+            canvasId: null,
+            position: 'center',
+            callbackReady: function(){},
+            path_3D: overlayUrl,
+            containerId: 'shop-jeeliz-ar-container',
+        });
+        widgetInitialized = true;
+    });
+});
+</script>
