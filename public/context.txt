@@ -1,0 +1,3 @@
+ssl:
+  local_cert: cert.pem
+  local_pk: key.pem

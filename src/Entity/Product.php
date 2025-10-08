@@ -72,6 +72,21 @@ class Product
         mapping: 'product_overlay_files',
         fileNameProperty: 'overlayAsset'
     )]
+    #[Assert\File(
+        mimeTypes: [
+            // 3D formats
+            'model/gltf+json',        // .gltf
+            'model/gltf-binary',      // .glb
+            'application/octet-stream', // some servers serve .glb as octet-stream
+            'application/json',       // some stacks serve .gltf as JSON
+            'text/plain',             // .obj often served as text/plain
+            // Image overlays
+            'image/png',
+            'image/webp',
+            'image/jpeg'
+        ],
+        mimeTypesMessage: 'Please upload a valid overlay file (.png, .webp, .jpg, .jpeg, .glb, .gltf, or .obj).'
+    )]
     private ?File $overlayFile = null;
 
 

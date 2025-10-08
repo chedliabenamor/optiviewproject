@@ -221,7 +221,7 @@
 
                         <!-- Wishlist + Socials -->
                         <div class="flex-w flex-m p-l-100 p-t-40 respon7">
-                            <div class="flex-m bor9 p-r-10 m-r-11">
+                            <div class="flex-m p-r-10 m-r-11">
                                 <a href="#"
                                    class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100"
                                    data-tooltip="Add to Wishlist"
@@ -230,17 +230,7 @@
                                 </a>
                             </div>
 
-                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
-                                <i class="fa fa-facebook"></i>
-                            </a>
-
-                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
-                                <i class="fa fa-twitter"></i>
-                            </a>
-
-                            <a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Google Plus">
-                                <i class="fa fa-google-plus"></i>
-                            </a>
+                           
 						</div>
 					</div>
 				</div>
@@ -436,62 +426,7 @@
         </div>
         </section>
 
-        <!-- AR Try On Button and Container -->
-        <div class="m-t-30 m-b-30 text-center">
-            <button id="ar-tryon-btn" class="btn btn-primary" style="font-size: 18px; padding: 10px 30px;">
-                <i class="fa fa-camera-retro"></i> Try On (AR)
-            </button>
-        </div>
-        <div id="jeeliz-ar-container" style="width: 420px; height: 350px; margin: 0 auto; display: none;"></div>
-
-        <!-- JeelizVTOWidget script include -->
-        <script src="/assets/jeeliz/dist/JeelizVTOWidget.js"></script>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const tryOnBtn = document.getElementById('ar-tryon-btn');
-            const arContainer = document.getElementById('jeeliz-ar-container');
-            const variantSelect = document.querySelector('.js-variant-select');
-
-            function getOverlayPath() {
-                if (variantSelect) {
-                    const opt = variantSelect.options[variantSelect.selectedIndex];
-                    if (opt && opt.getAttribute('data-overlay')) {
-                        return opt.getAttribute('data-overlay');
-                    }
-                }
-                // fallback: base product overlay data
-                const baseOpt = variantSelect ? variantSelect.querySelector('option[value="product"]') : null;
-                return baseOpt ? baseOpt.getAttribute('data-overlay') : '';
-            }
-
-            let widgetInitialized = false;
-
-            tryOnBtn.addEventListener('click', function() {
-                const overlayUrl = getOverlayPath();
-                if (!overlayUrl) {
-                    alert('No 3D overlay/model available for this product.');
-                    return;
-                }
-                arContainer.style.display = 'block';
-                if (widgetInitialized) {
-                    // If already initialized, just update the model
-                    if (window.JEEWIDGET && window.JEEWIDGET.load_model) {
-                        window.JEEWIDGET.load_model(overlayUrl);
-                    }
-                    return;
-                }
-                // Initialize JeelizVTOWidget
-                window.JEEWIDGET = JeelizVTOWidget({
-                    canvasId: null, // will create its own canvas
-                    position: 'center',
-                    callbackReady: function(){},
-                    path_3D: overlayUrl,
-                    containerId: 'jeeliz-ar-container',
-                });
-                widgetInitialized = true;
-            });
-        });
-        </script>
+        
 
     {# JS to render variant thumbnails in Select2 and update price/image/gallery on selection #}
     <script>
@@ -521,6 +456,7 @@
             var addBtn = document.querySelector('.js-addcart-detail');
             var qtyInput = document.querySelector('.num-product');
             var variantSelect = document.querySelector('.js-variant-select');
+            var tryOnBtn = document.querySelector('.js-tryon');
             // Helper: get available stock from selected option
             function getAvailable(){
                 try {
@@ -530,6 +466,18 @@
                     var n = ds != null && ds !== '' ? parseInt(ds) : null;
                     return isNaN(n) ? 0 : n;
                 } catch(e){ return 0; }
+            }
+            // Sync try-on button overlay based on current selection
+            function syncTryOn(){
+                if (!tryOnBtn) return;
+                var overlay = '';
+                if (variantSelect && variantSelect.selectedIndex >= 0) {
+                    var opt = variantSelect.options[variantSelect.selectedIndex];
+                    overlay = opt ? (opt.getAttribute('data-overlay') || opt.dataset.overlay || '') : '';
+                }
+                tryOnBtn.setAttribute('data-overlay', overlay);
+                if (!overlay) { tryOnBtn.style.display = 'none'; tryOnBtn.disabled = true; }
+                else { tryOnBtn.style.display = ''; tryOnBtn.disabled = false; }
             }
             function showLimitMsg(av){
                 var msg = (av === 1) ? 'Only 1 item is available. Please update your quantity.' : ('Only ' + av + ' items are available. Please update your quantity.');
@@ -572,7 +520,10 @@
                     var val = variantSelect.value;
                     addBtn.dataset.variantId = (val && val !== 'product') ? val : '';
                     clampQty();
+                    syncTryOn();
                 });
+                // Initialize try-on state on load
+                syncTryOn();
             }
             // Handle add-to-cart click: validate then dispatch global event used by cart panel
             if (addBtn) {

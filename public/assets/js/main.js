@@ -555,4 +555,39 @@
             });
         }
     });
+
+    // ====================
+    // Currency -> Reformat product card prices
+    // ====================
+    function reformatProductCardPrices(){
+        try {
+            var fmt = (window.Currency && typeof window.Currency.format === 'function')
+                ? window.Currency.format
+                : function(n){ var v = parseFloat(n); if (isNaN(v)) return '€0.00'; return '€' + v.toFixed(2); };
+            // Visible price on cards
+            document.querySelectorAll('.js-card-price').forEach(function(el){
+                var raw = el.getAttribute('data-price-eur') || (el.dataset ? el.dataset.priceEur : null);
+                var eur = raw != null && raw !== '' ? parseFloat(raw) : NaN;
+                if (!isNaN(eur)) {
+                    el.textContent = fmt(eur);
+                }
+            });
+            // Original price (strikethrough)
+            document.querySelectorAll('.js-card-original').forEach(function(el){
+                var raw = el.getAttribute('data-original-eur') || (el.dataset ? el.dataset.originalEur : null);
+                var eur = raw != null && raw !== '' ? parseFloat(raw) : NaN;
+                if (!isNaN(eur)) {
+                    el.textContent = fmt(eur);
+                }
+            });
+        } catch(e) { /* noop */ }
+    }
+    // Re-run when currency changes
+    document.addEventListener('currencyChanged', reformatProductCardPrices);
+    // Initial sync on page load (in case stored currency is USD)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', reformatProductCardPrices);
+    } else {
+        reformatProductCardPrices();
+    }
 })(jQuery);

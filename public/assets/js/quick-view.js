@@ -243,6 +243,21 @@ document.addEventListener('DOMContentLoaded', function () {
         initSlick(variant.productVariantImages.length > 0 ? variant.productVariantImages : [{ imageUrl: productData.overviewImage, altText: 'Product Overview' }]);
         const addToCartBtn = quickViewModal.querySelector('.js-addcart-detail');
         addToCartBtn.dataset.variantId = variant.id;
+        // Set Try-On overlay to this variant (fallback to product)
+        const tryOnBtn = quickViewModal.querySelector('.js-tryon');
+        if (tryOnBtn) {
+            const overlayUrl = (variant.overlayImage && String(variant.overlayImage).trim() !== '')
+                ? variant.overlayImage
+                : (productData.overlayImage || '');
+            tryOnBtn.dataset.overlay = overlayUrl;
+            if (!overlayUrl) {
+                tryOnBtn.style.display = 'none';
+                tryOnBtn.disabled = true;
+            } else {
+                tryOnBtn.style.display = '';
+                tryOnBtn.disabled = false;
+            }
+        }
         
         // Update wishlist status for the selected variant
         checkWishlistStatus(productData.id, variant.id);
@@ -421,6 +436,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const addToCartBtn = quickViewModal.querySelector('.js-addcart-detail');
             addToCartBtn.dataset.variantId = '';
             
+            // Reset Try-On overlay to product-level (if any)
+            const tryOnBtn = quickViewModal.querySelector('.js-tryon');
+            if (tryOnBtn) {
+                const overlayUrl = productData.overlayImage || '';
+                tryOnBtn.dataset.overlay = overlayUrl;
+                if (!overlayUrl) {
+                    tryOnBtn.style.display = 'none';
+                    tryOnBtn.disabled = true;
+                } else {
+                    tryOnBtn.style.display = '';
+                    tryOnBtn.disabled = false;
+                }
+            }
+
             // Reset wishlist status
             checkWishlistStatus(productData.id, null);
         }
@@ -498,6 +527,21 @@ document.addEventListener('DOMContentLoaded', function () {
             updateOfferDisplay({ has_offer: false });
             quickViewModal.querySelector('.js-product-price').textContent = formatPrice(data.price);
         }
+
+        // Initialize Try-On overlay for main product (if available)
+        (function(){
+            const tryOnBtn = quickViewModal.querySelector('.js-tryon');
+            if (!tryOnBtn) return;
+            const overlayUrl = data.overlayImage || '';
+            tryOnBtn.dataset.overlay = overlayUrl;
+            if (!overlayUrl) {
+                tryOnBtn.style.display = 'none';
+                tryOnBtn.disabled = true;
+            } else {
+                tryOnBtn.style.display = '';
+                tryOnBtn.disabled = false;
+            }
+        })();
 
         // Debug: Log variant data
         console.log('Product variants:', data.productVariants);

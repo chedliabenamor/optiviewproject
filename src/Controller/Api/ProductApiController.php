@@ -17,6 +17,8 @@ class ProductApiController extends AbstractController
     private string $productModelImagesUriPrefix;
     private string $productVariantImagesUriPrefix;
     private string $productOverviewImagesUriPrefix;
+    private string $productOverlayUriPrefix;
+    private string $productVariantOverlayUriPrefix;
 
     public function __construct(
         private ProductRepository $productRepository,
@@ -28,6 +30,9 @@ class ProductApiController extends AbstractController
         $this->productModelImagesUriPrefix = $vichUploaderMappings['product_images']['uri_prefix'];
         $this->productVariantImagesUriPrefix = $vichUploaderMappings['product_variant_images']['uri_prefix'];
         $this->productOverviewImagesUriPrefix = $vichUploaderMappings['product_overview_images']['uri_prefix'];
+        // Overlay mappings for 2D/3D try-on
+        $this->productOverlayUriPrefix = $vichUploaderMappings['product_overlay_files']['uri_prefix'] ?? '/uploads/overlays';
+        $this->productVariantOverlayUriPrefix = $vichUploaderMappings['product_variant_overlay_files']['uri_prefix'] ?? '/uploads/overlays/variants';
     }
 
     #[Route('/api/products/{id}/quick-view', name: 'api_product_quick_view', methods: ['GET'])]
@@ -60,6 +65,9 @@ class ProductApiController extends AbstractController
             // Build full URL for overview image to avoid 404s
             $overview = $product->getOverviewImage();
             $data['overviewImage'] = $overview ? ($this->productOverviewImagesUriPrefix . '/' . $overview) : null;
+            // Product-level overlay image (2D/3D asset URL)
+            $productOverlay = method_exists($product, 'getOverlayAsset') ? $product->getOverlayAsset() : null;
+            $data['overlayImage'] = $productOverlay ? ($this->productOverlayUriPrefix . '/' . $productOverlay) : null;
             $data['quantityInStock'] = $product->getTotalStock();
             $data['description'] = $product->getDescription();
             // Expose simple meta fields for popup (skip archived attributes)
@@ -178,6 +186,8 @@ class ProductApiController extends AbstractController
                         'style' => ($variant->getStyle() ? [ 'name' => $variant->getStyle()->getName() ] : null),
                         'genre' => ($variant->getGenre() ? [ 'name' => $variant->getGenre()->getName() ] : null),
                         'productVariantImages' => $variantImages,
+                        // Variant-level overlay URL (if any)
+                        'overlayImage' => ($variant->getOverlayAsset() ? ($this->productVariantOverlayUriPrefix . '/' . $variant->getOverlayAsset()) : null),
                         'offer' => $variantOffer,
                     ];
                 }

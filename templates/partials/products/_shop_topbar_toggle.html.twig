@@ -22,6 +22,7 @@
         {% for id in query.color|default([]) %}<input type="hidden" name="color[]" value="{{ id }}">{% endfor %}
         {% for id in query.shape|default([]) %}<input type="hidden" name="shape[]" value="{{ id }}">{% endfor %}
         {% for id in query.genre|default([]) %}<input type="hidden" name="genre[]" value="{{ id }}">{% endfor %}
+        {% if query.sale is defined %}<input type="hidden" name="sale" value="{{ query.sale }}">{% endif %}
         {% if query.minPrice is defined %}<input type="hidden" name="minPrice" value="{{ query.minPrice }}">{% endif %}
         {% if query.maxPrice is defined %}<input type="hidden" name="maxPrice" value="{{ query.maxPrice }}">{% endif %}
         <input type="hidden" name="sort" value="{{ currentSort|default('newest') }}">
@@ -48,6 +49,12 @@
                 </li>
                 <li class="p-b-6">
                     <a class="filter-link stext-106 trans-04 {{ currentSort == 'price_desc' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'price_desc', 'page': 1})) }}">Price: High to Low</a>
+                </li>
+                <li class="p-b-6">
+                    <a class="filter-link stext-106 trans-04 {{ currentSort == 'sale_high' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'sale_high', 'page': 1})) }}">Sale: High to Low</a>
+                </li>
+                <li class="p-b-6">
+                    <a class="filter-link stext-106 trans-04 {{ currentSort == 'sale_low' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'sale_low', 'page': 1})) }}">Sale: Low to High</a>
                 </li>
                 <li class="p-b-6">
                     <a class="filter-link stext-106 trans-04 {{ currentSort == 'oldest' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'oldest', 'page': 1})) }}">Oldest</a>

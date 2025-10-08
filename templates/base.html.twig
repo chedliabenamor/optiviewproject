@@ -4,18 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>{% block title %}Welcome OptiView{% endblock %}</title>
-    
-    <!-- Include Jeeliz VTO Widget Script -->
-    <script src="{{ asset('assets/jeeliz/dist/JeelizVTOWidget.js') }}"></script>
-    
-    <!-- Icons for adjust/resize buttons -->
-    <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
-    
-    <!-- Jeeliz VTO Widget CSS -->
-    {# <link rel="stylesheet" href="{{ asset('assets/jeeliz/css/JeelizVTOWidget.css') }}"> #}
-    
-    <!-- Your existing favicon and styles -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
+
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22https://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
     <link rel="icon" type="image/png" href="{{ asset('assets/images/icons/favicon.png') }}">
     
     <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap/css/bootstrap.min.css') }}">
@@ -35,6 +26,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/util.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}">
     
+
     {% block stylesheets %}
         {{ encore_entry_link_tags('app') }}
     {% endblock %}
@@ -43,40 +35,31 @@
 </head>
 <body class="animsition">
 
-    <!-- Jeeliz VTO Widget Container - Using same structure as official example -->
-    <div id="JeelizVTOWidget" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background-color: rgba(0,0,0,0.8);">
-        <!-- Main Canvas - Must have position: absolute -->
-        <canvas id="JeelizVTOWidgetCanvas" style="position: absolute;"></canvas>
-        
-        <!-- Top Controls -->
-        <div class="JeelizVTOWidgetControls JeelizVTOWidgetControlsTop">
-            <!-- Adjust Button -->
-            <button id="JeelizVTOWidgetAdjust">
-                <div class="buttonIcon"><i class="fas fa-arrows-alt"></i></div>Adjust
-            </button>
-
-            <!-- Close Button -->
-            <button id="JeelizVTOWidgetClose" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">
-                <div class="buttonIcon"><i class="fas fa-times"></i></div>Close
-            </button>
-        </div>
-
-        <!-- Change Model Buttons -->
-        <div class="JeelizVTOWidgetControls" id="JeelizVTOWidgetChangeModelContainer">
-            <!-- You can add model switching buttons here if needed -->
-        </div>
-
-        <!-- Adjust Notice -->
-        <div id="JeelizVTOWidgetAdjustNotice">
-            Move the glasses to adjust them.
-            <button class="JeelizVTOWidgetBottomButton" id="JeelizVTOWidgetAdjustExit">Quit</button>
-        </div>
-
-        <!-- Loading Widget -->
-        <div id="JeelizVTOWidgetLoading">
-            <div class="JeelizVTOWidgetLoadingText">
-                LOADING VIRTUAL TRY-ON...
+    <!-- FaceMesh VTO Modal -->
+    <div id="FaceMeshVTOModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="position: relative; width: 90%; max-width: 800px; height: 80%; background: #000; border-radius: 12px; overflow: hidden;">
+            <video id="FaceMeshVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>
+            <canvas id="FaceMeshCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
+            
+            <!-- Loading indicator -->
+            <div id="VTOLoading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; z-index: 5;">
+                <div style="margin-bottom: 20px;">Loading Virtual Try-On...</div>
+                <div class="spinner"></div>
             </div>
+            
+            <!-- Error message -->
+            <div id="VTOError" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; z-index: 5; display: none;">
+                <div style="margin-bottom: 20px; font-size: 18px;" id="VTOErrorMessage">Failed to start camera</div>
+                <button class="retry-btn" style="background: #4cc9f0; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Retry</button>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div style="margin-top: 20px; display: flex; gap: 15px;">
+            <button id="VTOClose" class="vto-control-btn" style="background: #e74c3c; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                Close
+            </button>
+       
         </div>
     </div>
 
@@ -98,6 +81,35 @@
     
     <!-- Vendor JS -->
     <script src="{{ asset('assets/vendor/jquery/jquery-3.2.1.min.js') }}"></script>
+    <!-- Prevent jQuery 'unload' listeners (Permissions-Policy), map to pagehide -->
+    <script>
+        (function(){
+            if (window.jQuery && jQuery.event && jQuery.event.special) {
+                jQuery.event.special.unload = {
+                    setup: function() { return false; },
+                    teardown: function() {}
+                };
+            }
+            if (window.jQuery && jQuery.fn && jQuery.fn.on) {
+                var _on = jQuery.fn.on;
+                jQuery.fn.on = function(types){
+                    if (typeof types === 'string' && types.indexOf('unload') !== -1) {
+                        types = types.replace(/\bunload\b/g, 'pagehide');
+                        arguments[0] = types;
+                    }
+                    return _on.apply(this, arguments);
+                };
+            }
+            // Remap native addEventListener('unload', ...) to 'pagehide'
+            try {
+                var _origAdd = EventTarget.prototype.addEventListener;
+                EventTarget.prototype.addEventListener = function(type, listener, options){
+                    if (type === 'unload') type = 'pagehide';
+                    return _origAdd.call(this, type, listener, options);
+                };
+            } catch(e) { /* ignore */ }
+        })();
+    </script>
     <script src="{{ asset('assets/vendor/animsition/js/animsition.min.js') }}"></script>
     <script src="{{ asset('assets/vendor/bootstrap/js/popper.js') }}"></script>
     <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.min.js') }}"></script>
@@ -111,7 +123,14 @@
     <script src="{{ asset('assets/vendor/sweetalert/sweetalert.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ asset('assets/vendor/perfect-scrollbar/perfect-scrollbar.min.js') }}"></script>
-    
+    <script src="https://unpkg.com/@tensorflow/tfjs-core@2.4.0/dist/tf-core.min.js"></script>
+    <script src="https://unpkg.com/@tensorflow/tfjs-converter@2.4.0/dist/tf-converter.min.js"></script>
+    <script src="https://unpkg.com/@tensorflow/tfjs-backend-webgl@2.4.0/dist/tf-backend-webgl.min.js"></script>
+    <script src="https://unpkg.com/@tensorflow/tfjs-backend-cpu@2.4.0/dist/tf-backend-cpu.min.js"></script>
+    <script src="https://unpkg.com/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/webcam-easy/dist/webcam-easy.min.js"></script>
+    <script type="text/javascript" src="{{ asset('assets/js/webcam-ui-lib.js') }}"></script>
+    <script src="{{ asset('assets/js/vto-tryon.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('assets/js/slick-custom.js') }}"></script>
     <script src="{{ asset('assets/js/main.js') }}"></script>
@@ -150,149 +169,8 @@
         });
     </script>
 
-    <!-- Jeeliz VTO Widget Integration - Following official example pattern -->
-    <script>
-        // Global variable to track current overlay
-        let currentOverlayUrl = null;
+  
 
-        // Main VTO initialization function
-        function startVTOWidget(overlayUrl) {
-            if (!overlayUrl) {
-                console.error('No overlay URL provided');
-                return;
-            }
-
-            currentOverlayUrl = overlayUrl;
-            const widgetContainer = document.getElementById('JeelizVTOWidget');
-            
-            if (!widgetContainer) {
-                console.error('VTO Widget container not found');
-                return;
-            }
-
-            // Show the widget container
-            widgetContainer.style.display = 'block';
-
-            // Start the VTO widget
-            JEELIZVTOWIDGET.start({
-                isShadow: true,
-                // Remove the sku parameter since we're loading a custom model
-                searchImageMask: '{{ asset('assets/jeeliz/dist/glasses3.png') }}',
-                searchImageColor: 0xeeeeee,
-                callbackReady: function(){
-                    console.log('INFO: JEELIZVTOWIDGET is ready :)');
-                    
-                    // First, load a basic model (this is required)
-                    JEELIZVTOWIDGET.load_modelStandalone('{{ asset('assets/jeeliz/models/glasses1.obj') }}')
-                        .then(() => {
-                            console.log('Base model loaded');
-                            // Then load the custom overlay
-                            if (overlayUrl) {
-                                return JEELIZVTOWIDGET.load_texture(overlayUrl);
-                            }
-                        })
-                        .then(() => {
-                            console.log('Overlay texture loaded');
-                        })
-                        .catch((error) => {
-                            console.error('Error loading model or texture:', error);
-                            closeVTOWidget();
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'Could not load the 3D model. Please try again later.'
-                            });
-                        });
-                },
-                onError: function(errorLabel){
-                    console.error('VTO Widget Error:', errorLabel);
-                    closeVTOWidget();
-                    
-                    let errorMessage = 'An error occurred with the Virtual Try-On.';
-                    if (errorLabel === 'WEBCAM_UNAVAILABLE') {
-                        errorMessage = 'Could not access your webcam. Please check your permissions.';
-                    } else if (errorLabel === 'NO_CORS') {
-                        errorMessage = 'CORS error. Please make sure the model files are served with the correct CORS headers.';
-                    }
-                    
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMessage
-                    });
-                }
-            });
-        }
-
-        // Close VTO widget
-        function closeVTOWidget() {
-            const widgetContainer = document.getElementById('JeelizVTOWidget');
-            if (widgetContainer) {
-                widgetContainer.style.display = 'none';
-            }
-            
-            if (typeof JEELIZVTOWIDGET !== 'undefined' && JEELIZVTOWIDGET.stop) {
-                JEELIZVTOWIDGET.stop();
-            }
-            
-            currentOverlayUrl = null;
-        }
-
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set up close button
-            const closeBtn = document.getElementById('JeelizVTOWidgetClose');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', closeVTOWidget);
-            }
-
-            // Global handler for starting VTO
-            document.addEventListener('tryon:start', function(e) {
-                if (e.detail && e.detail.overlayUrl) {
-                    startVTOWidget(e.detail.overlayUrl);
-                }
-            });
-
-            // Click handler for Try On buttons
-            document.addEventListener('click', function(e) {
-                const btn = e.target.closest('.js-tryon, .js-tryon-card');
-                if (!btn) return;
-
-                e.preventDefault();
-                let overlayUrl = btn.getAttribute('data-overlay');
-                
-                // Ensure the URL is properly encoded
-                if (overlayUrl) {
-                    try {
-                        overlayUrl = new URL(overlayUrl, window.location.origin).href;
-                    } catch (e) {
-                        console.error('Invalid overlay URL:', e);
-                        overlayUrl = null;
-                    }
-                }
-
-                if (!overlayUrl) {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Not Available',
-                        text: 'Virtual Try-On is not available for this item.'
-                    });
-                    return;
-                }
-
-                // Start the VTO experience
-                startVTOWidget(overlayUrl);
-            });
-        });
-
-        // Handle page unload
-        window.addEventListener('beforeunload', function() {
-            if (typeof JEELIZVTOWIDGET !== 'undefined' && JEELIZVTOWIDGET.stop) {
-                JEELIZVTOWIDGET.stop();
-            }
-        });
-    </script>
-    
     {% block javascripts %}
         {{ encore_entry_script_tags('app') }}
     {% endblock %}

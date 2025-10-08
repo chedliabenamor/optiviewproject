@@ -198,10 +198,18 @@ class ProductCrudController extends AbstractCrudController
                 ->setFormType(VichImageType::class)
                 ->hideOnIndex()
                 ->setColumns('col-md-6'),
-            // 3D Overlay file (.glb/.obj/.png)
-            Field::new('overlayFile', '3D Overlay File')
+            // Overlay file (3D model or image)
+            Field::new('overlayFile', 'Overlay File (3D or PNG)')
                 ->setFormType(VichFileType::class)
-                ->setHelp('Allowed: .glb, .obj, .png (transparent)')
+                ->setFormTypeOptions([
+                    'allow_delete' => true,
+                    'download_uri' => true,
+                    'required' => false,
+                    'attr' => [
+                        'accept' => '.png,.webp,.jpg,.jpeg,.gltf,.glb,.obj'
+                    ],
+                ])
+                ->setHelp('Allowed: .png, .webp, .jpg, .jpeg, .glb, .gltf, .obj (PNG recommended for 2D overlay)')
                 ->hideOnIndex()
                 ->setColumns('col-md-6'),
             TextField::new('overlayAsset', 'Overlay Asset')

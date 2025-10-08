@@ -48,6 +48,11 @@ class ProductController extends AbstractController
         $maxPrice = $request->query->getString('maxPrice', '');
         $q = trim($request->query->getString('q', ''));
         $sort = $request->query->getString('sort', 'newest');
+        $sale = $request->query->getString('sale', ''); // '', 'on', 'off'
+
+        // Define today window for active offers
+        $todayStart = new \DateTimeImmutable('today');
+        $todayEnd = (new \DateTimeImmutable('tomorrow'))->modify('-1 second');
 
         // Build COUNT query with filters (exclude archived/soft-deleted everywhere)
         $countQb = $productRepository->createQueryBuilder('p')
@@ -68,6 +73,31 @@ class ProductController extends AbstractController
             ->andWhere('(st IS NULL OR st.deletedAt IS NULL)')
             ->andWhere('(ge IS NULL OR ge.deletedAt IS NULL)')
             ->andWhere('(pv.id IS NULL OR (pv.deletedAt IS NULL AND pv.isActive = 1))');
+
+        // Filter: In Sale / Not In Sale
+        if ($sale === 'on' || $sale === 'off') {
+            $existsDql = "EXISTS (
+                SELECT po1.id FROM App\\Entity\\ProductOffer po1
+                LEFT JOIN po1.products pp
+                LEFT JOIN po1.brands pb
+                LEFT JOIN po1.categories pc
+                LEFT JOIN po1.productVariants pv1
+                LEFT JOIN pv1.product pv1p
+                WHERE po1.isActive = 1
+                  AND po1.deletedAt IS NULL
+                  AND po1.startDate <= :todayEnd
+                  AND po1.endDate >= :todayStart
+                  AND (
+                        pp = p
+                     OR (br IS NOT NULL AND pb = br)
+                     OR (cat IS NOT NULL AND pc = cat)
+                     OR pv1p = p
+                  )
+            )";
+            if ($sale === 'on') { $countQb->andWhere($existsDql); }
+            else { $countQb->andWhere('NOT ' . $existsDql); }
+            $countQb->setParameter('todayStart', $todayStart)->setParameter('todayEnd', $todayEnd);
+        }
 
         if (!empty($catIds)) {
             $countQb->andWhere('cat.id IN (:cats)')->setParameter('cats', $catIds);
@@ -128,6 +158,31 @@ class ProductController extends AbstractController
             ->setFirstResult($offset)
             ->setMaxResults($perPage);
 
+        // Filter: In Sale / Not In Sale
+        if ($sale === 'on' || $sale === 'off') {
+            $existsDql = "EXISTS (
+                SELECT po1.id FROM App\\Entity\\ProductOffer po1
+                LEFT JOIN po1.products pp
+                LEFT JOIN po1.brands pb
+                LEFT JOIN po1.categories pc
+                LEFT JOIN po1.productVariants pv1
+                LEFT JOIN pv1.product pv1p
+                WHERE po1.isActive = 1
+                  AND po1.deletedAt IS NULL
+                  AND po1.startDate <= :todayEnd
+                  AND po1.endDate >= :todayStart
+                  AND (
+                        pp = p
+                     OR (br IS NOT NULL AND pb = br)
+                     OR (cat IS NOT NULL AND pc = cat)
+                     OR pv1p = p
+                  )
+            )";
+            if ($sale === 'on') { $qb->andWhere($existsDql); }
+            else { $qb->andWhere('NOT ' . $existsDql); }
+            $qb->setParameter('todayStart', $todayStart)->setParameter('todayEnd', $todayEnd);
+        }
+
         if (!empty($catIds)) {
             $qb->andWhere('cat.id IN (:cats)')->setParameter('cats', $catIds);
         }
@@ -167,6 +222,45 @@ class ProductController extends AbstractController
             case 'price_desc':
                 $qb->orderBy('p.price', 'DESC');
                 break;
+            case 'sale_high': {
+                // Order by maximum effective discount percentage among applicable active offers
+                $discountExpr = "(SELECT MAX(CASE WHEN po2.discountType = :type_percentage THEN po2.discountValue ELSE (CASE WHEN p.price > 0 THEN (po2.discountValue * 100.0) / p.price ELSE 0 END) END)
+                                   FROM App\\Entity\\ProductOffer po2
+                                   LEFT JOIN po2.products p2
+                                   LEFT JOIN po2.brands b2
+                                   LEFT JOIN po2.categories c2
+                                   LEFT JOIN po2.productVariants pv2
+                                   LEFT JOIN pv2.product pv2p
+                                   WHERE po2.isActive = 1 AND po2.deletedAt IS NULL
+                                     AND po2.startDate <= :todayEnd AND po2.endDate >= :todayStart
+                                     AND (p2 = p OR (br IS NOT NULL AND b2 = br) OR (cat IS NOT NULL AND c2 = cat) OR pv2p = p))";
+                $qb->addSelect($discountExpr . ' AS HIDDEN saleDiscountPct');
+                $qb->orderBy('saleDiscountPct', 'DESC')->addOrderBy('p.createdAt', 'DESC');
+                $qb->setParameter('type_percentage', \App\Entity\ProductOffer::TYPE_PERCENTAGE)
+                   ->setParameter('type_fixed', \App\Entity\ProductOffer::TYPE_FIXED)
+                   ->setParameter('todayStart', $todayStart)
+                   ->setParameter('todayEnd', $todayEnd);
+                break;
+            }
+            case 'sale_low': {
+                $discountExpr = "(SELECT MAX(CASE WHEN po2.discountType = :type_percentage THEN po2.discountValue ELSE (CASE WHEN p.price > 0 THEN (po2.discountValue * 100.0) / p.price ELSE 0 END) END)
+                                   FROM App\\Entity\\ProductOffer po2
+                                   LEFT JOIN po2.products p2
+                                   LEFT JOIN po2.brands b2
+                                   LEFT JOIN po2.categories c2
+                                   LEFT JOIN po2.productVariants pv2
+                                   LEFT JOIN pv2.product pv2p
+                                   WHERE po2.isActive = 1 AND po2.deletedAt IS NULL
+                                     AND po2.startDate <= :todayEnd AND po2.endDate >= :todayStart
+                                     AND (p2 = p OR (br IS NOT NULL AND b2 = br) OR (cat IS NOT NULL AND c2 = cat) OR pv2p = p))";
+                $qb->addSelect($discountExpr . ' AS HIDDEN saleDiscountPct');
+                $qb->orderBy('saleDiscountPct', 'ASC')->addOrderBy('p.createdAt', 'DESC');
+                $qb->setParameter('type_percentage', \App\Entity\ProductOffer::TYPE_PERCENTAGE)
+                   ->setParameter('type_fixed', \App\Entity\ProductOffer::TYPE_FIXED)
+                   ->setParameter('todayStart', $todayStart)
+                   ->setParameter('todayEnd', $todayEnd);
+                break;
+            }
             case 'oldest':
                 $qb->orderBy('p.createdAt', 'ASC');
                 break;

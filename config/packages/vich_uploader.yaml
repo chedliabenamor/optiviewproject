@@ -44,6 +44,7 @@ vich_uploader:
             delete_on_update: true
             delete_on_remove: true
         color_images:
+            uri_prefix: /uploads/images/colors
             upload_destination: '%kernel.project_dir%/public/uploads/images/colors'
             namer: Vich\UploaderBundle\Naming\UniqidNamer
             inject_on_load: false

@@ -79,8 +79,17 @@ class ProductVariant
     #[Groups(['product_quick_view'])]
     private Collection $productVariantImages;
 
-    // Vich Uploadable Field for 3D overlay assets specific to this variant
+    // Vich Uploadable Field for 3D/image overlay assets specific to this variant
     #[Vich\UploadableField(mapping: 'product_variant_overlay_files', fileNameProperty: 'overlayAsset')]
+    #[Assert\File(
+        mimeTypes: [
+            // Image overlays
+            'image/png', 'image/webp', 'image/jpeg',
+            // 3D formats
+            'model/gltf+json', 'model/gltf-binary', 'application/octet-stream', 'application/json', 'text/plain'
+        ],
+        mimeTypesMessage: 'Please upload a valid overlay file (.png, .webp, .jpg, .jpeg, .glb, .gltf, or .obj).'
+    )]
     private ?File $overlayFile = null;
 
     #[ORM\Column(length: 255, nullable: true)]

@@ -105,11 +105,19 @@ class ProductVariantCrudController extends AbstractCrudController
         yield NumberField::new('stock')->setColumns('col-md-6')->setRequired(true);
         yield BooleanField::new('isActive')->setColumns('col-md-6');
 
-        // 3D Overlay file upload for this variant
-        yield Field::new('overlayFile', '3D Overlay File')
+        // Overlay file upload for this variant (3D or PNG)
+        yield Field::new('overlayFile', 'Overlay File (3D or PNG)')
             ->setFormType(VichFileType::class)
+            ->setFormTypeOptions([
+                'allow_delete' => true,
+                'download_uri' => true,
+                'required' => false,
+                'attr' => [
+                    'accept' => '.png,.webp,.jpg,.jpeg,.gltf,.glb,.obj'
+                ],
+            ])
             ->onlyOnForms()
-            ->setHelp('Allowed: .glb, .obj, .png (transparent)');
+            ->setHelp('Allowed: .png, .webp, .jpg, .jpeg, .glb, .gltf, .obj (PNG recommended for 2D overlay)');
         yield TextField::new('overlayAsset', 'Overlay Asset')->onlyOnIndex();
 
         yield CollectionField::new('productVariantImages')
