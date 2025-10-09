@@ -54,6 +54,9 @@ class Product
     #[Groups(['product_quick_view'])]
     private int $loyaltyPoints = 0;
 
+    #[ORM\Column(type: Types::INTEGER, options: ["default" => 0])]
+    private int $views = 0;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null; // Main product image (Consider if this is still needed or can be removed)
 
@@ -300,6 +303,24 @@ class Product
     {
         $this->loyaltyPoints = $loyaltyPoints;
 
+        return $this;
+    }
+
+    public function getViews(): int
+    {
+        return (int) $this->views;
+    }
+
+    public function setViews(int $views): static
+    {
+        $this->views = max(0, $views);
+        return $this;
+    }
+
+    public function incrementViews(int $by = 1): static
+    {
+        $inc = max(1, $by);
+        $this->views = max(0, (int)$this->views + $inc);
         return $this;
     }
 

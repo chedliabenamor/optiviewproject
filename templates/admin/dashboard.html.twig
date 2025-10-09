@@ -5,31 +5,255 @@
 {% block main %}
     <div class="container-fluid">
         <p>Welcome to the OptiView Store administration panel.</p>
-        <p>Select an option from the menu to manage your store's data.</p>
-        
-        {# You can add more dashboard-specific content here later #}
-        {# For example, quick stats or links #}
-        
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card">
+        {# KPI Cards #}
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">Recent Orders</h5>
-                        <p class="card-text">Display some recent order stats here.</p>
-                        <a href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('index') }}" class="btn btn-primary">View Orders</a>
+                        <h6 class="text-muted">Revenue (30 days)</h6>
+                        <div class="display-6">€{{ (kpi.totalRevenue30|default(0))|number_format(2, '.', ',') }}</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card">
+            <div class="col-md-3">
+                <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">New Users</h5>
-                        <p class="card-text">Display new user registration stats here.</p>
-                        <a href="{{ ea_url().setController('App\\Controller\\Admin\\UserCrudController').setAction('index') }}" class="btn btn-primary">View Users</a>
+                        <h6 class="text-muted">Average Order Value</h6>
+                        <div class="display-6">€{{ (kpi.avgOrderValue|default(0))|number_format(2, '.', ',') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Order Completion Rate</h6>
+                        <div class="display-6">{{ kpi.completionRate is not null ? kpi.completionRate ~ '%' : 'N/A' }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Orders (30 days)</h6>
+                        <div class="display-6">{{ kpi.ordersCount30|default(0) }}</div>
                     </div>
                 </div>
             </div>
         </div>
-       
+
+        {# Revenue Charts #}
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">Daily Revenue (Last 30 Days)</div>
+                    <div class="card-body"><canvas id="dailyRevenueChart" height="120"></canvas></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">Monthly Revenue (Last 12 Months)</div>
+                    <div class="card-body"><canvas id="monthlyRevenueChart" height="120"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        {# Inventory & Sales Lists #}
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">Top-Selling Products (30 days)</div>
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <thead><tr><th>Product</th><th class="text-end">Qty</th></tr></thead>
+                            <tbody>
+                            {% if topSelling is defined and topSelling|length > 0 %}
+                                {% for row in topSelling %}
+                                    <tr>
+                                        <td>{{ row.name ?? 'N/A' }}</td>
+                                        <td class="text-end">{{ row.qty ?? 0 }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="2" class="text-center text-muted">No data</td></tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">Low Stock Alerts (≤ 10)</div>
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <thead><tr><th>Product</th><th class="text-end">Stock</th></tr></thead>
+                            <tbody>
+                            {% if lowStock is defined and lowStock|length > 0 %}
+                                {% for p in lowStock %}
+                                    <tr>
+                                        <td>{{ p.name }}</td>
+                                        <td class="text-end">{{ p.stock }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="2" class="text-center text-muted">All good</td></tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">Inventory Turnover (30 days)</div>
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <thead><tr><th>Product</th><th class="text-end">Units</th><th class="text-end">Stock</th><th class="text-end">Ratio</th></tr></thead>
+                            <tbody>
+                            {% if turnover is defined and turnover|length > 0 %}
+                                {% for t in turnover %}
+                                    <tr>
+                                        <td>{{ t.name }}</td>
+                                        <td class="text-end">{{ t.unitsSold30 }}</td>
+                                        <td class="text-end">{{ t.stock }}</td>
+                                        <td class="text-end">{{ t.ratio is not null ? t.ratio : 'N/A' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="4" class="text-center text-muted">No data</td></tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Orders & Activity #}
+        <div class="row g-3 mb-3">
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header">Latest Orders</div>
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for o in latestOrders %}
+                                    {% set s = (o.status|default('pending'))|lower %}
+                                    {% set badge =
+                                        s == 'pending' ? 'badge bg-secondary' :
+                                        (s == 'processing' ? 'badge bg-info' :
+                                        (s == 'shipped' ? 'badge bg-primary' :
+                                        (s == 'delivered' ? 'badge bg-success' :
+                                        (s == 'cancelled' ? 'badge bg-warning text-dark' :
+                                        (s == 'refunded' ? 'badge bg-danger' : 'badge bg-secondary')))))
+                                    %}
+                                    {% set sym = o.currency == 'USD' ? '$' : '€' %}
+                                    <tr>
+                                        <td>#{{ o.id }}</td>
+                                        <td>{{ o.createdAt|date('Y-m-d H:i') }}</td>
+                                        <td><span class="{{ badge }}">{{ s|capitalize }}</span></td>
+                                        <td class="text-end">{{ sym }} {{ o.finalTotal|number_format(2, '.', ',') }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="4" class="text-center text-muted">No recent orders</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card mb-3">
+                    <div class="card-header">Order Processing Time</div>
+                    <div class="card-body">
+                        <div><strong>Average:</strong> {{ processing.avgHours is not null ? processing.avgHours ~ 'h' : 'N/A' }}</div>
+                        <div><strong>Median:</strong> {{ processing.medianHours is not null ? processing.medianHours ~ 'h' : 'N/A' }}</div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header">Cancellations</div>
+                    <div class="card-body">
+                        <div><strong>Count:</strong> {{ cancellations.count|default(0) }}</div>
+                        <div><strong>Amount:</strong> €{{ cancellations.amount|default(0)|number_format(2, '.', ',') }}</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">Refunds</div>
+                    <div class="card-body">
+                        <div><strong>Count:</strong> {{ refunds.count|default(0) }}</div>
+                        <div><strong>Amount:</strong> €{{ refunds.amount|default(0)|number_format(2, '.', ',') }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Most viewed but out-of-stock #}
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">Most Viewed (Out of Stock)</div>
+                    <div class="card-body">
+                        {% if hasViewTracking %}
+                            {% if mostViewedOOS is defined and mostViewedOOS|length > 0 %}
+                                <table class="table mb-0">
+                                    <thead><tr><th>Product</th><th class="text-end">Views</th></tr></thead>
+                                    <tbody>
+                                        {% for row in mostViewedOOS %}
+                                            <tr>
+                                                <td>{{ row.name }}</td>
+                                                <td class="text-end">{{ row.views }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                <div class="text-muted">No out-of-stock products have views yet.</div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-info mb-0">
+                                To populate this section, implement product view tracking (e.g., add a "views" field to `Product` and increment it in `ProductController::show()`).
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Chart.js #}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-5lqhgEZ3H9QnFCOk3xZC0z1CzB7GuZyHSb4BW3tK6L9pklBhE0W8fh4L2h1bw0Qm" crossorigin="anonymous"></script>
+        <script>
+        (function(){
+            try {
+                const dl = {{ revenueDailyLabels|default([])|json_encode|raw }};
+                const dv = {{ revenueDailyValues|default([])|json_encode|raw }};
+                const ml = {{ revenueMonthlyLabels|default([])|json_encode|raw }};
+                const mv = {{ revenueMonthlyValues|default([])|json_encode|raw }};
+                const dailyCtx = document.getElementById('dailyRevenueChart');
+                if (dailyCtx && Array.isArray(dl) && Array.isArray(dv)) {
+                    new Chart(dailyCtx, {
+                        type: 'line',
+                        data: { labels: dl, datasets: [{ label: 'Revenue (€)', data: dv, borderColor: '#4e73df', backgroundColor: 'rgba(78,115,223,0.1)', tension: 0.3, fill: true }] },
+                        options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+                    });
+                }
+                const monthlyCtx = document.getElementById('monthlyRevenueChart');
+                if (monthlyCtx && Array.isArray(ml) && Array.isArray(mv)) {
+                    new Chart(monthlyCtx, {
+                        type: 'bar',
+                        data: { labels: ml, datasets: [{ label: 'Revenue (€)', data: mv, backgroundColor: '#1cc88a' }] },
+                        options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+                    });
+                }
+            } catch(e) { /* ignore */ }
+        })();
+        </script>
     </div>
 {% endblock %}

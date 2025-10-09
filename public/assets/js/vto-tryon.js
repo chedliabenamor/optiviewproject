@@ -19,18 +19,29 @@
   let overlayImg = new Image();
   let overlayReady = false;
 
+  // DOM refs
   const video = document.querySelector(SEL.video);
   const canvas = document.querySelector(SEL.canvas);
   const ctx = canvas.getContext('2d');
 
-  // Calculated each resize: how video pixels map into canvas pixels when using object-fit: contain
+  // Display mapping for object-fit: contain on the video
   let display = { scale: 1, offsetX: 0, offsetY: 0, cw: 0, ch: 0, vw: 640, vh: 480 };
 
-  const KP = { midEye: 168, leftEye: 143, noseBottom: 2, rightEye: 372 };
+  // Landmark indices to use (MediaPipe/FaceMesh)
+  const KP = { leftEye: 33, rightEye: 263, noseTip: 1 };
 
-  function show(el) { document.querySelector(el).style.display = 'block'; }
-  function hide(el) { document.querySelector(el).style.display = 'none'; }
-  function showFlex(el){ const n=document.querySelector(el); n.style.display='flex'; }
+  // UI helpers
+  function show(el) { const n = document.querySelector(el); if (n) n.style.display = 'block'; }
+  function hide(el) { const n = document.querySelector(el); if (n) n.style.display = 'none'; }
+  function showFlex(el){ const n=document.querySelector(el); if (n) n.style.display='flex'; }
+
+  // Smoothing and behavior tuning
+  const SMOOTHING = 0.25; // 0..1 (higher = snappier)
+  const WIDTH_FACTOR = 2.4; // overlay width relative to eye distance
+  const Y_OFFSET_FACTOR = 0.12; // raise above eye center (as fraction of eyeDist)
+  const SHEAR_GAIN = 0.8; // how much yaw affects shear
+  const SHEAR_MAX = 0.35; // radians cap (~20 degrees)
+  let smoothState = { x: null, y: null, angle: null, width: null, shear: null };
 
   function resizeCanvasToContainer(){
     const container = video.parentElement;
@@ -97,32 +108,57 @@
 
   function drawOverlayForFace(face){
     if (!overlayReady) return;
-    const mid = face.scaledMesh[KP.midEye];
-    const le = face.scaledMesh[KP.leftEye];
-    const re = face.scaledMesh[KP.rightEye];
-    if (!mid || !le || !re) return;
+    const leP = face.scaledMesh[KP.leftEye];
+    const reP = face.scaledMesh[KP.rightEye];
+    const noseP = face.scaledMesh[KP.noseTip];
+    if (!leP || !reP || !noseP) return;
 
     // Convert video coordinates to canvas coordinates
     const toCanvas = (p) => [display.offsetX + p[0] * display.scale, display.offsetY + p[1] * display.scale];
-    const midC = toCanvas(mid);
-    const leC = toCanvas(le);
-    const reC = toCanvas(re);
+    const le = toCanvas(leP);
+    const re = toCanvas(reP);
+    const nose = toCanvas(noseP);
 
-    const dx = reC[0] - leC[0];
-    const dy = reC[1] - leC[1];
-    const eyeDist = Math.sqrt(dx*dx + dy*dy);
+    const dx = re[0] - le[0];
+    const dy = re[1] - le[1];
+    const eyeDist = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
 
-    // Tunable factors per overlay artwork
-    const width = eyeDist * 2.4; // how wide the glasses are vs eye distance
-    const height = width * (overlayImg.naturalHeight / overlayImg.naturalWidth);
-    const x = midC[0];
-    const y = midC[1] - eyeDist * 0.15; // raise slightly above mid eye
+    // Center between eyes
+    const cx = (le[0] + re[0]) / 2;
+    const cy = (le[1] + re[1]) / 2;
+
+    // Size and position (tunable)
+    const targetWidth = eyeDist * WIDTH_FACTOR;
+    const targetHeight = targetWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
+    const targetX = cx;
+    const targetY = cy - eyeDist * Y_OFFSET_FACTOR;
+
+    // Approximate yaw using nose distance to each eye, then map to shear
+    const dL = Math.hypot(nose[0] - le[0], nose[1] - le[1]);
+    const dR = Math.hypot(nose[0] - re[0], nose[1] - re[1]);
+    let yaw = (dL - dR) / Math.max(dL + dR, 1e-3); // -1..1
+    yaw = Math.max(-1, Math.min(1, yaw));
+    const targetShear = Math.max(-SHEAR_MAX, Math.min(SHEAR_MAX, yaw * SHEAR_GAIN));
+
+    // Exponential smoothing for soft movement
+    const lerp = (a, b, t) => (a == null ? b : a + (b - a) * t);
+    smoothState.x = lerp(smoothState.x, targetX, SMOOTHING);
+    smoothState.y = lerp(smoothState.y, targetY, SMOOTHING);
+    smoothState.angle = lerp(smoothState.angle, angle, SMOOTHING);
+    smoothState.width = lerp(smoothState.width, targetWidth, SMOOTHING);
+    smoothState.shear = lerp(smoothState.shear, targetShear, SMOOTHING);
+
+    const w = smoothState.width || targetWidth;
+    const h = w * (overlayImg.naturalHeight / overlayImg.naturalWidth);
 
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.drawImage(overlayImg, -width/2, -height/2, width, height);
+    ctx.translate(smoothState.x || targetX, smoothState.y || targetY);
+    ctx.rotate(smoothState.angle || angle);
+    // Apply a slight horizontal shear to mimic 3D warp when turning head
+    const shearVal = Math.tan(smoothState.shear || 0);
+    ctx.transform(1, 0, shearVal, 1, 0, 0);
+    ctx.drawImage(overlayImg, -w/2, -h/2, w, h);
     ctx.restore();
   }
 
@@ -170,6 +206,8 @@
     overlayImg.onload = function(){ overlayReady = true; };
     overlayImg.onerror = function(){ showError('Failed to load overlay image: ' + overlaySrc); };
     overlayImg.src = overlaySrc;
+    // Reset smoothing state on open so the overlay doesn't jump from a previous session
+    smoothState = { x: null, y: null, angle: null, width: null, shear: null };
 
     showFlex(SEL.modal);
     show(SEL.loading);
@@ -231,7 +269,7 @@
   const closeBtn = document.querySelector(SEL.closeBtn);
   if (closeBtn) closeBtn.addEventListener('click', function(){ closeVTO(); });
 
-  const switchBtn = document.querySelector(SEL.switchBtn);
+  const switchBtn = SEL.switchBtn ? document.querySelector(SEL.switchBtn) : null;
   if (switchBtn) switchBtn.addEventListener('click', function(){ switchCamera(); });
 
   const retryBtn = document.querySelector(SEL.retryBtn);

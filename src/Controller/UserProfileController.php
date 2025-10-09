@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\Order;
 use App\Form\UserProfileTypeForm;
 use App\Repository\OrderRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -108,4 +109,51 @@ final class UserProfileController extends AbstractController
             'user' => $user,
         ]);
     }
+
+    #[Route('/orders/{id}', name: 'app_user_order_detail', methods: ['GET'])]
+    public function orderDetail(Order $order): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        if ($order->getUser() !== $user) {
+            throw $this->createAccessDeniedException();
+        }
+
+        return $this->render('user_profile/order_detail.html.twig', [
+            'order' => $order,
+        ]);
+    }
+
+    #[Route('/orders/{id}/cancel', name: 'app_user_order_cancel', methods: ['POST'])]
+    public function cancelOrder(Order $order, Request $request, EntityManagerInterface $entityManager): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->redirectToRoute('app_login');
+        }
+        if ($order->getUser() !== $user) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if (!$this->isCsrfTokenValid('cancel-order-' . $order->getId(), (string)$request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Invalid CSRF token');
+        }
+
+        if (strtolower((string)$order->getStatus()) !== Order::STATUS_PENDING) {
+            $this->addFlash('warning', 'Only pending orders can be cancelled.');
+            return $this->redirectToRoute('app_user_order_detail', ['id' => $order->getId()]);
+        }
+
+        $order->setStatus(Order::STATUS_CANCELLED);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Order cancelled.');
+        return $this->redirectToRoute('app_user_order_detail', ['id' => $order->getId()]);
+    }
+
 }

@@ -347,6 +347,12 @@ class ProductController extends AbstractController
         EntityManagerInterface $em,
         ReviewRepository $reviewRepository
     ): Response {
+        // Increment product views on GET requests
+        if ($request->isMethod('GET') && method_exists($product, 'incrementViews')) {
+            $product->incrementViews();
+            $em->flush();
+        }
+
         // Build simple comment-only form
         $form = $this->createForm(ReviewFormType::class);
         $form->handleRequest($request);

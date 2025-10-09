@@ -38,7 +38,7 @@
                         {% for order in orders %}
                             {% set sym = order.currency == 'USD' ? '$' : '€' %}
                             <tr>
-                                <td>#{{ order.id }}</td>
+                                <td><a href="{{ path('app_user_order_detail', { id: order.id }) }}">#{{ order.id }}</a></td>
                                 <td>{{ order.createdAt|date('Y-m-d H:i') }}</td>
                                 <td>{{ sym }} {{ order.subtotal | number_format(2, '.', ',') }}</td>
                                 <td>{{ sym }} {{ order.taxAmount | number_format(2, '.', ',') }}</td>
