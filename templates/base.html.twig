@@ -39,7 +39,7 @@
     <div id="FaceMeshVTOModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column;">
         <div style="position: relative; width: 90%; max-width: 800px; height: 80%; background: #000; border-radius: 12px; overflow: hidden;">
             <video id="FaceMeshVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>
-            <canvas id="FaceMeshCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
+            <canvas id="FaceMeshCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; mix-blend-mode: multiply; pointer-events: none;"></canvas>
             
             <!-- Loading indicator -->
             <div id="VTOLoading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; z-index: 5;">
@@ -55,11 +55,10 @@
         </div>
         
         <!-- Controls -->
-        <div style="margin-top: 20px; display: flex; gap: 15px;">
+        <div style="margin-top: 20px; display: flex; gap: 15px; align-items: center; justify-content: center;">
             <button id="VTOClose" class="vto-control-btn" style="background: #e74c3c; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold;">
                 Close
             </button>
-       
         </div>
     </div>
 

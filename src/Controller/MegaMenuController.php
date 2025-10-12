@@ -21,11 +21,11 @@ class MegaMenuController extends AbstractController
         StyleRepository $styleRepository,
         ShapeRepository $shapeRepository
     ): Response {
-        $categories = $categoryRepository->findBy([], ['name' => 'ASC']);
-        $brands     = $brandRepository->findBy([], ['name' => 'ASC']);
-        $genres     = $genreRepository->findBy([], ['name' => 'ASC']);
-        $styles     = $styleRepository->findBy([], ['name' => 'ASC']);
-        $shapes     = $shapeRepository->findBy([], ['name' => 'ASC']);
+        $categories = $categoryRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $brands     = $brandRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $genres     = $genreRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $styles     = $styleRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
+        $shapes     = $shapeRepository->findBy(['deletedAt' => null], ['name' => 'ASC']);
 
         return $this->render('partials/nav/_mega_menu.html.twig', [
             'categories' => $categories,

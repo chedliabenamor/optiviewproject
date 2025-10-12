@@ -3963,3 +3963,7 @@ ul.slick3-dots + ul.slick3-dots {
     padding: 20px;
   }
 }
+
+#FaceMeshCanvas { mix-blend-mode: multiply; pointer-events: none; }
+.vto-control-btn { background: #34495e; color: #fff; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+#VTOClose.vto-control-btn { background: #e74c3c; padding: 12px 25px; border-radius: 8px; font-weight: 700; }

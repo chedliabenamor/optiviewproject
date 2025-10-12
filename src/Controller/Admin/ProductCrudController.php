@@ -444,9 +444,13 @@ class ProductCrudController extends AbstractCrudController
         }
 
         $referrer = $context->getReferrer();
-        if (
-            $referrer
-        ) {
+        if (!$referrer) {
+            $headerRef = $context->getRequest()->headers->get('referer');
+            if ($headerRef) {
+                $referrer = $headerRef;
+            }
+        }
+        if ($referrer) {
             return $this->redirect($referrer);
         }
         $category = $product->getCategory();
@@ -475,9 +479,13 @@ class ProductCrudController extends AbstractCrudController
         }
 
         $referrer = $context->getReferrer();
-        if (
-            $referrer
-        ) {
+        if (!$referrer) {
+            $headerRef = $context->getRequest()->headers->get('referer');
+            if ($headerRef) {
+                $referrer = $headerRef;
+            }
+        }
+        if ($referrer) {
             return $this->redirect($referrer);
         }
         $category = $product->getCategory();
