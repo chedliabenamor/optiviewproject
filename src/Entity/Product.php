@@ -13,11 +13,13 @@ use Doctrine\ORM\Mapping as ORM;
     use App\Entity\Color;
     use Gedmo\Mapping\Annotation as Gedmo;
     use Symfony\Component\Serializer\Annotation\Groups;
+    use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 
 #[Vich\Uploadable]
 #[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
+#[UniqueEntity(fields: ['sku'], message: 'SKU already in use', ignoreNull: true)]
 class Product
 {
     #[ORM\Id]
@@ -31,7 +33,7 @@ class Product
     #[Groups(['product_quick_view'])]
     private ?string $name = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 255, unique: true, nullable: true)]
     #[Groups(['product_quick_view'])]
     private ?string $sku = null;
 
@@ -145,6 +147,7 @@ class Product
 
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ProductVariant::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Groups(['product_quick_view'])]
+    #[Assert\Valid]
     private Collection $productVariants;
 
     public function __construct()

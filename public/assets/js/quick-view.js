@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
             stockStatusEl.style.color = '#fd7e14';
             addToCartBtn.disabled = false;
         } else {
-            stockStatusEl.textContent = 'Out of Stock';
+            stockStatusEl.textContent = 'Out of stock.';
             stockStatusEl.style.color = '#dc3545';
             addToCartBtn.disabled = true;
         }

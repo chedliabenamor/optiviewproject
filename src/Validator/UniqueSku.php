@@ -8,7 +8,7 @@ use Symfony\Component\Validator\Constraint;
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::IS_REPEATABLE)]
 class UniqueSku extends Constraint
 {
-    public string $message = 'The SKU "{{ value }}" is already in use. Please choose a different SKU.';
+    public string $message = 'SKU already in use';
 
     public function validatedBy(): string
     {

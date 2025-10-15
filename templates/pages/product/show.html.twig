@@ -154,8 +154,8 @@
                                                 data-price="{{ product.price }}"
                                                 data-genre="{{ product.genre ? product.genre.name : null }}"
                                                 data-style="{{ product.style ? product.style.name : null }}"
-                                                data-stock="{{ product.getTotalStock() }}"
-                                                data-stock-status="{{ product.getStockStatus() }}"
+                                                data-stock="{{ product.getQuantityInStock() }}"
+                                                data-stock-status="{{ product.getQuantityInStock() == 0 ? 'Out of stock.' : product.getStockStatus() }}"
                                                 data-overlay="{{ product.overlayAsset ? vich_uploader_asset(product, 'overlayFile') : '' }}"
                                             >{{ baseLabel }}</option>
                                             {% for opt in variantOptions %}
@@ -184,7 +184,7 @@
 													data-genre="{{ _genreName }}"
 													data-style="{{ _styleName }}"
 													data-stock="{{ _stock }}"
-													data-stock-status="{{ _stockStatus }}"
+													data-stock-status="{{ _stock == 0 ? 'Out of stock.' : _stockStatus }}"
 												>{{ opt.colorName }}</option>
 											{% endfor %}
 										</select>
@@ -212,7 +212,7 @@
                                             data-product-id="{{ product.id }}"
                                             data-variant-id=""
                                             data-variant-name=""
-                                            {{ product.getTotalStock() <= 0 ? 'disabled' : '' }}>
+                                            {{ product.getQuantityInStock() <= 0 ? 'disabled' : '' }}>
                                         Add to cart
                                     </button>
                                 </div>
@@ -328,7 +328,7 @@
 
 										<li class="flex-w flex-t p-b-7">
 											<span class="stext-102 cl3 size-205">Stock</span>
-											<span id="js-stock" class="stext-102 cl6 size-206">{{ product.getStockStatus() }} ({{ product.getTotalStock() }})</span>
+											<span id="js-stock" class="stext-102 cl6 size-206">{{ product.getQuantityInStock() == 0 ? 'Out of stock.' : product.getStockStatus() }} ({{ product.getQuantityInStock() }})</span>
 										</li>
 
 										<li class="flex-w flex-t p-b-7">
@@ -460,7 +460,7 @@
             // Helper: get available stock from selected option
             function getAvailable(){
                 try {
-                    if (!variantSelect) return parseInt({{ product.getTotalStock() }}) || 0;
+                    if (!variantSelect) return parseInt({{ product.getQuantityInStock() }}) || 0;
                     var opt = variantSelect.options[variantSelect.selectedIndex];
                     var ds = opt ? (opt.getAttribute('data-stock') || opt.dataset.stock) : null;
                     var n = ds != null && ds !== '' ? parseInt(ds) : null;
@@ -897,7 +897,7 @@
         var defaultSku = (document.getElementById('js-sku')||{}).textContent || '{{ product.sku ?? '-' }}';
         var defaultGenre = (document.getElementById('js-genre')||{}).textContent || '{{ product.genre ? product.genre.name : '-' }}';
         var defaultStyle = (document.getElementById('js-style')||{}).textContent || '{{ product.style ? product.style.name : '-' }}';
-        var defaultStock = (document.getElementById('js-stock')||{}).textContent || '{{ product.getStockStatus() }} ({{ product.getTotalStock() }})';
+        var defaultStock = (document.getElementById('js-stock')||{}).textContent || '{{ (product.getQuantityInStock() == 0 ? 'Out of stock.' : product.getStockStatus()) }} ({{ product.getQuantityInStock() }})';
 
         		function handleVariantChange() {
 			var opt = selectEl.options[selectEl.selectedIndex];
@@ -1095,7 +1095,7 @@
                 if (!stockInlineEl) return;
                 var n = parseInt(stock, 10);
                 if (isNaN(n) || n <= 0) {
-                    stockInlineEl.textContent = 'Out of stock';
+                    stockInlineEl.textContent = 'Out of stock.';
                     stockInlineEl.style.color = '#dc3545';
                 } else {
                     stockInlineEl.textContent = 'Available';
@@ -1103,7 +1103,7 @@
                 }
             }
             function applyStockStateFromOption(opt){
-                var stockAttr = opt ? opt.getAttribute('data-stock') : '{{ product.getTotalStock() }}';
+                var stockAttr = opt ? opt.getAttribute('data-stock') : '{{ product.getQuantityInStock() }}';
                 var stock = stockAttr != null && stockAttr !== '' ? parseInt(stockAttr, 10) : 0;
                 if (isNaN(stock)) stock = 0;
                 // Disable/enable button

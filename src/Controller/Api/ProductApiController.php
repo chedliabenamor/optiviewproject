@@ -68,7 +68,7 @@ class ProductApiController extends AbstractController
             // Product-level overlay image (2D/3D asset URL)
             $productOverlay = method_exists($product, 'getOverlayAsset') ? $product->getOverlayAsset() : null;
             $data['overlayImage'] = $productOverlay ? ($this->productOverlayUriPrefix . '/' . $productOverlay) : null;
-            $data['quantityInStock'] = $product->getTotalStock();
+            $data['quantityInStock'] = $product->getQuantityInStock();
             $data['description'] = $product->getDescription();
             // Expose simple meta fields for popup (skip archived attributes)
             $data['brand'] = ($product->getBrand() && $product->getBrand()->getDeletedAt() === null) ? $product->getBrand()->getName() : null;

@@ -20,7 +20,7 @@ use App\Entity\Genre;
 #[ORM\Entity(repositoryClass: ProductVariantRepository::class)]
 #[Vich\Uploadable]
 #[ORM\HasLifecycleCallbacks]
-#[UniqueEntity(fields: ['sku'], message: 'The SKU "{{ value }}" is already in use. Please choose a different SKU.', ignoreNull: true)]
+#[UniqueEntity(fields: ['sku'], message: 'SKU already in use', ignoreNull: true)]
 class ProductVariant
 {
     /**
@@ -63,6 +63,7 @@ class ProductVariant
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
     #[Groups(['product_quick_view'])]
+    #[Assert\NotBlank(message: 'Price is required')]
     private ?string $price = null;
 
 

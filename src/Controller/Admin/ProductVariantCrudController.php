@@ -100,11 +100,10 @@ class ProductVariantCrudController extends AbstractCrudController
             ->setHelp('<button type="button" class="btn btn-primary btn-sm mt-2 ea-quick-add" data-quick-add="genre" data-fetch="/admin-ajax/genre/new" data-title="Add Genre"><i class="fa fa-plus me-1"></i> Add Genre</button>');
 
         yield TextField::new('sku')->setColumns('col-md-4')->setHelp('SKU will be auto-generated if left empty');
-        yield MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-6');
+        yield MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-6')->setRequired(true);
 
         yield NumberField::new('stock')->setColumns('col-md-6')->setRequired(true);
-        yield BooleanField::new('isActive')->setColumns('col-md-6');
-
+        
         // Overlay file upload for this variant (3D or PNG)
         yield Field::new('overlayFile', 'Overlay File (3D or PNG)')
             ->setFormType(VichFileType::class)
@@ -257,36 +256,24 @@ class ProductVariantCrudController extends AbstractCrudController
     {
         try {
             if ($entityInstance instanceof ProductVariant) {
-                // Auto-generate SKU if not provided
+                // Validate before any persistence to show clear errors (e.g., price required)
+                $violations = $this->validator->validate($entityInstance);
+                if (count($violations) > 0) {
+                    foreach ($violations as $violation) {
+                        $this->addFlash('error', $violation->getMessage());
+                    }
+                    throw new \RuntimeException('Validation failed');
+                }
+
+                // Auto-generate SKU if not provided (no pre-flush needed)
                 if (empty($entityInstance->getSku())) {
-                    // Check if product is set
                     if (!$entityInstance->getProduct()) {
                         $this->addFlash('error', 'Product must be selected before generating SKU.');
                         throw new \RuntimeException('Product required for SKU generation');
                     }
-                    
-                    // We need to persist first to get the ID, then generate SKU
-                    $entityManager->persist($entityInstance);
-                    $entityManager->flush();
-                    
                     $sku = $this->skuGeneratorService->generateProductVariantSku($entityInstance);
                     $entityInstance->setSku($sku);
-                    $entityManager->flush();
-                    
-                    $this->addFlash('success', 'Product variant saved successfully with auto-generated SKU: ' . $sku);
-                    return;
                 }
-            }
-            
-            // Validate the entity before persisting
-            $violations = $this->validator->validate($entityInstance);
-            
-            if (count($violations) > 0) {
-                foreach ($violations as $violation) {
-                    $this->addFlash('error', $violation->getMessage());
-                }
-                // Don't proceed with persistence if there are validation errors
-                throw new \RuntimeException('Validation failed');
             }
 
             parent::persistEntity($entityManager, $entityInstance);
@@ -361,45 +348,7 @@ class ProductVariantCrudController extends AbstractCrudController
         }
     }
 
-    public function new(AdminContext $context): KeyValueStore
-    {
-        $response = parent::new($context);
-        
-        // Check if there are validation errors in the form
-        if ($context->getRequest()->isMethod('POST')) {
-            $form = $context->getEntity()->getInstance();
-            if ($form instanceof ProductVariant) {
-                $violations = $this->validator->validate($form);
-                if (count($violations) > 0) {
-                    foreach ($violations as $violation) {
-                        $this->addFlash('error', $violation->getMessage());
-                    }
-                }
-            }
-        }
-        
-        return $response;
-    }
-
-    public function edit(AdminContext $context): KeyValueStore
-    {
-        $response = parent::edit($context);
-        
-        // Check if there are validation errors in the form
-        if ($context->getRequest()->isMethod('POST')) {
-            $form = $context->getEntity()->getInstance();
-            if ($form instanceof ProductVariant) {
-                $violations = $this->validator->validate($form);
-                if (count($violations) > 0) {
-                    foreach ($violations as $violation) {
-                        $this->addFlash('error', $violation->getMessage());
-                    }
-                }
-            }
-        }
-        
-        return $response;
-    }
+    
 
     /**
      * Check if we're creating a standalone variant (not within a product form)

@@ -213,11 +213,12 @@ class ProductCrudController extends AbstractCrudController
                 ->hideOnIndex()
                 ->setColumns('col-md-6'),
             TextField::new('overlayAsset', 'Overlay Asset')
+                ->hideOnForm()
                 ->hideOnIndex(),
             TextField::new('name')->setColumns('col-md-12'),
             TextField::new('sku')->setColumns('col-md-12')->setHelp('SKU will be auto-generated if left empty'),
             TextEditorField::new('description')->hideOnIndex()->setColumns('col-md-12'),
-            MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-6'),
+            MoneyField::new('price')->setCurrency('EUR')->setStoredAsCents(false)->setColumns('col-md-6')->setRequired(true),
             IntegerField::new('quantityInStock', 'Stock')->setColumns('col-md-6'),
             IntegerField::new('loyaltyPoints', 'Loyalty Points')->setColumns('col-md-6'),
 
