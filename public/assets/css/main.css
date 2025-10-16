@@ -2053,7 +2053,7 @@ button.cartp-remove.stext-110.cl2 {
   -o-transition: all 0.4s;
   -moz-transition: all 0.4s;
   transition: all 0.4s;
-  font-size: 0;
+ 
 }
 
 .arrow-slick3:hover , .wrap-slick3-arrows .slick-prev:hover , .wrap-slick3-arrows .slick-next:hover {

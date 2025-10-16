@@ -4,6 +4,7 @@
 
 {% block body %}
 {% set offerData = product_offer_data(product) %}
+{% set hasVariants = product.productVariants|length > 0 %}
 <div class="container">
 		<div class="bread-crumb flex-w p-l-25 p-r-15 p-t-30 p-lr-0-lg">
 			<a href="{{ path('app_home') }}" class="stext-109 cl8 hov-cl1 trans-04">
@@ -35,7 +36,7 @@
 			<div class="row">
 				<div class="col-md-6 col-lg-7 p-b-30">
 					<div class="p-l-25 p-r-30 p-lr-0-lg">
-						<div class="wrap-slick3 flex-sb flex-w">
+						<div class="wrap-slick3 flex-sb flex-w" {{ hasVariants ? 'data-managed="true"' : '' }}>
 							<div class="wrap-slick3-dots"></div>
 							<div class="wrap-slick3-arrows flex-sb-m flex-w"></div>
 
@@ -445,11 +446,17 @@
             {% endfor %}
         {% endfor %}
 
-        // Capture default product images from current gallery
         var defaultImages = [];
-        document.querySelectorAll('.slick3.gallery-lb .item-slick3 img').forEach(function(img){
-            defaultImages.push({ url: img.getAttribute('src'), alt: img.getAttribute('alt') || '{{ product.name|e('js') }}' });
-        });
+        {% if product.overviewImage %}
+        defaultImages.push({ url: "{{ vich_uploader_asset(product, 'overviewImageFile')|e('js') }}", alt: "{{ product.name|e('js') }}" });
+        {% endif %}
+        {% for img in product.productModelImages %}
+            {% set imgUrl = vich_uploader_asset(img, 'imageFile') %}
+            {% if imgUrl %}
+            defaultImages.push({ url: "{{ imgUrl|e('js') }}", alt: "{{ (img.altText ?? product.name)|e('js') }}" });
+            {% endif %}
+        {% endfor %}
+        defaultImages = (function(arr){ var seen = {}; return arr.filter(function(it){ if(!it||!it.url){return false;} if(seen[it.url]){return false;} seen[it.url]=true; return true; }); })(defaultImages);
 
         // ========= Quantity & Stock validation on Product Detail =========
         (function(){
@@ -822,47 +829,52 @@
                     </div>';
         }
 
+        var isUpdatingGallery = false;
         function updateGallery(imgs) {
-            var $ = window.jQuery;
-            var $gallery = $('.slick3.gallery-lb');
-            if (!$gallery.length) return;
-            var $wrap = $gallery.closest('.wrap-slick3');
-            var $dotsWrap = $wrap.find('.wrap-slick3-dots');
-            var $arrowsWrap = $wrap.find('.wrap-slick3-arrows');
-            // If slick is initialized, destroy it first (more robust across versions)
-            if ($ && $.fn.slick && $gallery.hasClass('slick-initialized')) {
-                try { $gallery.slick('unslick'); } catch(e){}
-            }
-            // Rebuild slides and clear auxiliary wrappers to avoid duplicates
-            $gallery.html(imgs.map(buildSlideHtml).join(''));
-            if ($dotsWrap && $dotsWrap.length) { try { $dotsWrap.empty(); } catch(e){} }
-            if ($arrowsWrap && $arrowsWrap.length) { try { $arrowsWrap.empty(); } catch(e){} }
-            // Re-init slick with theme-like settings
-            if ($ && $.fn.slick) {
-                try {
-                    $gallery.slick({
-                        slidesToShow: 1,
-                        slidesToScroll: 1,
-                        infinite: true,
-                        arrows: true,
-                        fade: true,
-                        speed: 600,
-                        dots: true,
-                        appendArrows: $arrowsWrap.length ? $arrowsWrap : undefined,
-                        appendDots: $dotsWrap.length ? $dotsWrap : undefined,
-                        dotsClass: 'slick3-dots',
-                        customPaging: function(slick, index){
-                            var $slide = jQuery(slick.$slides[index]);
-                            var src = $slide.data('thumb') || $slide.find('img').attr('src') || '';
-                            return '<img src="'+src+'"/><div class="slick3-dot-overlay"></div>';
-                        }
-                    });
-                } catch(e){}
-            }
-            // Rebind Magnific popup
-            if (window.jQuery && window.jQuery.fn.magnificPopup) {
-                try { $('.gallery-lb').magnificPopup('destroy'); } catch(e){}
-                $('.gallery-lb').magnificPopup({ delegate: 'a', type: 'image', gallery: { enabled:true }, mainClass: 'mfp-fade' });
+            if (isUpdatingGallery) return;
+            isUpdatingGallery = true;
+            try {
+                var $ = window.jQuery;
+                // Scope to the managed product-detail gallery only (avoid modal quick-view)
+                var $wrap = $('.wrap-slick3[data-managed]');
+                if (!$wrap.length) return;
+                var $gallery = $wrap.find('.slick3.gallery-lb');
+                if (!$gallery.length) return;
+                var $dotsWrap = $wrap.find('.wrap-slick3-dots');
+                var $arrowsWrap = $wrap.find('.wrap-slick3-arrows');
+                if ($ && $.fn.slick && $gallery.hasClass('slick-initialized')) {
+                    try { $gallery.slick('unslick'); } catch(e){}
+                }
+                $gallery.html(imgs.map(buildSlideHtml).join(''));
+                if ($dotsWrap && $dotsWrap.length) { try { $dotsWrap.empty(); } catch(e){} }
+                if ($arrowsWrap && $arrowsWrap.length) { try { $arrowsWrap.empty(); } catch(e){} }
+                if ($ && $.fn.slick) {
+                    try {
+                        $gallery.slick({
+                            slidesToShow: 1,
+                            slidesToScroll: 1,
+                            infinite: true,
+                            arrows: true,
+                            fade: true,
+                            speed: 600,
+                            dots: true,
+                            appendArrows: $arrowsWrap.length ? $arrowsWrap : undefined,
+                            appendDots: $dotsWrap.length ? $dotsWrap : undefined,
+                            dotsClass: 'slick3-dots',
+                            customPaging: function(slick, index){
+                                var $slide = jQuery(slick.$slides[index]);
+                                var src = $slide.data('thumb') || $slide.find('img').attr('src') || '';
+                                return '<img src="'+src+'"/><div class="slick3-dot-overlay"></div>';
+                            }
+                        });
+                    } catch(e){}
+                }
+                if (window.jQuery && window.jQuery.fn.magnificPopup) {
+                    try { $wrap.find('.gallery-lb').magnificPopup('destroy'); } catch(e){}
+                    $wrap.find('.gallery-lb').magnificPopup({ delegate: 'a', type: 'image', gallery: { enabled:true }, mainClass: 'mfp-fade' });
+                }
+            } finally {
+                isUpdatingGallery = false;
             }
         }
 

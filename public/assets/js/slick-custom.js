@@ -141,7 +141,7 @@
         
         /*==================================================================
         [ Slick3 ]*/
-        $('.wrap-slick3').not('.js-modal1 .wrap-slick3').each(function(){
+        $('.wrap-slick3').not('.js-modal1 .wrap-slick3').not('[data-managed]').each(function(){
             $(this).find('.slick3').slick({
                 slidesToShow: 1,
                 slidesToScroll: 1,

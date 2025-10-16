@@ -34,7 +34,7 @@ class ProductController extends AbstractController
         GenreRepository $genreRepository,
         StyleRepository $styleRepository
     ): Response {
-        $perPage = 8;
+        $perPage = 15;
         $page = max(1, (int) $request->query->get('page', 1));
 
         // Read filters from query string

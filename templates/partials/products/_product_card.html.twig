@@ -55,7 +55,7 @@
 {% else %}
     {% set offerData = product_offer_data(product) %}
 {% endif %}
-<div class="col-sm-6 col-md-4 col-lg-3 p-b-35 isotope-item
+<div class="col-sm-6 col-md-4 col-lg-4 p-b-35 isotope-item
     {{ product.category ? product.category.name|lower|replace({' ':'-'}) : '' }}
     {% if product.brand %} brand-{{ product.brand.name|lower|replace({' ':'-'}) }}{% endif %}
     {% if product.genre %} genre-{{ product.genre.name|lower|replace({' ':'-'}) }}{% endif %}
