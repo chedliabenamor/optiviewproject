@@ -10,13 +10,13 @@
 
     {# Top Buttons: Edit and Back to Product #}
     <div class="d-flex justify-content-end mb-3">
-        <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductVariantCrudController').setAction('edit').setEntityId(variant.id) }}" class="btn btn-primary mx-2">
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductVariantCrudController').setAction('edit').setEntityId(variant.id) }}" class="btn btn-primary">
             <i class="fa fa-fw fa-edit"></i> Edit Product Variant
         </a>
         {% if variant.product %}
-            <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('detail').setEntityId(variant.product.id) }}" class="btn btn-secondary">
-                <i class="fa fa-fw fa-arrow-left"></i> Back to Product
-            </a>
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\ProductCrudController').setAction('detail').setEntityId(variant.product.id) }}" class="btn btn-secondary ms-2">
+            <i class="fa fa-fw fa-arrow-left"></i> Back to Product
+        </a>
         {% endif %}
     </div>
 
@@ -73,12 +73,12 @@
                     <h4>Variant Information</h4>
                     <dl class="row">
                         <dt class="col-sm-3">SKU</dt>
-                        <dd class="col-sm-9">{{ variant.sku ?: 'N/A' }}</dd>
+                        <dd class="col-sm-9"><span class="font-monospace">{{ variant.sku ?: 'N/A' }}</span></dd>
 
                         <dt class="col-sm-3">Price</dt>
                         <dd class="col-sm-9">
                             {% if variant.price is not null %}
-                                {{ variant.price|number_format(2, '.', '') }}€
+                                {{ '€' ~ (variant.price|number_format(2, '.', '')) }}
                             {% else %}
                                 N/A
                             {% endif %}
@@ -86,6 +86,29 @@
 
                         <dt class="col-sm-3">Stock</dt>
                         <dd class="col-sm-9">{{ variant.stock }} piece(s)</dd>
+
+                        <dt class="col-sm-3">Stock Status</dt>
+                        <dd class="col-sm-9">
+                            {% set ss = variant.stockStatus %}
+                            {% if ss == 'Out of Stock' %}
+                                <span class="badge bg-danger">Out of Stock</span>
+                            {% elseif ss == 'Low Stock' %}
+                                <span class="badge bg-warning text-dark">Low Stock</span>
+                            {% elseif ss == 'In Stock' %}
+                                <span class="badge bg-success">In Stock</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Unknown</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9">
+                            {% if variant.isActive %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </dd>
 
                         <dt class="col-sm-3">Color</dt>
                         <dd class="col-sm-9">
@@ -109,12 +132,14 @@
                             {% endif %}
                         </dd>
 
-                        <dt class="col-sm-3">Active</dt>
+                        <dt class="col-sm-3">Genre</dt>
                         <dd class="col-sm-9">
-                            {% if variant.isActive %}
-                                <span class="badge bg-success text-white">Yes</span>
+                            {% if variant.genre %}
+                                <a class="btn btn-sm btn-primary me-1 mb-1" href="{{ ea_url().setController('App\\Controller\\Admin\\GenreCrudController').setAction('detail').setEntityId(variant.genre.id) }}">
+                                    {{ variant.genre.name }}
+                                </a>
                             {% else %}
-                                <span class="badge bg-danger text-white">No</span>
+                                N/A
                             {% endif %}
                         </dd>
                     </dl>

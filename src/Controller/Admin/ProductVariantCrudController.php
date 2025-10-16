@@ -65,6 +65,7 @@ class ProductVariantCrudController extends AbstractCrudController
     {
         return $crud
             ->setPageTitle('detail', fn(ProductVariant $variant) => sprintf('Variant: %s', $variant->getSku() ?: $variant->getColor() ?: ('#' . $variant->getId())))
+            ->overrideTemplate('crud/detail', 'admin/productvariant/product_variant_detail.html.twig')
             ->setPaginatorPageSize(10)
             ->setPaginatorRangeSize(4)
             ->showEntityActionsInlined();

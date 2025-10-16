@@ -645,6 +645,7 @@ class ProductCrudController extends AbstractCrudController
                 $sku = $this->skuGeneratorService->generateProductSku($entityInstance);
                 $entityInstance->setSku($sku);
             }
+            $this->generateSkusForProductVariants($entityInstance, $entityManager);
         }
         
         parent::updateEntity($entityManager, $entityInstance);
