@@ -437,11 +437,11 @@
         // Build variantsData from server-side
         var variantsData = {};
         {% for v in product.productVariants %}
-            variantsData[{{ v.id }}] = [];
+            variantsData['{{ v.id }}'] = [];
             {% for vimg in v.productVariantImages %}
                 {% set vurl = vich_uploader_asset(vimg, 'imageFile') %}
                 {% if vurl %}
-                    variantsData[{{ v.id }}].push({ url: '{{ vurl }}', alt: '{{ (vimg.altText ?? product.name)|e('js') }}' });
+                    variantsData['{{ v.id }}'].push({ url: '{{ vurl }}', alt: '{{ (vimg.altText ?? product.name)|e('js') }}' });
                 {% endif %}
             {% endfor %}
         {% endfor %}
@@ -457,6 +457,9 @@
             {% endif %}
         {% endfor %}
         defaultImages = (function(arr){ var seen = {}; return arr.filter(function(it){ if(!it||!it.url){return false;} if(seen[it.url]){return false;} seen[it.url]=true; return true; }); })(defaultImages);
+
+        // Ensure the managed gallery is initialized with the base product images on load
+        try { updateGallery(defaultImages); } catch(e){}
 
         // ========= Quantity & Stock validation on Product Detail =========
         (function(){
@@ -855,6 +858,8 @@
                             slidesToScroll: 1,
                             infinite: true,
                             arrows: true,
+                            prevArrow:'<button class="arrow-slick3 prev-slick3"><i class="fa fa-angle-left" aria-hidden="true"></i></button>',
+                            nextArrow:'<button class="arrow-slick3 next-slick3"><i class="fa fa-angle-right" aria-hidden="true"></i></button>',
                             fade: true,
                             speed: 600,
                             dots: true,
@@ -945,7 +950,8 @@
             }
             // Update main gallery when variant changes
             var vid = opt.value;
-            var imgs = (vid === 'product') ? defaultImages : ((variantsData[vid] && variantsData[vid].length) ? variantsData[vid] : defaultImages);
+            var key = String(vid);
+            var imgs = (vid === 'product') ? defaultImages : ((variantsData[key] && variantsData[key].length) ? variantsData[key] : defaultImages);
             updateGallery(imgs);
             // Update offer/price UI based on selection
             if (vid === 'product') {
