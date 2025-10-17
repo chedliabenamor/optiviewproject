@@ -39,11 +39,49 @@ document.addEventListener('DOMContentLoaded', function () {
             wishlistPanel.classList.add('show-header-cart');
             
             if (isGuest()) {
-                // For guests, use localStorage
+                // For guests, use localStorage, but enrich with stock/images/offers for UI
                 try {
                     var localData = localStorage.getItem('wishlist') || '[]';
                     var items = JSON.parse(localData);
-                    renderWishlistItems(items);
+                    if (!Array.isArray(items) || items.length === 0) { renderWishlistEmpty(); return; }
+                    Promise.all(items.map(function(it){
+                        return fetch('/api/products/' + it.id + '/quick-view')
+                            .then(function(r){ return r.ok ? r.json() : null; })
+                            .then(function(data){
+                                if (!data) return it;
+                                if (it.variantId) {
+                                    var v = (data.productVariants || []).find(function(vv){ return String(vv.id) === String(it.variantId); });
+                                    if (v) {
+                                        if (v.productVariantImages && v.productVariantImages.length > 0) { it.image = it.image || v.productVariantImages[0].imageUrl; }
+                                        if (v.offer && v.offer.has_offer) {
+                                            it.hasOffer = true;
+                                            it.price = v.offer.discounted_price;
+                                            it.originalPrice = v.offer.original_price;
+                                            it.currency = '€';
+                                        } else {
+                                            it.hasOffer = false;
+                                            it.price = (typeof v.price !== 'undefined') ? v.price : it.price;
+                                        }
+                                        it.quantityInStock = v.quantityInStock;
+                                    }
+                                } else {
+                                    if (data.offer && data.offer.has_offer) {
+                                        it.hasOffer = true;
+                                        it.price = data.offer.discounted_price;
+                                        it.originalPrice = data.offer.original_price;
+                                        it.currency = '€';
+                                    } else {
+                                        it.hasOffer = false;
+                                        it.price = data.price;
+                                    }
+                                    if (data.overviewImage) it.image = it.image || data.overviewImage;
+                                    it.quantityInStock = data.quantityInStock;
+                                }
+                                return it;
+                            })
+                            .catch(function(){ return it; });
+                    })).then(function(enriched){ renderWishlistItems(enriched); })
+                      .catch(function(){ renderWishlistItems(items); });
                 } catch (e) {
                     console.error('Error parsing wishlist from localStorage:', e);
                     renderWishlistEmpty();
@@ -76,6 +114,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                         it.hasOffer = false;
                                         it.price = v ? v.price : it.price;
                                     }
+                                    // stock
+                                    if (v && typeof v.quantityInStock !== 'undefined') {
+                                        it.quantityInStock = v.quantityInStock;
+                                    }
                                 } else {
                                     // base product
                                     if (data.offer && data.offer.has_offer) {
@@ -89,6 +131,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                     }
                                     // prefer overview image from API
                                     if (data.overviewImage) it.image = data.overviewImage;
+                                    // stock
+                                    if (typeof data.quantityInStock !== 'undefined') {
+                                        it.quantityInStock = data.quantityInStock;
+                                    }
                                 }
                                 return it;
                             })
@@ -253,6 +299,11 @@ document.addEventListener('DOMContentLoaded', function () {
             var priceNum = (typeof item.price === 'number') ? item.price : (function(){ try { return parseFloat(String(item.price).replace(/[^0-9.\-]/g,'')); } catch(e){ return null; } })();
             var originalNum = (typeof item.originalPrice === 'number') ? item.originalPrice : (item.originalPrice ? parseFloat(String(item.originalPrice)) : null);
             var priceHtml;
+            var outOfStock = false;
+            try {
+                var q = (item.quantityInStock != null && item.quantityInStock !== '') ? parseInt(item.quantityInStock) : null;
+                outOfStock = (q != null && !isNaN(q) && q <= 0);
+            } catch(e) { outOfStock = false; }
             if (window.Currency) {
                 if (hasOffer && originalNum != null) {
                     priceHtml = window.Currency.formatPair(priceNum, originalNum);
@@ -279,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         data-product-price="${priceNum !== null && !isNaN(priceNum) ? priceNum : ''}"
                         data-product-image="${item.image || ''}"
                         data-variant-id="${item.variantId || ''}"
-                        data-variant-name="${item.variantName || ''}">
+                        data-variant-name="${item.variantName || ''}" ${outOfStock ? 'disabled' : ''}>
                     Add to Cart
                 </button>`;
                 
@@ -307,6 +358,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const addToCartBtn = e.target.closest('.add-to-cart-btn');
         if (addToCartBtn && wishlistPanel.contains(addToCartBtn)) {
             e.preventDefault();
+            if (addToCartBtn.disabled) { return; }
             
             const productId = addToCartBtn.getAttribute('data-product-id');
             const productName = addToCartBtn.getAttribute('data-product-name');
@@ -324,7 +376,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     productImage: productImage,
                     quantity: 1,
                     variantId: variantId,
-                    variantName: variantName
+                    variantName: variantName,
+                    source: 'wishlist'
                 },
                 bubbles: true
             });
@@ -632,40 +685,42 @@ document.addEventListener('DOMContentLoaded', function () {
                     })
                     .then(function(resp){ var items = normalizeServerCart(resp.cart || resp); renderCartItems(items); })
                     .catch(function(){ /* noop */ });
-                // Also remove the specific item from the server-side wishlist and refresh wishlist panel
-                try {
-                    var pid = d && d.productId ? String(d.productId) : null;
-                    var vid = (d && (d.variantId !== undefined && d.variantId !== null)) ? d.variantId : null;
-                    if (pid) {
-                        // Use API toggle to remove just this product/variant from wishlist
-                        fetch('/api/wishlist/toggle/' + encodeURIComponent(pid), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ variantId: vid })
-                        })
-                        .then(function(){
-                            // Refresh wishlist panel from server to avoid showing it empty incorrectly
-                            return fetch('/wishlist', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                        })
-                        .then(function(r){ return r && r.ok ? r.json() : []; })
-                        .then(function(list){
-                            // Update wishlist count badge
-                            try {
-                                document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
-                                    if (icon.querySelector('.zmdi-favorite-outline')) {
-                                        icon.setAttribute('data-notify', String(Array.isArray(list) ? list.length : 0));
-                                    }
-                                });
-                            } catch(e) { /* noop */ }
-                            if (wishlistPanel && wishlistPanel.classList.contains('show-header-cart')) {
-                                renderWishlistItems(Array.isArray(list) ? list : []);
-                            }
-                            // Broadcast update
-                            try { document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: Array.isArray(list) ? list : [] } })); } catch(e) {}
-                        })
-                        .catch(function(){ /* noop */ });
-                    }
-                } catch(err) { /* noop */ }
+                // If add-to-cart originated from wishlist, remove it from wishlist and refresh wishlist panel
+                if (d && d.source === 'wishlist') {
+                    try {
+                        var pid = d && d.productId ? String(d.productId) : null;
+                        var vid = (d && (d.variantId !== undefined && d.variantId !== null)) ? d.variantId : null;
+                        if (pid) {
+                            // Use API toggle to remove just this product/variant from wishlist
+                            fetch('/api/wishlist/toggle/' + encodeURIComponent(pid), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ variantId: vid })
+                            })
+                            .then(function(){
+                                // Refresh wishlist panel from server to avoid showing it empty incorrectly
+                                return fetch('/wishlist', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                            })
+                            .then(function(r){ return r && r.ok ? r.json() : []; })
+                            .then(function(list){
+                                // Update wishlist count badge
+                                try {
+                                    document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
+                                        if (icon.querySelector('.zmdi-favorite-outline')) {
+                                            icon.setAttribute('data-notify', String(Array.isArray(list) ? list.length : 0));
+                                        }
+                                    });
+                                } catch(e) { /* noop */ }
+                                if (wishlistPanel && wishlistPanel.classList.contains('show-header-cart')) {
+                                    renderWishlistItems(Array.isArray(list) ? list : []);
+                                }
+                                // Broadcast update
+                                try { document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: Array.isArray(list) ? list : [] } })); } catch(e) {}
+                            })
+                            .catch(function(){ /* noop */ });
+                        }
+                    } catch(err) { /* noop */ }
+                }
             } else {
                 // Guest: resolve discounted price from quick-view API before adding
                 var pid = d.productId; var vid = d.variantId || '';
@@ -717,8 +772,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     renderCartItems(updated);
                 });
             }
-            // Remove from guest wishlist only if user is NOT authenticated
-            if (!isAuth()) {
+            // Remove from guest wishlist only if user is NOT authenticated and source is wishlist
+            if (!isAuth() && d && d.source === 'wishlist') {
                 try {
                     var wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
                     var remPid = d && d.productId ? String(d.productId) : null;

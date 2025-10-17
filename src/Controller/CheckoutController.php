@@ -42,6 +42,10 @@ class CheckoutController extends AbstractController
         return $this->render('checkout/index.html.twig', [
             'defaults' => $defaults,
             'loyaltyBalance' => (int)($user->getLoyaltyPoints() ?? 0),
+            'stripePk' => $_ENV['STRIPE_PUBLISHABLE_KEY']
+                ?? ($_SERVER['STRIPE_PUBLISHABLE_KEY'] ?? null)
+                ?? getenv('STRIPE_PUBLISHABLE_KEY')
+                ?? '',
         ]);
     }
 
@@ -82,6 +86,12 @@ class CheckoutController extends AbstractController
             || !in_array($destination, $allowedDestination, true)
             || !in_array($paymentMethod, $allowedPayment, true)) {
             $this->addFlash('danger', 'Invalid checkout options provided.');
+            return $this->redirectToRoute('app_checkout');
+        }
+
+        // If credit card was selected, do NOT process here; frontend Stripe flow handles order & payment
+        if ($paymentMethod === 'credit card') {
+            $this->addFlash('danger', 'Card payments are processed securely on this page. Please enter card details and try again.');
             return $this->redirectToRoute('app_checkout');
         }
 

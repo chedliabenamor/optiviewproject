@@ -74,6 +74,14 @@
                     </div>
                 </div>
 
+                <div id="card-section" class="row m-t-16" style="display: none;">
+                    <div class="col-md-12">
+                        <label class="stext-110 cl2 m-b-8">Card Details</label>
+                        <div id="card-element" class="form-control"></div>
+                        <div id="card-errors" class="text-danger m-t-8"></div>
+                    </div>
+                </div>
+
                 <div class="row m-t-16">
                     <div class="col-12">
                         <label class="stext-110 cl2 m-b-8">Order Notes (optional)</label>
@@ -179,6 +187,106 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     }
     refreshSummary();
+});
+</script>
+<script src="https://js.stripe.com/v3"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    var stripePk = {{ stripePk ? (stripePk|json_encode|raw) : 'null' }};
+    var paymentSelect = document.querySelector('select[name="paymentMethod"]');
+    var cardSection = document.getElementById('card-section');
+    var form = document.querySelector('form[action="{{ path('app_checkout_confirm') }}"]');
+    var submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+    function toggleCardSection(){
+        var method = paymentSelect ? paymentSelect.value : 'credit card';
+        if (method === 'credit card') { cardSection.style.display = ''; }
+        else { cardSection.style.display = 'none'; }
+    }
+    if (paymentSelect && cardSection) {
+        toggleCardSection();
+        paymentSelect.addEventListener('change', toggleCardSection);
+    }
+
+    // Guard: if using credit card but Stripe PK missing, prevent native submit and show message
+    if (form) {
+        form.addEventListener('submit', function(e){
+            var method = paymentSelect ? paymentSelect.value : 'credit card';
+            if (method === 'credit card' && !stripePk) {
+                e.preventDefault();
+                var ce = document.getElementById('card-errors');
+                if (ce) { ce.textContent = 'Payment unavailable: missing Stripe publishable key.'; }
+                else { alert('Payment unavailable: missing Stripe publishable key.'); }
+            }
+        }, { capture: true });
+    }
+
+    if (!stripePk) { return; }
+    var stripe = Stripe(stripePk);
+    var elements = stripe.elements();
+    var card = elements.create('card');
+    var cardMounted = false;
+    function ensureCardMounted(){ if (!cardMounted && document.getElementById('card-element')) { card.mount('#card-element'); cardMounted = true; } }
+    ensureCardMounted();
+    if (paymentSelect) { paymentSelect.addEventListener('change', ensureCardMounted); }
+
+    function setProcessing(on){ if (!submitBtn) return; submitBtn.disabled = !!on; submitBtn.textContent = on ? 'Processing…' : 'Place Order'; }
+    function showError(msg){ var el = document.getElementById('card-errors'); if (el) { el.textContent = msg || ''; } }
+
+    if (form) {
+        form.addEventListener('submit', async function(e){
+            try {
+                var method = paymentSelect ? paymentSelect.value : 'credit card';
+                if (method !== 'credit card') { return; }
+                e.preventDefault();
+                showError('');
+                setProcessing(true);
+
+                var fd = new FormData(form);
+                var payload = {
+                    currency: (fd.get('currency') || 'EUR'),
+                    shippingAddress: fd.get('shippingAddress') || '',
+                    billingAddress: fd.get('billingAddress') || '',
+                    shippingProvider: fd.get('shippingProvider') || 'DHL',
+                    deliveryType: fd.get('deliveryType') || 'Standard',
+                    destination: fd.get('destination') || 'Domestic',
+                    notes: fd.get('notes') || '',
+                    loyaltyPointsToApply: parseInt(fd.get('loyaltyPointsToApply') || '0', 10) || 0
+                };
+
+                var resp = await fetch('/api/payments/create-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                var data = await resp.json();
+                if (!resp.ok || !data.success) { throw new Error(data && data.message ? data.message : 'Failed to initialize payment'); }
+
+                var clientSecret = data.clientSecret;
+                var orderId = data.orderId;
+
+                var result = await stripe.confirmCardPayment(clientSecret, {
+                    payment_method: { card: card }
+                });
+                if (result.error) { throw new Error(result.error.message || 'Payment failed'); }
+                if (!result.paymentIntent || result.paymentIntent.status !== 'succeeded') { throw new Error('Payment not completed'); }
+
+                var confirmResp = await fetch('/api/payments/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: orderId, paymentIntentId: result.paymentIntent.id })
+                });
+                var confirmData = await confirmResp.json();
+                if (!confirmResp.ok || !confirmData.success) { throw new Error(confirmData && confirmData.message ? confirmData.message : 'Failed to confirm order'); }
+
+                var redirectUrl = confirmData.redirect || ('{{ path('app_checkout_confirmation', { id: 0 })|e('js') }}'.replace('/0', '/' + orderId));
+                window.location.href = redirectUrl;
+            } catch (err) {
+                showError(err && err.message ? err.message : 'Payment error');
+                setProcessing(false);
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
