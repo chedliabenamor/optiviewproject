@@ -4,20 +4,23 @@ namespace App\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
+use Symfony\Component\Security\Http\Util\TargetPathTrait;
 // use Symfony\Component\Security\Http\SecurityEvents; // Not strictly needed if using LoginSuccessEvent::class
 
 class LoginRedirectSubscriber implements EventSubscriberInterface
 {
-    private UrlGeneratorInterface $urlGenerator;
-    private AuthorizationCheckerInterface $authorizationChecker;
+    use TargetPathTrait;
 
-    public function __construct(UrlGeneratorInterface $urlGenerator, AuthorizationCheckerInterface $authorizationChecker)
+    private UrlGeneratorInterface $urlGenerator;
+    private RequestStack $requestStack;
+
+    public function __construct(UrlGeneratorInterface $urlGenerator, RequestStack $requestStack)
     {
         $this->urlGenerator = $urlGenerator;
-        $this->authorizationChecker = $authorizationChecker;
+        $this->requestStack = $requestStack;
     }
 
     public static function getSubscribedEvents(): array
@@ -35,37 +38,23 @@ class LoginRedirectSubscriber implements EventSubscriberInterface
             return; // Should not happen on LoginSuccessEvent
         }
 
-        // Placeholder route names - these will need to exist
-        $adminRoute = 'admin_dashboard'; // Replace with your actual admin route name
-        $userRoute = 'app_home';       // Replace with your actual homepage route name
-        $fallbackRoute = '/'; // Default fallback if specific routes are not found
-
-        $redirectUrl = $fallbackRoute; // Initialize with a safe default
-
-        // Check if the user has ROLE_ADMIN
-        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
-            try {
-                $redirectUrl = $this->urlGenerator->generate($adminRoute);
-            } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException $e) {
-                // Admin route not found, try user route as fallback
-                try {
-                    $redirectUrl = $this->urlGenerator->generate($userRoute);
-                } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException $e2) {
-                    // User route also not found, use the root fallback
-                    // Optionally log this situation: e.g., $this->logger->warning('Admin or User route not found for admin login, falling back to /');
-                }
-            }
-        } else {
-            // For any other authenticated user, redirect to the homepage
-            try {
-                $redirectUrl = $this->urlGenerator->generate($userRoute);
-            } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException $e) {
-                // User route not found, use the root fallback
-                // Optionally log this situation: e.g., $this->logger->warning('User route not found for user login, falling back to /');
+        // 1) If a protected URL triggered the login (e.g., /checkout), redirect back to it
+        $session = $this->requestStack->getSession();
+        if ($session) {
+            $targetPath = $this->getTargetPath($session, 'main');
+            if ($targetPath) {
+                $event->setResponse(new RedirectResponse($targetPath));
+                return;
             }
         }
-        
-        $response = new RedirectResponse($redirectUrl);
-        $event->setResponse($response);
+
+        // 2) Otherwise, always send authenticated users to checkout page
+        try {
+            $redirectUrl = $this->urlGenerator->generate('app_checkout');
+        } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException $e) {
+            $redirectUrl = '/checkout';
+        }
+
+        $event->setResponse(new RedirectResponse($redirectUrl));
     }
 }
