@@ -31,14 +31,7 @@
                 <hr class="m-t-24 m-b-24" />
 
                 <div class="row">
-                    <div class="col-md-4">
-                        <label class="stext-110 cl2 m-b-8">Currency</label>
-                        <select name="currency" class="form-control" required>
-                            <option value="EUR" {{ defaults.currency == 'EUR' ? 'selected' : '' }}>EUR (€)</option>
-                            <option value="USD" {{ defaults.currency == 'USD' ? 'selected' : '' }}>USD ($)</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="stext-110 cl2 m-b-8">Delivery Type</label>
                         <select name="deliveryType" class="form-control" required>
                             <option {{ defaults.deliveryType == 'Standard' ? 'selected' : '' }}>Standard</option>
@@ -46,7 +39,7 @@
                             <option {{ defaults.deliveryType == 'Same-day' ? 'selected' : '' }}>Same-day</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="stext-110 cl2 m-b-8">Destination</label>
                         <select name="destination" class="form-control" required>
                             <option {{ defaults.destination == 'Domestic' ? 'selected' : '' }}>Domestic</option>
@@ -115,7 +108,7 @@
                                 <input type="number" min="0" max="{{ loyaltyBalance }}" step="1" class="form-control" name="loyaltyPointsToApply" id="loyaltyPointsToApply" placeholder="Enter points to apply" />
                                 <button type="button" class="btn btn-outline-secondary" id="btn-apply-all">Use max</button>
                             </div>
-                            <small class="text-muted">1 point = 0.01 {{ defaults.currency == 'USD' ? 'USD' : 'EUR' }}. Discount cannot exceed the order total.</small>
+                            <small class="text-muted">1 point = 0.01 EUR. Discount cannot exceed the order total.</small>
                         </div>
                     </div>
                 </div>
@@ -139,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }).catch(function(){ return 0; });
     }
     function refreshSummary(){
-        var currency = sel('currency') ? sel('currency').value : 'EUR';
+        var currency = 'EUR';
         var deliveryType = sel('deliveryType') ? sel('deliveryType').value : 'Standard';
         var destination = sel('destination') ? sel('destination').value : 'Domestic';
         var points = document.getElementById('loyaltyPointsToApply') ? parseInt(document.getElementById('loyaltyPointsToApply').value||'0',10) : 0;
@@ -168,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 });
             });
     }
-    ['currency','deliveryType','destination'].forEach(function(n){ var el = sel(n); if (el) { el.addEventListener('change', refreshSummary); }});
+    ['deliveryType','destination'].forEach(function(n){ var el = sel(n); if (el) { el.addEventListener('change', refreshSummary); }});
     var pointsInput = document.getElementById('loyaltyPointsToApply');
     if (pointsInput) {
         pointsInput.addEventListener('input', function(){
@@ -244,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
                 var fd = new FormData(form);
                 var payload = {
-                    currency: (fd.get('currency') || 'EUR'),
+                    currency: 'EUR',
                     shippingAddress: fd.get('shippingAddress') || '',
                     billingAddress: fd.get('billingAddress') || '',
                     shippingProvider: fd.get('shippingProvider') || 'DHL',
