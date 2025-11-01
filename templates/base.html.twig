@@ -160,11 +160,12 @@
     {% include 'partials/_wishlist_cart_panel.html.twig' %}
     
     {# Global flash messages - positioned prominently after header #}
-    {% if app.flashes|length > 0 %}
+    {% set flashes = app.flashes %}
+    {% if flashes|length > 0 %}
         <div class="flash-messages-container" style="position: relative; z-index: 1000; background: transparent;">
             <div class="container-fluid">
                 <div class="container">
-                    {% for label, messages in app.flashes %}
+                    {% for label, messages in flashes %}
                         {% for message in messages %}
                             <div class="alert alert-{{ label == 'danger' ? 'danger' : (label == 'warning' ? 'warning' : (label == 'success' ? 'success' : 'info')) }} alert-dismissible fade show mt-3 mx-auto flash-message" role="alert" style="max-width: 800px; position: relative; z-index: 1001;">
                                 <i class="fa fa-{{ label == 'success' ? 'check-circle' : (label == 'warning' ? 'exclamation-triangle' : (label == 'danger' ? 'times-circle' : 'info-circle')) }} me-2"></i>
