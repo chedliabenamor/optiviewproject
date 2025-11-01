@@ -26,12 +26,106 @@
     <link rel="stylesheet" href="{{ asset('assets/css/util.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}">
     
+    <style>
+        .flash-messages-container {
+            position: relative;
+            z-index: 1000;
+            padding: 0;
+            margin: 0;
+        }
+        .flash-message {
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border: none;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideDown 0.3s ease-out;
+        }
+        .flash-message .btn-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            opacity: 0.7;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 10px;
+        }
+        .flash-message .btn-close:hover {
+            opacity: 1;
+        }
+        .flash-message i {
+            margin-right: 8px;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Ensure flash messages appear above other content */
+        .alert-success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .alert-warning { background-color: #fff3cd; border-color: #ffeaa7; color: #856404; }
+        .alert-danger { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .alert-info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+    </style>
 
     {% block stylesheets %}
         {{ encore_entry_link_tags('app') }}
     {% endblock %}
     
-    <script>window.isAuthenticated = {{ app.user ? 'true' : 'false' }};</script>
+    <script>
+        window.isAuthenticated = {{ app.user ? 'true' : 'false' }};
+        {% if app.user %}
+            window.currentUserId = {{ app.user.id }};
+        {% else %}
+            window.currentUserId = null;
+        {% endif %}
+        
+        // Clear merge flags when user logs out or when different user logs in
+        var lastUserId = sessionStorage.getItem('last_user_id');
+        if (!window.isAuthenticated || (window.currentUserId && lastUserId && lastUserId !== String(window.currentUserId))) {
+            sessionStorage.removeItem('cart_merged');
+            sessionStorage.removeItem('wishlist_merged');
+        }
+        
+        // Store current user ID for next page load
+        if (window.currentUserId) {
+            sessionStorage.setItem('last_user_id', String(window.currentUserId));
+        } else {
+            sessionStorage.removeItem('last_user_id');
+        }
+        
+        // Force merge check on every page load for authenticated users
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.isAuthenticated) {
+                console.log('User is authenticated, attempting merge in 200ms...');
+                // Small delay to ensure wishlist-cart-panel.js is loaded
+                setTimeout(function() {
+                    console.log('Checking for merge functions...');
+                    if (typeof window.mergeGuestCartIfNeeded === 'function') {
+                        console.log('Calling mergeGuestCartIfNeeded from base template');
+                        window.mergeGuestCartIfNeeded();
+                    } else {
+                        console.log('mergeGuestCartIfNeeded function not found');
+                    }
+                    if (typeof window.mergeGuestWishlistIfNeeded === 'function') {
+                        console.log('Calling mergeGuestWishlistIfNeeded from base template');
+                        window.mergeGuestWishlistIfNeeded();
+                    } else {
+                        console.log('mergeGuestWishlistIfNeeded function not found');
+                    }
+                }, 200);
+            } else {
+                console.log('User is not authenticated, skipping merge');
+            }
+        });
+    </script>
 </head>
 <body class="animsition">
 
@@ -64,6 +158,28 @@
 
     {% include 'partials/_header.html.twig' %}
     {% include 'partials/_wishlist_cart_panel.html.twig' %}
+    
+    {# Global flash messages - positioned prominently after header #}
+    {% if app.flashes|length > 0 %}
+        <div class="flash-messages-container" style="position: relative; z-index: 1000; background: transparent;">
+            <div class="container-fluid">
+                <div class="container">
+                    {% for label, messages in app.flashes %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ label == 'danger' ? 'danger' : (label == 'warning' ? 'warning' : (label == 'success' ? 'success' : 'info')) }} alert-dismissible fade show mt-3 mx-auto flash-message" role="alert" style="max-width: 800px; position: relative; z-index: 1001;">
+                                <i class="fa fa-{{ label == 'success' ? 'check-circle' : (label == 'warning' ? 'exclamation-triangle' : (label == 'danger' ? 'times-circle' : 'info-circle')) }} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" aria-label="Close" onclick="this.parentElement.style.display='none'">&times;</button>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        {# Debug: Show when no flash messages are present #}
+        <script>console.log('No flash messages in template');</script>
+    {% endif %}
     
     <main class="main-content">
         {% block body %}{% endblock %}
@@ -164,6 +280,37 @@
                     wheelPropagation: false,
                 });
                 $(window).on('resize', function(){ ps.update(); });
+            });
+        });
+        
+        // Global flash message functionality
+        $(document).ready(function() {
+            // Debug: Log flash message count
+            var flashCount = $('.flash-message').length;
+            console.log('Flash messages found:', flashCount);
+            if (flashCount > 0) {
+                $('.flash-message').each(function(index) {
+                    console.log('Flash message ' + (index + 1) + ':', $(this).text().trim());
+                });
+            }
+            
+            // Auto-dismiss success messages after 5 seconds
+            $('.alert-success.flash-message').each(function() {
+                var alert = $(this);
+                console.log('Setting auto-dismiss for success message:', alert.text().trim());
+                setTimeout(function() {
+                    alert.fadeOut(500, function() {
+                        alert.remove();
+                    });
+                }, 5000);
+            });
+            
+            // Manual close functionality
+            $('.flash-message .btn-close').click(function() {
+                console.log('Manually closing flash message');
+                $(this).closest('.alert').fadeOut(300, function() {
+                    $(this).remove();
+                });
             });
         });
     </script>

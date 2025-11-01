@@ -234,8 +234,7 @@ class ProductController extends AbstractController
                                    WHERE po2.isActive = 1 AND po2.deletedAt IS NULL
                                      AND po2.startDate <= :todayEnd AND po2.endDate >= :todayStart
                                      AND (p2 = p OR (br IS NOT NULL AND b2 = br) OR (cat IS NOT NULL AND c2 = cat) OR pv2p = p))";
-                $qb->addSelect($discountExpr . ' AS HIDDEN saleDiscountPct');
-                $qb->orderBy('saleDiscountPct', 'DESC')->addOrderBy('p.createdAt', 'DESC');
+                $qb->addOrderBy($discountExpr, 'DESC')->addOrderBy('p.createdAt', 'DESC');
                 $qb->setParameter('type_percentage', \App\Entity\ProductOffer::TYPE_PERCENTAGE)
                    ->setParameter('type_fixed', \App\Entity\ProductOffer::TYPE_FIXED)
                    ->setParameter('todayStart', $todayStart)
@@ -253,8 +252,7 @@ class ProductController extends AbstractController
                                    WHERE po2.isActive = 1 AND po2.deletedAt IS NULL
                                      AND po2.startDate <= :todayEnd AND po2.endDate >= :todayStart
                                      AND (p2 = p OR (br IS NOT NULL AND b2 = br) OR (cat IS NOT NULL AND c2 = cat) OR pv2p = p))";
-                $qb->addSelect($discountExpr . ' AS HIDDEN saleDiscountPct');
-                $qb->orderBy('saleDiscountPct', 'ASC')->addOrderBy('p.createdAt', 'DESC');
+                $qb->addOrderBy($discountExpr, 'ASC')->addOrderBy('p.createdAt', 'DESC');
                 $qb->setParameter('type_percentage', \App\Entity\ProductOffer::TYPE_PERCENTAGE)
                    ->setParameter('type_fixed', \App\Entity\ProductOffer::TYPE_FIXED)
                    ->setParameter('todayStart', $todayStart)
@@ -384,6 +382,10 @@ class ProductController extends AbstractController
                 $em->persist($review);
                 $em->flush();
                 $this->addFlash('success', 'Thanks! Your review was submitted and will be visible once approved.');
+                // Debug: Log flash message creation
+                error_log('Flash message added: success - Review submitted');
+            } else {
+                $this->addFlash('warning', 'Please enter a comment to submit your review.');
             }
 
             return $this->redirectToRoute('product_show', ['id' => $product->getId()]);

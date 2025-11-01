@@ -54,9 +54,6 @@
                     <a class="filter-link stext-106 trans-04 {{ currentSort == 'sale_high' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'sale_high', 'page': 1})) }}">Sale: High to Low</a>
                 </li>
                 <li class="p-b-6">
-                    <a class="filter-link stext-106 trans-04 {{ currentSort == 'sale_low' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'sale_low', 'page': 1})) }}">Sale: Low to High</a>
-                </li>
-                <li class="p-b-6">
                     <a class="filter-link stext-106 trans-04 {{ currentSort == 'oldest' ? 'filter-link-active' }}" href="{{ path('product_shop', query|merge({'sort': 'oldest', 'page': 1})) }}">Oldest</a>
                 </li>
             </ul>

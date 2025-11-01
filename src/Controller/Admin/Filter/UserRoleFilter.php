@@ -45,19 +45,44 @@ class UserRoleFilter implements FilterInterface
         }
 
         $alias = $filterDataDto->getEntityAlias();
-        $orX = $queryBuilder->expr()->orX();
+        $property = sprintf('%s.%s', $alias, $filterDataDto->getProperty());
 
-        // Support array or single value
-        $values = is_array($selectedValues) ? $selectedValues : [$selectedValues];
-        foreach (array_values($values) as $i => $role) {
-            if (!$role) { continue; }
-            $param = sprintf('role_%d', $i);
-            $orX->add($queryBuilder->expr()->like(sprintf('%s.%s', $alias, $filterDataDto->getProperty()), ":$param"));
-            $queryBuilder->setParameter($param, '%"' . $role . '"%');
+        // Normalize into array of choices
+        $values = is_array($selectedValues) ? array_values($selectedValues) : [$selectedValues];
+        $values = array_filter($values, static fn($v) => !empty($v));
+        if (empty($values)) {
+            return;
         }
 
-        if (method_exists($orX, 'count') ? $orX->count() > 0 : true) {
-            $queryBuilder->andWhere($orX);
+        $selectsAdmin = in_array('ROLE_ADMIN', $values, true);
+        $selectsUser  = in_array('ROLE_USER', $values, true);
+
+        // If both Admin and User are selected (or ambiguous), do not restrict
+        if (($selectsAdmin && $selectsUser) || (count($values) > 1 && !$selectsAdmin && !$selectsUser)) {
+            return;
+        }
+
+        // When filtering Admins: roles JSON contains "ROLE_ADMIN"
+        if ($selectsAdmin && !$selectsUser) {
+            // MySQL 8+: JSON_CONTAINS(roles, '"ROLE_ADMIN"') = 1
+            $queryBuilder
+                ->andWhere(sprintf("FUNCTION('JSON_CONTAINS', %s, :json_admin) = 1", $property))
+                ->setParameter('json_admin', '"ROLE_ADMIN"');
+            return;
+        }
+
+        // When filtering Users: users WITHOUT ROLE_ADMIN
+        // JSON_CONTAINS(..., '"ROLE_ADMIN"') = 0 OR roles IS NULL OR roles = []
+        if ($selectsUser && !$selectsAdmin) {
+            $orX = $queryBuilder->expr()->orX();
+            $orX->add(sprintf("FUNCTION('JSON_CONTAINS', %s, :json_admin) = 0", $property));
+            $orX->add($queryBuilder->expr()->isNull($property));
+            $orX->add($queryBuilder->expr()->eq($property, ':empty_json'));
+
+            $queryBuilder
+                ->andWhere($orX)
+                ->setParameter('json_admin', '"ROLE_ADMIN"')
+                ->setParameter('empty_json', '[]');
         }
     }
 }

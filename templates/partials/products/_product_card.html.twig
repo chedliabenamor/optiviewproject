@@ -138,9 +138,10 @@
     data-product-id="{{ product.id }}"
     data-product-name="{{ product.name|e('js') }}"
     data-product-image="{{ variantImageSrc ?: (product.overviewImage ? vich_uploader_asset(product, 'overviewImageFile') : asset('assets/images/no-image.webp')) }}"
-    data-product-price="€{{ hasVariantOffer ? discountedPrice|number_format(2, '.', '') : (offerData is defined and offerData.has_offer ? offerData.discounted_price|number_format(2, '.', '') : basePrice|number_format(2, '.', '') ) }}"
-    data-product-original-price="{{ hasVariantOffer ? '€' ~ originalPrice|number_format(2, '.', '') : (offerData is defined and offerData.has_offer ? '€' ~ offerData.original_price|number_format(2, '.', '') : '') }}"
-    data-product-has-offer="{{ hasVariantOffer ? '1' : (offerData is defined and offerData.has_offer ? '1' : '0') }}">
+    data-product-price="{{ hasVariantOffer ? discountedPrice|number_format(2, '.', '') : (offerData is defined and offerData.has_offer ? offerData.discounted_price|number_format(2, '.', '') : basePrice|number_format(2, '.', '') ) }}"
+    data-product-original-price="{{ hasVariantOffer ? originalPrice|number_format(2, '.', '') : (offerData is defined and offerData.has_offer ? offerData.original_price|number_format(2, '.', '') : '') }}"
+    data-product-has-offer="{{ hasVariantOffer ? '1' : (offerData is defined and offerData.has_offer ? '1' : '0') }}"
+    data-product-currency="€">
     <img class="icon-heart1 dis-block trans-04" src="{{ asset('assets/images/icons/icon-heart-01.png') }}" alt="ICON">
     <img class="icon-heart2 dis-block trans-04 ab-t-l" src="{{ asset('assets/images/icons/icon-heart-02.png') }}" alt="ICON">
 </a>

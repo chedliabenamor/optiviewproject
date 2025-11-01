@@ -3170,8 +3170,10 @@ iframe {border: none;}
 .wrap-pic-max-h {
 	display: block;
 }
-
-.wrap-pic-w img {width: 100%;}
+.password-requirements +ul {
+    color: red;
+}
+.wrap-pic-w img {width: 100%; height : 100% ; object-fit: cover;}
 .wrap-pic-max-w img {max-width: 100%;}
 
 .wrap-pic-h img {height: 100%;}

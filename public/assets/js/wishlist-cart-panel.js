@@ -515,7 +515,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <span class="m-l-12 header-cart-item-info">x ${formatCurrency(price)}</span>
                     </div>
                     <button class="cart-remove-btn stext-110 cl2 p-t-8" data-product-id="${ci.id}" data-variant-id="${ci.variantId || ''}" title="Remove">
-                        <i class="zmdi zmdi-delete" style="color:#e74c3c"></i>
+                        <i class="zmdi zmdi-close" style="color:#fff"></i>
                     </button>
                 </div>`;
             list.appendChild(li);
@@ -802,23 +802,82 @@ document.addEventListener('DOMContentLoaded', function () {
     // Merge guest cart into server cart on login
     function mergeGuestCartIfNeeded(){
         try {
+            console.log('mergeGuestCartIfNeeded called, isAuth:', isAuth());
             if (!isAuth()) return;
-            if (sessionStorage.getItem('cart_merged') === '1') return;
+            if (sessionStorage.getItem('cart_merged') === '1') {
+                console.log('Cart already merged, skipping');
+                return;
+            }
             var items = JSON.parse(localStorage.getItem('cart') || '[]');
+            console.log('Guest cart items found:', items.length, items);
             if (!Array.isArray(items) || items.length === 0) return;
             var payload = { items: items.map(function(it){ return { productId: it.id, variantId: it.variantId || null, quantity: parseInt(it.quantity || 1, 10) }; }) };
+            console.log('Merging cart with payload:', payload);
             fetch('/api/cart/merge', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                 .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
-                .then(function(){ localStorage.removeItem('cart'); sessionStorage.setItem('cart_merged','1'); renderCartFromSource(); })
-                .catch(function(){});
-        } catch(e) { /* noop */ }
+                .then(function(){ 
+                    console.log('Cart merge successful');
+                    localStorage.removeItem('cart'); 
+                    sessionStorage.setItem('cart_merged','1'); 
+                    renderCartFromSource(); 
+                })
+                .catch(function(e){ console.log('Cart merge failed:', e); });
+        } catch(e) { console.log('Cart merge error:', e); }
     }
+    
+    // Make merge functions globally accessible
+    window.mergeGuestCartIfNeeded = mergeGuestCartIfNeeded;
+
+    // Merge guest wishlist into server wishlist on login
+    function mergeGuestWishlistIfNeeded(){
+        try {
+            console.log('mergeGuestWishlistIfNeeded called, isAuth:', isAuth());
+            if (!isAuth()) return;
+            if (sessionStorage.getItem('wishlist_merged') === '1') {
+                console.log('Wishlist already merged, skipping');
+                return;
+            }
+            var wishlistItems = JSON.parse(localStorage.getItem('wishlist') || '[]');
+            console.log('Guest wishlist items found:', wishlistItems.length, wishlistItems);
+            if (!Array.isArray(wishlistItems) || wishlistItems.length === 0) return;
+            var payload = { items: wishlistItems.map(function(it){ return { id: it.id, variantId: it.variantId || null }; }) };
+            console.log('Merging wishlist with payload:', payload);
+            fetch('/api/wishlist/merge', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+                .then(function(){
+                    console.log('Wishlist merge successful');
+                    localStorage.removeItem('wishlist');
+                    sessionStorage.setItem('wishlist_merged','1');
+                    try {
+                        // Update header wishlist badge by reloading from server
+                        fetch('/wishlist', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                            .then(function(resp){ return resp.ok ? resp.json() : []; })
+                            .then(function(serverItems){
+                                var count = Array.isArray(serverItems) ? serverItems.length : 0;
+                                document.querySelectorAll('.icon-header-noti').forEach(function(icon) {
+                                    if (icon.querySelector('.zmdi-favorite-outline')) {
+                                        icon.setAttribute('data-notify', String(count));
+                                    }
+                                });
+                                // Broadcast update
+                                document.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: { items: serverItems } }));
+                            })
+                            .catch(function(){});
+                    } catch(e) { /* noop */ }
+                })
+                .catch(function(e){ console.log('Wishlist merge failed:', e); });
+        } catch(e) { console.log('Wishlist merge error:', e); }
+    }
+    
+    // Make merge functions globally accessible
+    window.mergeGuestWishlistIfNeeded = mergeGuestWishlistIfNeeded;
 
     // Initialize badges/lists on load
     (function initCartUI(){
         try {
             if (isAuth()) {
                 mergeGuestCartIfNeeded();
+                mergeGuestWishlistIfNeeded();
                 // Load from server to set badge
                 fetch('/api/cart')
                     .then(function(r){ return r.ok ? r.json() : Promise.reject(); })

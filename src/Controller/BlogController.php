@@ -169,6 +169,8 @@ class BlogController extends AbstractController
         $entityManager->flush();
         
         $this->addFlash('success', 'Thank you for your comment!');
+        // Debug: Log flash message creation
+        error_log('Flash message added: success - Comment submitted');
         
         return $this->redirectToRoute('blog_post_show', ['slug' => $slug]);
     }

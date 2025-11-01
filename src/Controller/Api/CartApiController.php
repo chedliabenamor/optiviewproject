@@ -34,7 +34,8 @@ class CartApiController extends AbstractController
     {
         $user = $this->getUser();
         if (!$user) {
-            return new JsonResponse(['success' => false, 'message' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+            // For guest users, return empty cart (frontend handles localStorage)
+            return new JsonResponse(['items' => [], 'total' => 0, 'currency' => '€']);
         }
 
         $cart = $this->getOrCreateCart($user);
@@ -409,4 +410,5 @@ class CartApiController extends AbstractController
             'currency' => '€',
         ];
     }
+
 }

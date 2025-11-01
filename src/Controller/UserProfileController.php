@@ -144,8 +144,9 @@ final class UserProfileController extends AbstractController
             throw $this->createAccessDeniedException('Invalid CSRF token');
         }
 
-        if (strtolower((string)$order->getStatus()) !== Order::STATUS_PENDING) {
-            $this->addFlash('warning', 'Only pending orders can be cancelled.');
+        $status = strtolower((string)$order->getStatus());
+        if (!in_array($status, [Order::STATUS_PENDING, Order::STATUS_PROCESSING], true)) {
+            $this->addFlash('warning', 'Only pending and processing orders can be cancelled.');
             return $this->redirectToRoute('app_user_order_detail', ['id' => $order->getId()]);
         }
 
