@@ -18,6 +18,7 @@
   let facingMode = 'user';
   let overlayImg = new Image();
   let overlayReady = false;
+  let overlayAnchor = { ax: 0, ay: 0 }; // pixels in image space, center-based
 
   // DOM refs
   const video = document.querySelector(SEL.video);
@@ -26,8 +27,10 @@
 
   // Display mapping for object-fit: contain on the video
   let display = { scale: 1, offsetX: 0, offsetY: 0, cw: 0, ch: 0, vw: 640, vh: 480 };
+  let mirrorX = false; // detect CSS mirror on video
 
   // Landmark indices to use (MediaPipe/FaceMesh)
+  // Standard FaceMesh temples: 234 (subject's left), 454 (subject's right)
   const KP = { leftEye: 33, rightEye: 263, noseTip: 1, noseBridge: 168, leftTemple: 234, rightTemple: 454, leftEar: 127, rightEar: 356 };
 
   // UI helpers
@@ -35,20 +38,8 @@
   function hide(el) { const n = document.querySelector(el); if (n) n.style.display = 'none'; }
   function showFlex(el){ const n=document.querySelector(el); if (n) n.style.display='flex'; }
 
-  // Smoothing and behavior tuning
-  const SMOOTHING = 0.25; // 0..1 (higher = snappier)
-  const TEMPLE_WIDTH_GAIN = 1.15; // fraction of temple-to-temple span to use for glasses width (reach ears)
-  const BRIDGE_Y_OFFSET_FACTOR = 0.02; // small raise above nose bridge by eyeDist fraction
-  const SHEAR_GAIN = 0.9; // how much yaw affects shear
-  const SHEAR_MAX = 0.35; // radians cap (~20 degrees)
-  const PITCH_GAIN = 0.10; // vertical scale gain from pitch metric
-  const EYE_TO_FRAME_GAIN = 2.8; // fallback scale using inter-eye distance
-  const HINGE_SUM_GAIN = 1.02; // gain on (dist(nose,lt)+dist(nose,rt)) width heuristic
-  const TEMPLE_Y_BLEND = 0.35; // blend nose vs temple height for vertical placement
-  const TEMPLE_X_BLEND = 0.12; // slight horizontal blend toward temple mid for better arm reach
-  const ROLL_TEMPLE_BLEND = 0.25; // blend of roll angle from temple line vs eye line
-  let AN = { bx: 0.5, by: 0.42, lx: 0.18, ly: 0.34, rx: 0.82, ry: 0.34 };
-  const BRIDGE_PIN = 0.2;
+  // Smoothing factors (0..1); higher = snappier
+  const SMOOTH = { pos: 0.18, scale: 0.18, rot: 0.18 };
   function parseAnchorsFromUrl(url){
     try{
       const u = new URL(url, window.location.href);
@@ -61,7 +52,22 @@
     }catch(_){ }
     return null;
   }
-  let smoothState = { x: null, y: null, angle: null, width: null, shear: null, vscale: 1 };
+  let smoothState = { x: null, y: null, angle: null, width: null };
+
+  function isVideoMirrored(el){
+    try {
+      const cs = getComputedStyle(el);
+      const tr = cs.transform || cs.webkitTransform || '';
+      if (!tr || tr === 'none') return false;
+      // matrix(a, b, c, d, e, f) -> a<0 indicates horizontal flip
+      const m = tr.match(/matrix\(([-0-9e\.]+),\s*([-0-9e\.]+),\s*([-0-9e\.]+),\s*([-0-9e\.]+),/i);
+      if (m && m[1]) return parseFloat(m[1]) < 0;
+      // matrix3d(a, ...), a<0 also implies flip on X
+      const m3 = tr.match(/matrix3d\(([-0-9e\.]+),/i);
+      if (m3 && m3[1]) return parseFloat(m3[1]) < 0;
+    } catch(_){}
+    return false;
+  }
 
   function resizeCanvasToContainer(){
     const container = video.parentElement;
@@ -82,6 +88,7 @@
     const offsetY = (ch - dispH) / 2;
 
     display = { scale, offsetX, offsetY, cw, ch, vw, vh };
+    mirrorX = isVideoMirrored(video);
   }
 
   async function ensureModel(){
@@ -126,131 +133,109 @@
     ctx.clearRect(0,0,canvas.width,canvas.height);
   }
 
+  // Compute center of opaque content to compensate transparent padding in PNGs
+  function computeOverlayAnchor(img){
+    try {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) return { ax: 0, ay: 0 };
+      const tmp = document.createElement('canvas');
+      tmp.width = w; tmp.height = h;
+      const ictx = tmp.getContext('2d');
+      ictx.drawImage(img, 0, 0);
+      const data = ictx.getImageData(0, 0, w, h).data;
+      let minX = w, minY = h, maxX = -1, maxY = -1;
+      for (let y = 0; y < h; y++){
+        for (let x = 0; x < w; x++){
+          const a = data[(y * w + x) * 4 + 3];
+          if (a > 5){
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX < minX || maxY < minY) return { ax: 0, ay: 0 };
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      // Offset from image center (positive ax means content center is to the right in image space)
+      return { ax: cx - w / 2, ay: cy - h / 2 };
+    } catch(_) { return { ax: 0, ay: 0 }; }
+  }
+
   function drawOverlayForFace(face){
     if (!overlayReady) return;
     const leP = face.scaledMesh[KP.leftEye];
     const reP = face.scaledMesh[KP.rightEye];
     const noseP = face.scaledMesh[KP.noseTip];
     const nbP = face.scaledMesh[KP.noseBridge] || noseP;
-    const ltP = face.scaledMesh[KP.leftEar] || face.scaledMesh[KP.leftTemple];
-    const rtP = face.scaledMesh[KP.rightEar] || face.scaledMesh[KP.rightTemple];
-    if (!leP || !reP || !noseP) return;
+    const ltP = face.scaledMesh[KP.leftTemple] || face.scaledMesh[KP.leftEar];
+    const rtP = face.scaledMesh[KP.rightTemple] || face.scaledMesh[KP.rightEar];
+    if (!leP || !reP || !nbP) return;
 
-    // Convert video coordinates to canvas coordinates
-    const toCanvas = (p) => [display.offsetX + p[0] * display.scale, display.offsetY + p[1] * display.scale];
+    const toCanvas = (p) => {
+      const x = mirrorX ? (display.vw - p[0]) : p[0];
+      return [display.offsetX + x * display.scale, display.offsetY + p[1] * display.scale];
+    };
     const le = toCanvas(leP);
     const re = toCanvas(reP);
-    const nose = toCanvas(noseP);
     const nb = toCanvas(nbP);
     const lt = ltP ? toCanvas(ltP) : null;
     const rt = rtP ? toCanvas(rtP) : null;
 
     const dx = re[0] - le[0];
     const dy = re[1] - le[1];
-    const eyeDist = Math.hypot(dx, dy);
     const angleEyes = Math.atan2(dy, dx);
 
-    // Center between eyes
+    // Horizontal center: midpoint between eyes; Vertical: nose bridge
     const cx = (le[0] + re[0]) / 2;
-    const cy = (le[1] + re[1]) / 2;
+    const cy = nb[1];
 
-    // Compute temple-to-temple span using specific temple landmarks; fallback to horizontal extremes
-    let templeSpan;
-    if (lt && rt) {
-      templeSpan = Math.hypot(rt[0] - lt[0], rt[1] - lt[1]);
-    } else {
-      let minX = Infinity, maxX = -Infinity;
-      for (let i = 0; i < face.scaledMesh.length; i++) {
-        const p = toCanvas(face.scaledMesh[i]);
-        if (p[0] < minX) minX = p[0];
-        if (p[0] > maxX) maxX = p[0];
-      }
-      templeSpan = Math.max(1, maxX - minX);
-    }
+    // Width: temple-to-temple if available, else eye-outer span
+    let widthPx = null;
+    if (lt && rt) widthPx = Math.hypot(rt[0] - lt[0], rt[1] - lt[1]);
+    else widthPx = Math.hypot(dx, dy);
+    widthPx = Math.max(1, widthPx);
 
-    const A = overlayImg.naturalHeight / overlayImg.naturalWidth;
-    let targetWidth, targetX, targetY, targetAngle;
-    if (lt && rt) {
-      const plx = AN.lx - 0.5, ply = (AN.ly - 0.5) * A;
-      const prx = AN.rx - 0.5, pry = (AN.ry - 0.5) * A;
-      const pbx = AN.bx - 0.5, pby = (AN.by - 0.5) * A;
-      const vsrcx = prx - plx, vsrcy = pry - ply;
-      const lensrc = Math.hypot(vsrcx, vsrcy) || 1e-3;
-      const vdstx = rt[0] - lt[0], vdsty = rt[1] - lt[1];
-      const lendst = Math.hypot(vdstx, vdsty) || 1e-3;
-      const wCanvas = lendst / lensrc;
-      const angsrc = Math.atan2(vsrcy, vsrcx);
-      const angdst = Math.atan2(vdsty, vdstx);
-      const theta = angdst - angsrc;
-      const pmx = (plx + prx) / 2, pmy = (ply + pry) / 2;
-      const cosT = Math.cos(theta), sinT = Math.sin(theta);
-      const offX = pmx * wCanvas * cosT - pmy * wCanvas * sinT;
-      const offY = pmx * wCanvas * sinT + pmy * wCanvas * cosT;
-      const qmx = (lt[0] + rt[0]) / 2, qmy = (lt[1] + rt[1]) / 2;
-      let posX = qmx - offX, posY = qmy - offY;
-      const bOffX = pbx * wCanvas * cosT - pby * wCanvas * sinT;
-      const bOffY = pbx * wCanvas * sinT + pby * wCanvas * cosT;
-      const bx = posX + bOffX, by = posY + bOffY;
-      posX += (nb[0] - bx) * BRIDGE_PIN;
-      posY += (nb[1] - by) * BRIDGE_PIN;
-      targetWidth = wCanvas;
-      targetX = posX;
-      targetY = posY;
-      targetAngle = theta;
-    } else {
-      const leftRadial = lt ? Math.hypot(nb[0] - lt[0], nb[1] - lt[1]) : 0;
-      const rightRadial = rt ? Math.hypot(nb[0] - rt[0], nb[1] - rt[1]) : 0;
-      const hingeSumWidth = (leftRadial + rightRadial) * HINGE_SUM_GAIN;
-      targetWidth = Math.max(templeSpan * TEMPLE_WIDTH_GAIN, eyeDist * EYE_TO_FRAME_GAIN, hingeSumWidth || 0);
-      const templeMidX = (lt && rt) ? (lt[0] + rt[0]) / 2 : nb[0];
-      const templeMidY = (lt && rt) ? (lt[1] + rt[1]) / 2 : cy;
-      targetX = nb[0] + (templeMidX - nb[0]) * TEMPLE_X_BLEND;
-      targetY = (nb[1] + (templeMidY - nb[1]) * TEMPLE_Y_BLEND) - eyeDist * BRIDGE_Y_OFFSET_FACTOR;
-      targetAngle = angleEyes;
-    }
-    const targetHeight = targetWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
-
-    // Approximate yaw using nose distance to each eye, then map to shear
-    const dL = Math.hypot((nb || nose)[0] - le[0], (nb || nose)[1] - le[1]);
-    const dR = Math.hypot((nb || nose)[0] - re[0], (nb || nose)[1] - re[1]);
-    let yaw = (dL - dR) / Math.max(dL + dR, 1e-3); // -1..1
-    yaw = Math.max(-1, Math.min(1, yaw));
-    const targetShear = Math.max(-SHEAR_MAX, Math.min(SHEAR_MAX, yaw * SHEAR_GAIN));
-
-    // Approximate pitch (up/down) from nose relative to eye line
-    const pitchMetric = (nose[1] - cy) / Math.max(eyeDist, 1e-3); // ~-1..1
-    const targetVScale = Math.max(0.9, Math.min(1.1, 1 + pitchMetric * PITCH_GAIN));
-
-    // Exponential smoothing for soft movement
+    // Smoothing
     const lerp = (a, b, t) => (a == null ? b : a + (b - a) * t);
-    smoothState.x = lerp(smoothState.x, targetX, SMOOTHING);
-    smoothState.y = lerp(smoothState.y, targetY, SMOOTHING);
-    smoothState.angle = lerp(smoothState.angle, targetAngle, SMOOTHING);
-    smoothState.width = lerp(smoothState.width, targetWidth, SMOOTHING);
-    smoothState.shear = lerp(smoothState.shear, targetShear, SMOOTHING);
-    smoothState.vscale = lerp(smoothState.vscale, targetVScale, SMOOTHING);
+    const tX = lerp(smoothState.x, cx, SMOOTH.pos);
+    const tY = lerp(smoothState.y, cy, SMOOTH.pos);
+    const tA = lerp(smoothState.angle, angleEyes, SMOOTH.rot);
+    const tW = lerp(smoothState.width, widthPx, SMOOTH.scale);
+    smoothState.x = tX; smoothState.y = tY; smoothState.angle = tA; smoothState.width = tW;
 
-    const w = smoothState.width || targetWidth;
+    const w = tW;
     const h = w * (overlayImg.naturalHeight / overlayImg.naturalWidth);
 
+    // Draw overlay
     ctx.save();
-    ctx.translate(smoothState.x || targetX, smoothState.y || targetY);
-    ctx.rotate(smoothState.angle || targetAngle);
-    // Apply a slight horizontal shear to mimic 3D warp when turning head
-    const shearVal = Math.tan(smoothState.shear || 0);
-    ctx.transform(1, 0, shearVal, 1, 0, 0);
-    // Slight vertical scaling to simulate pitch
-    if (smoothState.vscale) ctx.scale(1, smoothState.vscale);
-    const prevAlpha = ctx.globalAlpha;
-    const prevFilter = ctx.filter;
-    ctx.globalAlpha = 0.92;
-    ctx.filter = 'brightness(0.95) contrast(1.05) saturate(0.95)';
-    // Draw with the bridge (assumed centered) aligned to origin
+    ctx.translate(tX, tY);
+    ctx.rotate(tA);
+    // Apply anchor offset derived from opaque content bbox to counter transparent padding
+    const sx = w / (overlayImg.naturalWidth || 1);
+    const sy = h / (overlayImg.naturalHeight || 1);
+    ctx.translate(-overlayAnchor.ax * sx, -overlayAnchor.ay * sy);
     ctx.drawImage(overlayImg, -w/2, -h/2, w, h);
-    // restore
-    ctx.filter = prevFilter || 'none';
-    ctx.globalAlpha = prevAlpha == null ? 1 : prevAlpha;
     ctx.restore();
+
+    // Simple nose occlusion: erase region overlapping the nose-bridge polygon
+    try {
+      const noseIdx = [1, 6, 5, 197, 195, 4]; // small loop around bridge; safe fallback
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      for (let i = 0; i < noseIdx.length; i++) {
+        const p = face.scaledMesh[noseIdx[i]];
+        if (!p) continue;
+        const q = toCanvas(p);
+        if (i === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      ctx.fill();
+      ctx.restore();
+    } catch(_) { /* ignore occlusion errors */ }
   }
 
   async function loop(){
@@ -294,13 +279,11 @@
       }
     } catch(e) { /* ignore parsing issues */ }
 
-    const anOverride = parseAnchorsFromUrl(overlaySrc);
-    if (anOverride) { AN = anOverride; }
     overlayImg.onload = function(){ overlayReady = true; };
     overlayImg.onerror = function(){ showError('Failed to load overlay image: ' + overlaySrc); };
     overlayImg.src = overlaySrc;
     // Reset smoothing state on open so the overlay doesn't jump from a previous session
-    smoothState = { x: null, y: null, angle: null, width: null, shear: null, vscale: 1 };
+    smoothState = { x: null, y: null, angle: null, width: null };
 
     showFlex(SEL.modal);
     show(SEL.loading);
